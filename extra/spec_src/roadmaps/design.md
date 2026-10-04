@@ -1,7 +1,7 @@
 # Scope
 
 Breaker is a radical refactoring tool that takes a python code-base apart and rebuilds it.
-Since it'sis expected to break the code,and the developer will need to help with
+Since it is expected to break the code, the developer will need to help with
 fixing the errors and testing.
 
 ## Breaker and Claude collaborate on editing node files and source files
@@ -10,102 +10,272 @@ Breaker will capture the structure of the Python files in so-called node (yaml) 
 It will:
 
 - apply so-called `actions` to reorganize each module node file.
+  - Actions are deterministic Breaker functions (e.g. `move_function_to_parent`, `rename_symbol`, `move_function_to_file`).
+  - Each action updates both the node file and the related Python source, so that they stay in sync.
 - make requests to Claude to either edit the node file directly or indirectly by executing an action.
-  After updating a node file, Claude will also update the related Python module.
-- commit the updated node files and source files after each round of updates.
+  - When Claude edits a node file directly, it only fills in proposal fields (e.g. `concepts`, `renamings`,
+    `move_to_file`). It does not edit the Python source; source changes are made by Breaker actions in
+    the `apply-*` steps.
+- commit the updated node files and source files after each step.
+
+## Guidelines for the Claude requests
+
+1. Each request covers one node file and one kind of decision.
+   1. This keeps the task small and makes the result easy to review in the commit diff.
+2. Breaker pre-computes everything that can be computed deterministically and passes it to Claude as context.
+   1. E.g. the call graph (who calls which function, inside and outside the module), the source of the module,
+      and the project glossary (see MS-4).
+   2. Claude should spend its effort on judgement, not on facts that Breaker can compute.
+3. Mechanical changes are done by Breaker, not by Claude.
+   1. E.g. adding an underscore prefix to helper functions, applying renamings, moving functions between files.
+4. Breaker validates Claude's output against the node file schema and the guidelines of the step.
+   1. If validation fails, Breaker sends the errors back to Claude and asks for a corrected node file
+      (with a maximum number of retries).
+5. Breaker records per-file progress in the session file, so that an interrupted step can be resumed
+   without redoing the files that were already processed.
 
 ## Example
 
 An example node file is given in `./module_node_example.md`.
 
+## Node file schema
+
+1. A `ModuleNode` has the fields:
+   1. `name: str`: the path of the module, relative to the source root.
+   2. `rename_to: str | None`: the proposed new path (set in MS-6).
+   3. `concepts: List[str]`: concepts that apply to the entire module.
+   4. `renamings: Dict[str, str]`: renamings that apply to the entire module.
+   5. `function_nodes: List[FunctionNode]`: the top-level functions in the module.
+   6. `class_nodes: List[ClassNode]`: the classes in the module.
+   7. `variable_nodes: List[VariableNode]`: the module-level variables and constants.
+2. A `FunctionNode` has the fields:
+   1. `name: str`
+   2. `rename_to: str | None`
+   3. `move_to_file: str | None`: the proposed new path (set in MS-6).
+   4. `code_unit_type: str | None`: one of `action`, `rule`, `util`, `entrypoint` (set in MS-6).
+   5. `concepts: List[str]`
+   6. `local_terms: List[str]`
+   7. `responsibilities: List[str]`
+   8. `steps: List[str]`
+   9. `renamings: Dict[str, str]`
+   10. `aliases: Dict[str, List[str]]`
+   11. `abbreviations: Dict[str, str]`
+   12. `helper_function_nodes: List[FunctionNode]`
+3. A `ClassNode` has the fields:
+   1. `name: str`
+   2. `rename_to: str | None`
+   3. `move_to_file: str | None`
+   4. `code_unit_type: str | None`: one of `model`, `schema`, `enum`, `exception`, `form`, `other` (set in MS-6).
+   5. `concepts: List[str]`
+   6. `responsibilities: List[str]`
+   7. `renamings: Dict[str, str]`
+   8. `method_nodes: List[FunctionNode]`
+4. A `VariableNode` has the fields `name: str`, `rename_to: str | None` and `move_to_file: str | None`.
+5. A `PackageNode` has the fields:
+   1. `name: str`: the path of the package, relative to the source root.
+   2. `module_names: List[str]`: the modules in the package.
+   3. `proposed_modules: Dict[str, str]`: only used in the root package node file (set in MS-7).
+6. All paths in node files use the same notation: a file path relative to the source root
+   (e.g. `myapp/reports/rules/create_user_stats_report.py`).
+
 # Milestones
 
 ## MS-1: A developer initiates a breaker session
 
-1. The developer runs `breaker --init --branch-name=<branch-name>`
-   1. Breaker will check that we are on a clean branch.
+1. The developer runs `breaker init --branch-name=<branch-name>`
+   1. Breaker will check that the working tree is clean.
+   2. Breaker will check that there is no existing breaker-session.yaml file.
 2. Breaker will create a new branch with --branch-name
    1. The branch-name defaults to "breaker"
-3. Breaker will create a breaker-session.yaml file in the current directory.
-   1. This session file contains a `next_step` field that identifies the current step of the refactoring
-   2. Initially, the `next_step` field is `create-node-files`.
+3. Breaker will create a breaker-session.yaml file in the repository root.
+   1. This session file contains a `next_step` field that identifies the next step of the refactoring
+   2. It also contains a `source_root` field (defaults to `src`) and a `test_command` field
+      (defaults to `pytest`), which are used in later steps.
 4. Breaker will create node files that form a source map
    1. Per package it will create a package node file (called `package-node.breaker.yaml`) in the package root.
    2. Per python module it will create a module node file (with extension `.breaker.yaml`)
       1. Initially, each module node file just reflects the current contents of the module.
-      2. Specifically, Breaker sets the initial contents of the `module_node.function_nodes` field.
-   3. Breaker creates a first commit with the new node files.
-      1. It will update `next_step` to `identify-helper-functions`.
+      2. Specifically, Breaker sets the initial contents of the `function_nodes`, `class_nodes` and
+         `variable_nodes` fields.
+5. Breaker creates a first commit with the session file and the new node files.
+   1. It will set `next_step` to `identify-helper-functions`.
+
+## Breaker checks that node files and sources are in sync
+
+1. At the start of every `breaker next`, Breaker regenerates the structure of each module from the source and compares
+   it with the node file.
+   1. If the developer added, removed or renamed a function outside of Breaker, then Breaker reports the differences
+      and asks the developer to either update the node files with `breaker sync` or revert their changes.
+   2. `breaker sync` adds missing nodes and removes stale nodes, while keeping the proposal fields of the
+      nodes that still exist.
 
 ## MS-2: Breaker identifies helper functions
 
 1. The user calls `breaker next` to start the next step.
-2. Breaker will ask Claude to examine the FunctionNodes in the module node file.
+2. Breaker computes the call graph and marks helper candidates.
+   1. A function is a helper candidate if it is only called from a single other function in the same module.
+3. Breaker will ask Claude to examine the FunctionNodes in the module node file, together with the helper candidates.
    1. Claude decides which functions are helper functions and uses the move_function_to_parent action to nest them under their parent function.
-3. Breaker commits the results and updates `next_step` to `analyze-terminology`.
+   2. A function that is called from outside the module is never a helper function.
+   3. A function that is called by several functions in the module is not nested. It stays a top-level function
+      (in MS-6 it will typically become a rule or util).
+4. Breaker renames the helper functions so that they start with an underscore (in the node file and in the source).
+5. Breaker commits the results and updates `next_step` to `analyze-terminology`.
 
 ## MS-3: Breaker analyzes the terminology
 
 1. The developer runs `breaker next`
 2. Breaker will pass each node file to Claude and ask it to update it.
-   1. Claude will update each function-node in `function_nodes`:
+   1. Claude first updates the `ModuleNode.concepts: List[str]` field
+      1. These are the concepts that apply to the module as a whole.
+      2. They are recorded once at the module level to avoid repeating them in each FunctionNode.
+         Concepts in `FunctionNode.concepts` are not necessarily less important.
+   2. Claude will then update each function-node in `function_nodes` (and each class-node in `class_nodes`):
       1. It updates the `FunctionNode.concepts: List[str]` field
-         1. Each string names a concept that is used in the function
+         1. Each string names a concept that is used in the function, and that is not already in `ModuleNode.concepts`.
          2. A concept is a term that helps explain the purpose and responsibilities of the function.
-      2. It updates the `FunctionNode.local_terms: Dict[str]` field
+      2. It updates the `FunctionNode.local_terms: List[str]` field
          1. Each string names a local term that is used in the function
          2. A local term has local significance but is not significant in a wider context (and therefore is not a concept).
             1. E.g. `hash_tag` may be a local term if the function deals with hash_tags, but this term may not
                be a meaningful concept within the larger context that is the code-base.
             2. Claude will use its own judgement to distinguish between concepts and local terms.
                1. The distinction matters because concepts are only meaningful when not everything is a concept.
-         3. It updates the `FunctionNode.responsibilities: List[str]` field.
-            1. Each string describes a responsibility of the function
-            2. The description usually refers to concepts and local terms.
-         4. It updates the `FunctionNode.steps: List[str]` field
-            1. Each string describes a step that the function takes to meet its responsibilities.
-            2. The description usually refers to concepts and local terms.
-3. Breaker commits the results and updates `next_step` to `propose-unified-terminology`.
+      3. It updates the `FunctionNode.responsibilities: List[str]` field.
+         1. Each string describes a responsibility of the function
+         2. The description usually refers to concepts and local terms.
+      4. It updates the `FunctionNode.steps: List[str]` field
+         1. Each string describes a step that the function takes to meet its responsibilities.
+         2. The description usually refers to concepts and local terms.
+      5. When a function uses several names for the same concept or term (aliases), Claude records each concept or
+         term once (using the name that it considers canonical) and lists the aliases in the
+         `FunctionNode.aliases: Dict[str, List[str]]` field.
+         1. E.g. `outlier: [outlier_point]`.
+3. Breaker commits the results and updates `next_step` to `create-glossary`.
 
-## MS-4: Breaker proposes renamings that unify the terminology
+## MS-4: Breaker creates a project glossary
 
 1. The developer runs `breaker next`.
-2. Breaker asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field.
+2. Breaker collects all concepts, aliases and local terms from all node files.
+3. Breaker asks Claude to create a project glossary in `glossary.breaker.yaml`.
+   1. The glossary contains, for each concept:
+      1. the canonical name.
+      2. the aliases that are used in the code-base for this concept.
+      3. optionally, an abbreviation.
+      4. a one-line description.
+   2. When two concepts in different modules have the same meaning, Claude merges them into one glossary entry.
+   3. When the same name is used for different meanings in different modules, Claude records this as a conflict
+      in the glossary, so that the developer can resolve it.
+   4. Abbreviations may be used to keep names relatively short.
+      1. Concepts that are already short usually don't need an abbreviation.
+      2. Abbreviations are recorded in the glossary so that they can be applied consistently across the code-base.
+         1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative abbreviations.
+4. The developer reviews the glossary and may edit it.
+5. Breaker commits the results and updates `next_step` to `propose-renamings`.
+
+## MS-5: Breaker proposes renamings that unify the terminology
+
+1. The developer runs `breaker next`.
+2. Breaker asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field, using the glossary.
    1. Renamings are used to get rid of aliases.
    2. They can also be used to create shorter symbol names.
    3. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
       1. The entire symbol is stored as the key, not some part thereof (since there is no partial matching).
-      2. When the function uses multiple names for the same thing, then these aliases are replaced by the canonical name.
-         1. Typically, the canonical name will come from `FunctionNode.concepts`. However, also local terms should be renamed if they are aliases.
+      2. The renamings in `FunctionNode.renamings` apply to symbols that are local to the function (variables and
+         parameters). A renaming of the function itself is stored in `FunctionNode.rename_to`.
+         Renamings of module-level symbols are stored in `ModuleNode.renamings`.
+      3. When the function uses multiple names for the same thing, then these aliases are replaced by the canonical name.
+         1. The canonical name comes from the glossary for concepts. Local terms should also be renamed if they are aliases.
          2. The new name maintains the meaning (e.g. plural stays plural).
             1. E.g. if the function uses `outlier` and `outlier_point` as aliases then `new_outlier_points` will be renamed to `new_outliers` and `find_next_outlier_point` will be renamed to `find_next_outlier`.
-      3. Map types are renamed to `foo_by_bar` where `foo` is the value and `bar` is the key.
+      4. Map types are renamed to `foo_by_bar` where `foo` is the value and `bar` is the key.
          1. It's also possible to have `foo_by_bar_by_baz`, where `baz` is the key and `foo_by_bar` is the value.
-      4. Abbrevations may be used to keep the new name relatively short.
-         1. Claude will record abbreviations in the `FunctionNode.abbrevations: Dict[str]` field
-         2. Concepts and terms that are already short usually don't need an abbrevation.
-         3. Each key contains either a concept or local term, and the value contains its abbrevation.
-         4. Abbreviations are recorded so that they can be applied consistently.
-            1. Once an abbreviation is introduced, we should always use exactly that abbrevation and no alternative abbrevations.
-            2. E.g. if `sf` is an abbrevation for `suitability_fraction` in the `abbrevations` field then Claude may add a renaming from `highest_suitability_fraction_by_plot_id` to `highest_sf_by_plot_id`
-      5. Helper functions are renamed so that they start with an underscore.
-3. Claude will move concepts that apply at the module-level from the FunctionNodes to `ModuleNode.concepts`.
-   1. The related renamings are moved to `ModuleNode.renamings`.
-   2. Moving concepts to `ModuleNode.concepts` is done to avoid repeating them in each FunctionNode. Concepts in `FunctionNode.concepts` are not necessarily less important.
-4. The ModuleNode has a rename_to field that Claude can use to propose a new filename
-   1. Typically, Claude will propose to rename the file after the main function in that file.
-      1. If there are multiple candidate main function, then Claude picks the most suitable one.
-         1. The other candidates will be moved out of the node file (and related Python file) later.
-5. Breaker commits the results and updates `next_step` to `apply-unified-terminology`.
+      5. Abbreviations from the glossary may be used to keep the new name relatively short.
+         1. E.g. if `sf` is the abbreviation for `suitability_fraction` in the glossary then Claude may add a renaming from `highest_suitability_fraction_by_plot_id` to `highest_sf_by_plot_id`
+         2. Local terms that need an abbreviation are recorded in `FunctionNode.abbreviations: Dict[str, str]`.
+      6. Only symbols that are defined in the code-base are renamed. Attributes and parameters of external
+         libraries, and string literals (e.g. dict keys) are not renamed.
+3. Breaker validates the proposed renamings.
+   1. It reports a conflict when a new name clashes with an existing name in the same scope.
+   2. It reports a conflict when two node files propose different new names for the same symbol.
+4. Breaker commits the results and updates `next_step` to `apply-renamings`.
 
-## MS-5: Breaker applies the unified terminology
+## MS-6: Breaker applies the unified terminology
 
 1. The developer reviews all node files, possibly making edits to the proposed renamings and terminology.
 2. When they are done, they run `breaker next`.
-   1. Breaker will then apply the renaming.
-3. Breaker commits the results and updates `next_step` to `propose-code-restructure`.
+   1. Breaker will then apply the renamings (using the `rename_symbol` action), including in all call sites in the
+      code-base.
+3. Breaker runs the `test_command` and reports the result to the developer.
+   1. If the tests fail, the developer fixes the errors before continuing.
+4. Breaker commits the results and updates `next_step` to `propose-module-layout`.
 
-## MS-6: Breaker proposes to restructure the code
+## MS-7: Breaker proposes to restructure the code
 
 1. The developer runs `breaker next`.
-2. Breaker asks Claude to propose a structuring by setting the `FunctionNode.move_to_file` field where applicable.
+2. Breaker asks Claude to propose the module layout of the application package.
+   1. Claude receives the glossary and, for each module node file, the module concepts and the names and
+      responsibilities of the top-level functions and classes.
+   2. Claude records the list of proposed modules in the root package node file (in the
+      `PackageNode.proposed_modules: Dict[str, str]` field), mapping each module name onto a one-line description.
+   3. The developer reviews (and possibly edits) the proposed module layout.
+3. Breaker commits the results and updates `next_step` to `propose-code-restructure`.
+4. The developer runs `breaker next`.
+5. Breaker asks Claude to propose a structuring for each module node file, using the proposed module layout.
+   1. For every top-level function, class and module-level variable, Claude sets the `code_unit_type` field
+      and the `move_to_file` field.
+      1. Claude also sets `move_to_file` when the target is the current file, so that Breaker can check that
+         every node was considered.
+   2. Claude sets `ModuleNode.rename_to` when the module will continue to exist (typically it is renamed after
+      the main function in that file).
+6. The target code structure follows the following guidelines:
+   1. Application package
+      1. The application consists of a single application package (e.g. `myapp/`).
+      2. The application package is divided into modules (feature packages), e.g. `myapp/books/`, `myapp/chapters/`.
+         1. Each module covers one cohesive area of the domain and is named after its main concept (in plural form,
+            and using the canonical name from the glossary).
+         2. Code that is used by several modules but belongs to none of them goes into a shared module
+            (e.g. `myapp/utils/` for generic utils).
+   2. Code units
+      1. A function that changes the application state (e.g. it writes to a database, a file or a network
+         service, or it mutates its arguments) is an action.
+         1. It goes to `<module>/actions/<action_name>.py`.
+      2. A function that retrieves or computes information subject to business logic, without changing the
+         application state, is a rule.
+         1. It goes to `<module>/rules/<rule_name>.py`.
+      3. A function that is free from business logic (a generic helper) is a util.
+         1. It goes to `<module>/utils/<util_name>.py`.
+         2. A group of many small, closely related utils (e.g. small math helpers) may share a single group file.
+      4. A dataclass that represents a domain entity is a model.
+         1. It goes to `<module>/models/<model_name>.py`.
+         2. It uses the `dataclass` decorator from the `dataclassy` package.
+      5. Pydantic classes that describe the structure of a JSON blob are schemas.
+         1. They go into a schema file that is located close to the code that uses it.
+      6. Enums go to `<module>/enums.py`. All enums of a module live in this single file.
+      7. Settings (including all reads of environment variables) go to the single file `<app_package>/settings.py`.
+      8. Application entrypoints go to `<app_package>/runtime/entrypoints/<name>.py`.
+         1. An entrypoint has a `_parse_args()` function based on `argparse` and a `main()` function.
+         2. Each entrypoint is registered in the `[project.scripts]` section of `pyproject.toml`.
+      9. An exception class is defined in the action file that raises it.
+         1. Only very generic exceptions that are shared by many actions go to `<module>/utils/exceptions.py`.
+      10. A form dataclass is defined in the action file that uses it.
+          1. A form only contains simple values, not entity objects.
+   3. Files
+      1. Each action, rule, util and model gets its own file (except for util group files).
+      2. The file is named after the code unit it contains, in snake_case
+         (e.g. `CreateChapterForm` and `create_chapter` live in `chapters/actions/create_chapter.py`).
+      3. Helper functions stay in the file of their parent function and start with an underscore.
+         1. A helper that is used by several public functions is promoted to a rule or util.
+   4. Dependencies
+      1. Dependencies point in one direction: entrypoints → actions → rules → utils.
+         1. A rule never calls an action, and a util never calls a rule or an action.
+         2. Models, schemas and enums may be used by all code units.
+      2. Imports between modules must not create circular imports at runtime.
+         1. Type references to models in other modules use a `typing.TYPE_CHECKING` guard.
+7. Breaker validates the proposal.
+   1. It checks that every top-level node has a `code_unit_type` and a `move_to_file`.
+   2. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
+   3. It checks that no target file receives more than one public code unit (except for util group files,
+      enums, schemas and the exception/form classes that go with an action).
+   4. It uses the call graph to report dependencies that violate the dependency direction.
+8. Breaker commits the results and updates `next_step` to `apply-code-restructure`.

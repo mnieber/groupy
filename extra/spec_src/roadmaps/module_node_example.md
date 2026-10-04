@@ -1,7 +1,7 @@
 # ModuleNode file example
 
 ```yaml
-file_node:
+module_node:
   name: reports/markdown_reports.py
   rename_to: reports/rules/create_user_stats_report.py
   concepts: ["user_account"]
@@ -9,7 +9,7 @@ file_node:
   function_nodes:
     - name: get_api_usage
       rename_to: create_api_usage_report
-      move_to_file: api.rules.create_api_usage_report
+      move_to_file: api/rules/create_api_usage_report.py
       concepts: ["auth_token"]
       renamings:
         token: auth_token
