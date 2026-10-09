@@ -7,12 +7,15 @@ fixing the errors and testing.
 # Glossary
 
 - action: an operation - offered by Breaker - that changes nodes files and/or target code
+- chunk: a group of semantically related node files that are processed together
+- chunk file: a file that assigns each node file to a chunk
 - helper candidate: a function that might just be a helper function (e.g. because it's is only called by one other function in the same module)
 - node file: a yaml file that captures the structure of a Python module or package
 - request for actions (RFA): a request to Claude to analyze the node files and Python code and run actions
 - request for refactoring (RFR): a request to Claude to refactor the Python code directly, without calling actions
 - rope: a Python library that can perform refactorings
 - stage id: the id of the current stage in the refactoring. The user call `breaker next` to move to the next stage.
+- sub-session: a fresh Claude session that handles (part of) a chunk
 - target code: the Python code that we're refactoring
 
 # Rationale
@@ -41,6 +44,10 @@ If there are differences then it reports them and asks the user to make edits to
    - \_get_api_url to indicate a change in the function node for that function
    - get_api_usage.\_get_api_url to disambiguate the location using the parent function name
 
+## Chunking the work
+
+See ./chunking.md.
+
 ## Example
 
 An example node file is given in `./module_node_example.md`.
@@ -50,11 +57,12 @@ An example node file is given in `./module_node_example.md`.
 1. A `ModuleNode` has the fields:
    1. `name: str`: the path of the module, relative to the source root.
    2. `rename_to: str | None`: the proposed new path.
-   3. `concepts: List[str]`: concepts that apply to the entire module.
-   4. `renamings: Dict[str, str]`: renamings that apply to the entire module.
-   5. `function_nodes: List[FunctionNode]`: the top-level functions in the module.
-   6. `class_nodes: List[ClassNode]`: the classes in the module.
-   7. `variable_nodes: List[VariableNode]`: the module-level variables and constants.
+   3. `line_count: int`: the number of lines of code in the Python file.
+   4. `concepts: List[str]`: concepts that apply to the entire module.
+   5. `renamings: Dict[str, str]`: renamings that apply to the entire module.
+   6. `function_nodes: List[FunctionNode]`: the top-level functions in the module.
+   7. `class_nodes: List[ClassNode]`: the classes in the module.
+   8. `variable_nodes: List[VariableNode]`: the module-level variables and constants.
 2. A `FunctionNode` has the fields:
    1. `name: str`
    2. `rename_to: str | None`
@@ -92,7 +100,7 @@ An example node file is given in `./module_node_example.md`.
 
 1. The developer runs `breaker init --branch-name=<branch-name>`
    1. Breaker will check that the working tree is clean.
-   2. Breaker will check that there is no existing breaker-session.yaml file.
+   2. Breaker will check that there is no existing `.breaker/session.yaml` file.
 2. Breaker will create a new branch with --branch-name
    1. The branch-name defaults to "breaker"
 3. Breaker will create a breaker-session.yaml file in the repository root.

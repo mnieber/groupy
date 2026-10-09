@@ -1,5 +1,6 @@
 1. Add splitting, not just moving. Right now the restructure moves whole functions, but real code often mixes state changes with business logic in one function. Such a function isn't cleanly an action or a rule. The biggest structural gain comes from an "extract function" step that splits it into an action that calls rules and utils. Without that step, Claude has to force mixed functions into a single category.
 2. Discover models, not just functions. The design is centred on functions, but the models layer usually has to be found in implicit data: dicts with string keys, tuples, and long parameter lists that get passed around together. A step that proposes dataclassy models for these would give the other layers something to depend on.
+3. Use a supervisor. This is a Claude Haiku session that for example decides how to chunk the work.
 
 Discarded ideas:
 
