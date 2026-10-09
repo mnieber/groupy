@@ -138,7 +138,8 @@ An example node file is given in `./module_node_example.md`.
          Concepts in `FunctionNode.concepts` are not necessarily less important.
    2. Claude will then update each function-node in `function_nodes` (and each class-node in `class_nodes`):
       1. It updates the `FunctionNode.concepts: List[str]` field
-         1. Each string names a concept that is used in the function, and that is not already in `ModuleNode.concepts`.
+         1. Each string names a concept that is used in the function, and that is not already present (with the same meaning) in `ModuleNode.concepts`.
+            1. If it's present there with a different meaning (which should be rare), then it can be duplicated in the FunctionNode.
          2. A concept is a term that helps explain the purpose and responsibilities of the function.
       2. It updates the `FunctionNode.local_terms: List[str]` field
          1. Each string names a local term that is used in the function
