@@ -66,6 +66,11 @@ If there are differences then it reports them and asks the user to make edits to
 
 See ./chunking.md.
 
+## Call graph
+
+Breaker maintains a single call graph for the target code (ignoring test code), and passes a filtered view of it
+to Claude. See ./call-graph.md.
+
 ## Example
 
 An example node file is given in `./module_node_example.md`.
