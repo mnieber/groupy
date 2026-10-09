@@ -58,7 +58,7 @@ An example node file is given in `./module_node_example.md`.
    1. `name: str`: the path of the module, relative to the source root.
    2. `rename_to: str | None`: the proposed new path.
    3. `line_count: int`: the number of lines of code in the Python file.
-   4. `concepts: List[str]`: concepts that apply to the entire module.
+   4. `concepts: Dict[str, str | None]`: concepts that apply to the entire module, mapped onto a short description.
    5. `renamings: Dict[str, str]`: renamings that apply to the entire module.
    6. `function_nodes: List[FunctionNode]`: the top-level functions in the module.
    7. `class_nodes: List[ClassNode]`: the classes in the module.
@@ -69,8 +69,8 @@ An example node file is given in `./module_node_example.md`.
    3. `move_to_file: str | None`: the proposed new path.
    4. `code_unit_type: str | None`: one of `action`, `rule`, `util`, `entrypoint`.
    5. `is_helper_candidate: bool`,
-   6. `concepts: List[str]`
-   7. `local_terms: List[str]`
+   6. `concepts: Dict[str, str | None]`
+   7. `local_terms: Dict[str, str | None]`
    8. `responsibilities: List[str]`
    9. `steps: List[str]`
    10. `renamings: Dict[str, str]`
@@ -82,7 +82,7 @@ An example node file is given in `./module_node_example.md`.
    2. `rename_to: str | None`
    3. `move_to_file: str | None`
    4. `code_unit_type: str | None`: one of `model`, `schema`, `enum`, `exception`, `other`.
-   5. `concepts: List[str]`
+   5. `concepts: Dict[str, str | None]`
    6. `responsibilities: List[str]`
    7. `renamings: Dict[str, str]`
    8. `method_nodes: List[FunctionNode]`
@@ -91,7 +91,10 @@ An example node file is given in `./module_node_example.md`.
    1. `name: str`: the path of the package, relative to the source root.
    2. `module_names: List[str]`: the modules in the package.
    3. `proposed_modules: Dict[str, str]`: only used in the root package node file.
-6. All paths in node files use the same notation: a file path relative to the source root
+6. The `concepts` and `local_terms` fields map each concept or local term onto a short description.
+   1. The description is empty if it is already given elsewhere (e.g. in `ModuleNode.concepts`).
+   2. Breaker writes an empty description as `null`, but accepts both `null` and `""`.
+7. All paths in node files use the same notation: a file path relative to the source root
    (e.g. `myapp/reports/rules/create_user_stats_report.py`).
 
 # Milestones
@@ -132,18 +135,23 @@ An example node file is given in `./module_node_example.md`.
 
 1. The developer runs `breaker next`
 2. Breaker will pass each node file to Claude and ask it to update it (by running actions)
-   1. Claude first updates the `ModuleNode.concepts: List[str]` field
+   1. Claude first updates the `ModuleNode.concepts: Dict[str, str | None]` field
       1. These are the concepts that apply to the module as a whole.
-      2. They are recorded once at the module level to avoid repeating them in each FunctionNode.
+      2. Each key names a concept and the value is a short description of that concept.
+      3. They are recorded once at the module level to avoid repeating them in each FunctionNode.
          Concepts in `FunctionNode.concepts` are not necessarily less important.
    2. Claude will then update each function-node in `function_nodes` (and each class-node in `class_nodes`):
-      1. It updates the `FunctionNode.concepts: List[str]` field
-         1. Each string names a concept that is used in the function, and that is not already present (with the same meaning) in `ModuleNode.concepts`.
+      1. It updates the `FunctionNode.concepts: Dict[str, str | None]` field
+         1. Each key names a concept that is used in the function, and that is not already present (with the same meaning) in `ModuleNode.concepts`.
             1. If it's present there with a different meaning (which should be rare), then it can be duplicated in the FunctionNode.
-         2. A concept is a term that helps explain the purpose and responsibilities of the function.
-      2. It updates the `FunctionNode.local_terms: List[str]` field
-         1. Each string names a local term that is used in the function
-         2. A local term has local significance but is not significant in a wider context (and therefore is not a concept).
+         2. The value optionally describes the concept.
+            1. Claude leaves the description empty if it is already given elsewhere (e.g. in another node of the
+               same module), unless the meaning in this function is specific.
+         3. A concept is a term that helps explain the purpose and responsibilities of the function.
+      2. It updates the `FunctionNode.local_terms: Dict[str, str | None]` field
+         1. Each key names a local term that is used in the function
+         2. The value optionally describes the local term (following the same rule as for concepts).
+         3. A local term has local significance but is not significant in a wider context (and therefore is not a concept).
             1. E.g. `hash_tag` may be a local term if the function deals with hash_tags, but this term may not
                be a meaningful concept within the larger context that is the code-base.
             2. Claude will use its own judgement to distinguish between concepts and local terms.
@@ -165,16 +173,17 @@ An example node file is given in `./module_node_example.md`.
 ## MS-4: Breaker creates a project glossary
 
 1. The developer runs `breaker next`.
-2. Breaker collects all concepts, aliases and local terms from all node files.
+2. Breaker collects all concepts, aliases and local terms (with their descriptions) from all node files.
 3. Breaker asks Claude to create a project glossary in `glossary.breaker.yaml`.
    1. The glossary contains, for each concept:
       1. the canonical name.
       2. the aliases that are used in the code-base for this concept.
       3. optionally, an abbreviation.
-      4. a one-line description.
+      4. a one-line description (based on the descriptions in the node files).
    2. When two concepts in different modules have the same meaning, Claude merges them into one glossary entry.
       1. One of the two concepts will become an alias.
-   3. When the same name is used for different meanings in different modules, Claude records this as a conflict
+   3. When the same name is used for different meanings in different modules (as can be seen from the
+      descriptions), Claude records this as a conflict
       in the glossary, so that the developer can resolve it.
    4. Abbreviations may be used to keep names relatively short.
       1. Concepts that are already short usually don't need an abbreviation.
@@ -187,24 +196,27 @@ An example node file is given in `./module_node_example.md`.
 
 1. The developer runs `breaker next`.
 2. Breaker asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field, using the glossary.
-   1. Renamings are used to get rid of aliases.
-   2. They can also be used to create shorter symbol names.
-   3. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
-      1. The entire symbol is stored as the key, not some part thereof (since there is no partial matching).
-      2. The renamings in `FunctionNode.renamings` apply to symbols that are local to the function (variables and
-         parameters). A renaming of the function itself is stored in `FunctionNode.rename_to`.
-         Renamings of module-level symbols are stored in `ModuleNode.renamings`.
-      3. When the function uses multiple names for the same thing, then these aliases are replaced by the canonical name.
-         1. The canonical name comes from the glossary for concepts. Local terms should also be renamed if they are aliases.
-         2. The new name maintains the meaning (e.g. plural stays plural).
-            1. E.g. if the function uses `outlier` and `outlier_point` as aliases then `new_outlier_points` will be renamed to `new_outliers` and `find_next_outlier_point` will be renamed to `find_next_outlier`.
-      4. Map types are renamed to `foo_by_bar` where `foo` is the value and `bar` is the key.
+   1. Renamings are used to get rid of aliases. They apply to:
+      1. Symbols that are local to the function (variables and parameters).
+      2. Concepts and local terms (in the node file)
+   2. Claude will chose `renamings` such that all aliases are replaced by the canonical name.
+      1. Ideally, the canonical name comes from the global glossary,
+      2. Claude may also choose the canonical name from the module scope.
+      3. The entire symbol is stored as the key, not some part thereof (since there is no partial matching).
+      4. The new name maintains the meaning (e.g. plural stays plural).
+         1. E.g. if the function uses `outlier` and `outlier_point` as aliases then `new_outlier_points` will be renamed to `new_outliers` and `find_next_outlier_point` will be renamed to `find_next_outlier`.
+   3. Renamings can also be used to create shorter symbol names.
+   4. A renaming of the function itself is stored in `FunctionNode.rename_to`.
+      Renamings of module-level symbols are stored in `ModuleNode.renamings`.
+   5. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
+      1. Map types are renamed to `foo_by_bar` where `foo` is the value and `bar` is the key.
          1. It's also possible to have `foo_by_bar_by_baz`, where `baz` is the key and `foo_by_bar` is the value.
-      5. Abbreviations from the glossary may be used to keep the new name relatively short.
+      2. Abbreviations from the glossary may be used to keep the new name relatively short.
          1. E.g. if `sf` is the abbreviation for `suitability_fraction` in the glossary then Claude may add a renaming from `highest_suitability_fraction_by_plot_id` to `highest_sf_by_plot_id`
          2. Local terms that need an abbreviation are recorded in `FunctionNode.abbreviations: Dict[str, str]`.
-      6. Only symbols that are defined in the code-base are renamed. Attributes, parameters and dict-keys of external
+      3. Only symbols that are defined in the code-base are renamed. Attributes, parameters and dict-keys of external
          libraries are not renamed.
+         1. ❔how will we ensure this?
 3. Breaker validates the proposed renamings.
    1. It reports a conflict when a new name clashes with an existing name in the same scope.
 4. Breaker commits the results and updates `next_stage` to `apply-renamings`.
@@ -223,7 +235,7 @@ An example node file is given in `./module_node_example.md`.
 2. Breaker asks Claude to propose the module layout of the application package.
    1. Claude receives the glossary and, for each module node file, the module concepts and the names and
       responsibilities of the top-level functions and classes.
-   2. Claude runs an actio to record the list of proposed modules in the root package node file (in the
+   2. Claude runs an action to record the list of proposed modules in the root package node file (in the
       `PackageNode.proposed_modules: Dict[str, str]` field), mapping each module name onto a one-line description.
    3. The developer reviews (and possibly edits) the proposed module layout.
 3. Breaker commits the results and updates `next_stage` to `propose-code-restructure`.

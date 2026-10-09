@@ -4,24 +4,27 @@
 module_node:
   name: reports/markdown_reports.py
   rename_to: reports/rules/create_user_stats_report.py
-  concepts: ["user_account"]
+  concepts:
+    user_account: a registered user of the application
   renamings: {}
   function_nodes:
     - name: get_api_usage
       rename_to: create_api_usage_report
-      is_helper candidate: false
+      is_helper_candidate: false
       move_to_file: api/rules/create_api_usage_report.py
-      concepts: ["auth_token"]
+      concepts:
+        auth_token: a token that authenticates a client against the API
       renamings:
         token: auth_token
         previous_token: previous_auth_token
       helper_function_nodes:
         - name: _get_api_url
-          concepts: []
+          concepts: {}
     - name: get_user_stats
-      is_helper candidate: true
+      is_helper_candidate: true
       rename_to: create_user_stats_report
-      concepts: ["login_name"]
+      concepts:
+        login_name: null
       helper_function_nodes:
         - name: _normalize_login_name
 ```

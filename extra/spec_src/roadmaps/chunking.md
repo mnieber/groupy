@@ -41,6 +41,8 @@ group into chunks and processes these chunks in series. There are three grouping
       `breaker next` first recreates the group file.
 5. An RFA refers to the group file.
    1. Each chunk is a fresh Claude session that receives the group description and the pre-computed context.
-   2. Breaker records each finished chunk in the session file, so that an interrupted stage can be resumed.
-   3. Stages that need a view of the entire code-base (e.g. proposing the module layout) do not use groups.
+   2. Chunks are usually not independent. How work is handed over from one chunk to the next (e.g. via a
+      summary that is passed to the next chunk) is defined per RFA.
+   3. Breaker records each finished chunk in the session file, so that an interrupted stage can be resumed.
+   4. Stages that need a view of the entire code-base (e.g. proposing the module layout) do not use groups.
       Instead, Claude receives condensed input in a single session.
