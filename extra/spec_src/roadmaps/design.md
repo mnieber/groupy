@@ -4,30 +4,36 @@ Breaker is a radical refactoring tool that takes a python code-base apart and re
 Since it is expected to break the code, the developer will need to help with
 fixing the errors and testing.
 
+# Glossary
+
+- action: an operation - offered by Breaker - that changes nodes files and/or target code
+- node file: a yaml file that captures the structure of a Python module or package
+- request for actions (RFA): a request to Claude to analyze the node files and Python code and run actions
+- request for refactoring (RFR): a request to Claude to refactor the Python code directly, without calling actions
+- rope: a Python library that can perform refactorings
+- stage id: the id of the current stage in the refactoring. The user call `breaker next` to move to the next stage.
+- target code: the Python code that we're refactoring
+
+# Rationale
+
 ## Breaker and Claude collaborate on editing node files and source files
 
-Breaker will capture the structure of the Python files in so-called node (yaml) files.
-It will:
-
-- apply so-called `actions` to reorganize each module node file.
-  - Actions are deterministic Breaker functions (e.g. `move_function_to_parent`, `rename_symbol`, `move_function_to_file`).
-  - Each action updates both the node file and the related Python source, so that they stay in sync.
-- make requests to Claude to either edit the node file directly or indirectly by executing an action.
-  - When Claude edits a node file directly, it only fills in proposal fields (e.g. `concepts`, `renamings`,
-    `move_to_file`). It does not edit the Python source; source changes are made by Breaker actions in
-    the `apply-*` steps.
-- commit the updated node files and source files after each step.
+Typically the user will initiate a Breaker session and call `breaker next` to perform the next stage in the refactoring.
+Breaker will make RFAs that will cause Claude to run actions. These actions may update node files, or refactor the code
+via rope, or trigger RFRs that cause Claude to refactor the Python code directly. Breaker commits the updated node files
+and source files after each action; it groups the commits by prefixing the commit message with the stage id.
 
 ## Guidelines for the Claude requests
 
-1. Each request covers one node file and one kind of decision.
-   1. This keeps the task small and makes the result easy to review in the commit diff.
-2. Breaker pre-computes everything that can be computed deterministically and passes it to Claude as context.
+1. Breaker pre-computes everything that can be computed deterministically and passes it to Claude as context.
    1. E.g. the call graph (who calls which function, inside and outside the module), the source of the module,
-      and the project glossary (see MS-4).
+      and the project glossary.
    2. Claude should spend its effort on judgement, not on facts that Breaker can compute.
-3. All edits are done by Breaker, not by Claude directly.
-   1. E.g. adding an underscore prefix to helper functions, applying renamings, moving functions between files.
+2. All edits to node files are done by Breaker, not by Claude directly.
+   The edit location is given as:
+   - "@module": to indicate a change in the module node
+   - \_get_api_url to indicate a change in the function node for that function
+   - get_api_usage.\_get_api_url to disambiguate the location using the parent function name
 
 ## Example
 
