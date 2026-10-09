@@ -11,6 +11,7 @@ module_node:
     - name: get_api_usage
       rename_to: create_api_usage_report
       is_helper_candidate: false
+      extract_method_priority: high
       move_to_file: api/rules/create_api_usage_report.py
       concepts:
         auth_token: a token that authenticates a client against the API

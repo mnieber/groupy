@@ -43,6 +43,24 @@ If there are differences then it reports them and asks the user to make edits to
    - "@module": to indicate a change in the module node
    - \_get_api_url to indicate a change in the function node for that function
    - get_api_usage.\_get_api_url to disambiguate the location using the parent function name
+3. When an action or RFR changes the code of a function, then the analysis of that function (e.g. its concepts,
+   responsibilities and steps) is updated in the same RFA, so that later stages don't work with stale data.
+
+## Functions and methods
+
+1. Class methods are processed in the same way as standalone functions.
+   1. A method is considered to be a function that is called in a special way (with a `self` argument).
+   2. This applies to all analysis stages (e.g. helper functions, terminology, renamings and extract-method).
+2. In the call graph, calls to methods are marked as uncertain when Breaker cannot determine which method is called.
+   1. E.g. `obj.save()` cannot be resolved without knowing the type of `obj`, and subclasses may override `save`.
+   2. Claude takes this uncertainty into account when it uses the call graph (e.g. to decide whether a function
+      is a helper function).
+3. Some methods must stay methods, because Python or a framework calls them:
+   1. dunder methods (e.g. `__str__`, `__eq__`) and properties.
+   2. overrides of methods of a base class (e.g. `save` in a Django model).
+   3. methods that have several implementations across subclasses.
+4. In the code restructure, every other method may be turned into an action or rule that takes the instance as its
+   first argument.
 
 ## Chunking the work
 
@@ -73,10 +91,11 @@ An example node file is given in `./module_node_example.md`.
    7. `local_terms: Dict[str, str | None]`
    8. `responsibilities: List[str]`
    9. `steps: List[str]`
-   10. `renamings: Dict[str, str]`
-   11. `aliases: Dict[str, List[str]]`
-   12. `abbreviations: Dict[str, str]`
-   13. `helper_function_nodes: List[FunctionNode]`
+   10. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a']`
+   11. `renamings: Dict[str, str]`
+   12. `aliases: Dict[str, List[str]]`
+   13. `abbreviations: Dict[str, str]`
+   14. `helper_function_nodes: List[FunctionNode]`
 3. A `ClassNode` has the fields:
    1. `name: str`
    2. `rename_to: str | None`
@@ -84,8 +103,9 @@ An example node file is given in `./module_node_example.md`.
    4. `code_unit_type: str | None`: one of `model`, `schema`, `enum`, `exception`, `other`.
    5. `concepts: Dict[str, str | None]`
    6. `responsibilities: List[str]`
-   7. `renamings: Dict[str, str]`
-   8. `method_nodes: List[FunctionNode]`
+   7. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a']`
+   8. `renamings: Dict[str, str]`
+   9. `method_nodes: List[FunctionNode]`
 4. A `VariableNode` has the fields `name: str`, `rename_to: str | None` and `move_to_file: str | None`.
 5. A `PackageNode` has the fields:
    1. `name: str`: the path of the package, relative to the source root.
@@ -160,6 +180,8 @@ An example node file is given in `./module_node_example.md`.
          1. Each string describes a responsibility of the function
          2. The description usually refers to concepts and local terms.
          3. The responsibility to update (by the action) is identified by its list index
+         4. Based on whether the function has too many responsibilities, it sets `extract_method_priority`.
+            1. `'n/a'` means that the function doesn't need refactoring
       4. It updates the `FunctionNode.steps: List[str]` field
          1. Each string describes a step that the function takes to meet its responsibilities.
          2. The description usually refers to concepts and local terms.
@@ -175,6 +197,7 @@ An example node file is given in `./module_node_example.md`.
 1. The developer runs `breaker next`.
 2. Breaker collects all concepts, aliases and local terms (with their descriptions) from all node files.
 3. Breaker asks Claude to create a project glossary in `glossary.breaker.yaml`.
+   1. The glossary is built using incremental accumulation (see `./chunking.md`), with the glossary as the state file.
    1. The glossary contains, for each concept:
       1. the canonical name.
       2. the aliases that are used in the code-base for this concept.
@@ -217,6 +240,8 @@ An example node file is given in `./module_node_example.md`.
       3. Only symbols that are defined in the code-base are renamed. Attributes, parameters and dict-keys of external
          libraries are not renamed.
          1. ❔how will we ensure this?
+         2. Maybe scramble the third party names to protect them from being renamed, and afterwards undo the scrambling?
+         3. The scrambled name should contain a special token that allows Breaker/Claude to skip that name.
 3. Breaker validates the proposed renamings.
    1. It reports a conflict when a new name clashes with an existing name in the same scope.
 4. Breaker commits the results and updates `next_stage` to `apply-renamings`.
@@ -227,9 +252,31 @@ An example node file is given in `./module_node_example.md`.
 2. When they are done, they run `breaker next`.
    1. Breaker will then apply the renamings (using the `rename_symbol` action), including in all call sites in the
       code-base.
-3. Breaker commits the results and updates `next_stage` to `propose-module-layout`.
+3. Breaker commits the results and updates `next_stage` to `extract-methods`.
 
-## MS-7: Breaker proposes to restructure the code
+## MS-7: Breaker extract methods
+
+1. The developer runs `breaker next`.
+2. Breaker creates a list of functions to refactor based on the `FunctionNode.extract_method_priority` field.
+3. It divides this list into chunks and asks Claude to apply "extract method" to each function that requires it.
+   1. The extract-method action creates a node for the extracted function.
+   2. In the same RFA, Claude fills in the analysis of the extracted function (e.g. concepts, responsibilities and
+      steps) and updates the analysis of the parent function.
+4. Breaker commits the results and updates `next_stage` to `move-steps-to-caller`.
+
+## MS-8: Breaker moves steps to the caller
+
+1. The developer runs `breaker next`.
+2. Breaker asks Claude to identify steps in a function F that should be done by the caller of F, before it calls F.
+   1. Typically, such a step has already been extracted into a separate function in the extract-methods stage,
+      so that moving the step means moving a single function call.
+   2. Breaker passes the callers of F (from the call graph) to Claude.
+   3. A step is only moved when F has a single caller, or when all callers of F should clearly perform the step.
+      Otherwise, moving the step would duplicate code.
+3. Claude moves the step to the caller(s) of F, and updates the analysis of F and of its callers.
+4. Breaker commits the results and updates `next_stage` to `propose-module-layout`.
+
+## MS-9: Breaker proposes to restructure the code
 
 1. The developer runs `breaker next`.
 2. Breaker asks Claude to propose the module layout of the application package.

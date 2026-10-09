@@ -7,6 +7,18 @@ group into chunks and processes these chunks in series. There are three grouping
 2. package: A group contains all files (i.e. the entire file-tree) within a sub-package within the target root dir.
 3. smart: We use Claude Haiku to create the groups.
 
+## Incremental accumulation
+
+Some tasks need to consider all node files, but the input is too large for a single Claude request.
+Such tasks use incremental accumulation:
+
+1. Breaker divides the input into batches of K items (with K fixed).
+2. For each batch, Claude receives the batch and a state file, and returns the updated state file.
+   1. The state file accumulates the result of the batches that were processed so far.
+3. Breaker validates the state file after each batch.
+   1. The task defines which changes to the state file are allowed (e.g. only adding entries).
+4. Items that were not processed in a batch are added to the next batch.
+
 ## Smart grouping
 
 1. Breaker creates an index file (`.breaker/index.yaml`) from the node files.
@@ -15,7 +27,8 @@ group into chunks and processes these chunks in series. There are three grouping
    2. The index file does not involve Claude, so Breaker can rebuild it cheaply at any time.
 2. Breaker asks Claude Haiku to assign each node file to a group.
    1. The node files within a group are semantically related (e.g. they cover the same feature area).
-   2. The assignment is done incrementally, in batches of K node files (with K fixed).
+   2. The assignment uses incremental accumulation (see above), in batches of K node files,
+      with the group description file as the state file.
       1. Breaker sorts the node files by path, so that related files tend to end up in the same batch.
       2. For each batch, Haiku receives the group description file (`.breaker/group-descriptions.md`) and an index
          file that only contains the K node files of the batch.
