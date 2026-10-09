@@ -14,7 +14,7 @@ group into chunks and processes these chunks in series. There are three grouping
       (within the target code) and the list of function-names for that module.
    2. The index file does not involve Claude, so Breaker can rebuild it cheaply at any time.
 2. Breaker asks Claude Haiku to assign each node file to a group.
-   1. The node files within a groupthat are semantically related (e.g. they cover the same feature area).
+   1. The node files within a group are semantically related (e.g. they cover the same feature area).
    2. The assignment is done incrementally, in batches of K node files (with K fixed).
       1. Breaker sorts the node files by path, so that related files tend to end up in the same batch.
       2. For each batch, Haiku receives the group description file (`.breaker/group-descriptions.md`) and an index
@@ -39,14 +39,8 @@ group into chunks and processes these chunks in series. There are three grouping
    2. When an action splits off code into a new file, the new file goes into the same group as the original file.
    3. For stages where we know that the structure may have changed a lot (e.g. after the code restructure),
       `breaker next` first recreates the group file.
-5. An RFA refers to the group file, and Breaker runs one chunk per (part of a) group.
-   1. Each chunk is a fresh Claude session that receives the group description, the pre-computed context
-      and a summary of the previous chunks.
-   2. The summary only contains decisions that span several groups and are not recorded in the node files
-      (e.g. naming conventions and open questions).
-      1. Claude updates the summary via actions (e.g. `add_convention`, `add_open_question`), so that Breaker can
-         validate it.
-      2. The summary has a fixed structure and a maximum size.
-   3. Breaker records each finished chunk in the session file, so that an interrupted stage can be resumed.
-   4. Stages that need a view of the entire code-base (e.g. proposing the module layout) do not use groups.
+5. An RFA refers to the group file.
+   1. Each chunk is a fresh Claude session that receives the group description and the pre-computed context.
+   2. Breaker records each finished chunk in the session file, so that an interrupted stage can be resumed.
+   3. Stages that need a view of the entire code-base (e.g. proposing the module layout) do not use groups.
       Instead, Claude receives condensed input in a single session.
