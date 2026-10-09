@@ -9,6 +9,7 @@ module_node:
   function_nodes:
     - name: get_api_usage
       rename_to: create_api_usage_report
+      is_helper candidate: false
       move_to_file: api/rules/create_api_usage_report.py
       concepts: ["auth_token"]
       renamings:
@@ -18,6 +19,7 @@ module_node:
         - name: _get_api_url
           concepts: []
     - name: get_user_stats
+      is_helper candidate: true
       rename_to: create_user_stats_report
       concepts: ["login_name"]
       helper_function_nodes:

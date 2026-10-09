@@ -7,6 +7,7 @@ fixing the errors and testing.
 # Glossary
 
 - action: an operation - offered by Breaker - that changes nodes files and/or target code
+- helper candidate: a function that might just be a helper function (e.g. because it's is only called by one other function in the same module)
 - node file: a yaml file that captures the structure of a Python module or package
 - request for actions (RFA): a request to Claude to analyze the node files and Python code and run actions
 - request for refactoring (RFR): a request to Claude to refactor the Python code directly, without calling actions
@@ -22,6 +23,11 @@ Typically the user will initiate a Breaker session and call `breaker next` to pe
 Breaker will make RFAs that will cause Claude to run actions. These actions may update node files, or refactor the code
 via rope, or trigger RFRs that cause Claude to refactor the Python code directly. Breaker commits the updated node files
 and source files after each action; it groups the commits by prefixing the commit message with the stage id.
+
+## Breaker sync
+
+A call to `breaker sync` checks that the structure of each node file (it it exists) still reflects the structure of its related source file.
+If there are differences then it reports them and asks the user to make edits to resolve the differences.
 
 ## Guidelines for the Claude requests
 
@@ -54,14 +60,15 @@ An example node file is given in `./module_node_example.md`.
    2. `rename_to: str | None`
    3. `move_to_file: str | None`: the proposed new path.
    4. `code_unit_type: str | None`: one of `action`, `rule`, `util`, `entrypoint`.
-   5. `concepts: List[str]`
-   6. `local_terms: List[str]`
-   7. `responsibilities: List[str]`
-   8. `steps: List[str]`
-   9. `renamings: Dict[str, str]`
-   10. `aliases: Dict[str, List[str]]`
-   11. `abbreviations: Dict[str, str]`
-   12. `helper_function_nodes: List[FunctionNode]`
+   5. `is_helper_candidate: bool`,
+   6. `concepts: List[str]`
+   7. `local_terms: List[str]`
+   8. `responsibilities: List[str]`
+   9. `steps: List[str]`
+   10. `renamings: Dict[str, str]`
+   11. `aliases: Dict[str, List[str]]`
+   12. `abbreviations: Dict[str, str]`
+   13. `helper_function_nodes: List[FunctionNode]`
 3. A `ClassNode` has the fields:
    1. `name: str`
    2. `rename_to: str | None`
@@ -89,8 +96,8 @@ An example node file is given in `./module_node_example.md`.
 2. Breaker will create a new branch with --branch-name
    1. The branch-name defaults to "breaker"
 3. Breaker will create a breaker-session.yaml file in the repository root.
-   1. This session file contains a `next_step` field that identifies the next step of the refactoring
-   2. It also contains a `source_root` field (defaults to `src`) which is used in later steps.
+   1. This session file contains a `next_stage` field that identifies the next stage of the refactoring
+   2. It also contains the `target_dir` field (defaults to `src`) that identifies the target code.
 4. Breaker will create node files that form a source map
    1. Per package it will create a package node file (called `package-node.breaker.yaml`) in the package root.
    2. Per python module it will create a module node file (with extension `.breaker.yaml`)
@@ -98,23 +105,20 @@ An example node file is given in `./module_node_example.md`.
       2. Specifically, Breaker sets the initial contents of the `function_nodes`, `class_nodes` and
          `variable_nodes` fields.
 5. Breaker creates a first commit with the session file and the new node files.
-   1. It will set `next_step` to `identify-helper-functions`.
+   1. It will set `next_stage` to `identify-helper-functions`.
 
 ## MS-2: Breaker identifies helper functions
 
-1. The user calls `breaker next` to start the next step.
-   1. At the start of every `breaker next`, Breaker checks that the structure of each node file (it it exists) still reflects the structure of its related source file.
-   2. If there are differences then it reports them and asks the user to make edits to resolve the differences.
+1. The user calls `breaker next` to start the next stage.
 2. Breaker computes the call graph and marks helper candidates.
-   1. A function is a helper candidate if it is only called from a single other function in the same module.
-3. Breaker will ask Claude to examine the FunctionNodes in the module node file, together with the helper candidates.
+3. Breaker will ask Claude to examine the FunctionNodes in the module node file.
    1. Claude decides which functions are helper functions and uses the move_function_to_parent action to nest them under their parent function.
       1. Not every helper candidate will necessarily turn out to be a helper function.
       2. A function that is called from outside the module is never a helper function.
    2. A function that is called by several functions in the module is not nested. It stays a top-level function
       (it later will typically become a rule or util).
 4. Breaker renames the helper functions so that they start with an underscore (in the node file and in the source).
-5. Breaker commits the results and updates `next_step` to `analyze-terminology`.
+5. Breaker commits the results and updates `next_stage` to `analyze-terminology`.
 
 ## MS-3: Breaker analyzes the terminology
 
@@ -147,7 +151,7 @@ An example node file is given in `./module_node_example.md`.
          term once (using the name that it considers canonical) and lists the aliases in the
          `FunctionNode.aliases: Dict[str, List[str]]` field.
          1. E.g. `outlier: [outlier_point]`.
-3. Breaker commits the results and updates `next_step` to `create-glossary`.
+3. Breaker commits the results and updates `next_stage` to `create-glossary`.
 
 ## MS-4: Breaker creates a project glossary
 
@@ -168,7 +172,7 @@ An example node file is given in `./module_node_example.md`.
       2. Abbreviations are recorded in the glossary so that they can be applied consistently across the code-base.
          1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative abbreviations.
 4. The developer reviews the glossary and may edit it.
-5. Breaker commits the results and updates `next_step` to `propose-renamings`.
+5. Breaker commits the results and updates `next_stage` to `propose-renamings`.
 
 ## MS-5: Breaker proposes renamings that unify the terminology
 
@@ -194,7 +198,7 @@ An example node file is given in `./module_node_example.md`.
          libraries are not renamed.
 3. Breaker validates the proposed renamings.
    1. It reports a conflict when a new name clashes with an existing name in the same scope.
-4. Breaker commits the results and updates `next_step` to `apply-renamings`.
+4. Breaker commits the results and updates `next_stage` to `apply-renamings`.
 
 ## MS-6: Breaker applies the unified terminology
 
@@ -202,7 +206,7 @@ An example node file is given in `./module_node_example.md`.
 2. When they are done, they run `breaker next`.
    1. Breaker will then apply the renamings (using the `rename_symbol` action), including in all call sites in the
       code-base.
-3. Breaker commits the results and updates `next_step` to `propose-module-layout`.
+3. Breaker commits the results and updates `next_stage` to `propose-module-layout`.
 
 ## MS-7: Breaker proposes to restructure the code
 
@@ -213,7 +217,7 @@ An example node file is given in `./module_node_example.md`.
    2. Claude runs an actio to record the list of proposed modules in the root package node file (in the
       `PackageNode.proposed_modules: Dict[str, str]` field), mapping each module name onto a one-line description.
    3. The developer reviews (and possibly edits) the proposed module layout.
-3. Breaker commits the results and updates `next_step` to `propose-code-restructure`.
+3. Breaker commits the results and updates `next_stage` to `propose-code-restructure`.
 4. The developer runs `breaker next`.
 5. Breaker asks Claude to propose a structuring for each module node file, using the proposed module layout.
    1. For every top-level function, class and module-level variable, Claude sets the `code_unit_type` field
@@ -270,4 +274,4 @@ An example node file is given in `./module_node_example.md`.
    3. It checks that no target file receives more than one public code unit (except for util group files,
       enums, schemas and the exception/form classes that go with an action).
    4. It uses the call graph to report dependencies that violate the dependency direction.
-8. Breaker commits the results and updates `next_step` to `apply-code-restructure`.
+8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
