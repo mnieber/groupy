@@ -7,8 +7,10 @@ fixing the errors and testing.
 # Glossary
 
 - action: an operation - offered by Breaker - that changes nodes files and/or target code
-- chunk: a group of semantically related node files that are processed together
-- chunk file: a file that assigns each node file to a chunk
+- callback: a call from Claude to Breaker - using the Claude Agent API - requesting Breaker to run an action
+- chunk: a sub-set of node files in a group that is processed together
+- group: a group of semantically related node files
+- group file: a file that assigns each node file to a group
 - helper candidate: a function that might just be a helper function (e.g. because it's is only called by one other function in the same module)
 - node file: a yaml file that captures the structure of a Python module or package
 - request for actions (RFA): a request to Claude to analyze the node files and Python code and run actions
@@ -23,13 +25,13 @@ fixing the errors and testing.
 ## Breaker and Claude collaborate on editing node files and source files
 
 Typically the user will initiate a Breaker session and call `breaker next` to perform the next stage in the refactoring.
-Breaker will make RFAs that will cause Claude to run actions. These actions may update node files, or refactor the code
-via rope, or trigger RFRs that cause Claude to refactor the Python code directly. Breaker commits the updated node files
-and source files after each action; it groups the commits by prefixing the commit message with the stage id.
+Breaker will make RFAs. In response, Claude will issue callbacks to run Breaker actions.
+These actions may update node files, or refactor the code via rope, or trigger RFRs that cause Claude to refactor the Python code directly.
+Breaker commits the updated node files and source files after each action; it groups the commits by prefixing the commit message with the stage id.
 
 ## Breaker sync
 
-A call to `breaker sync` checks that the structure of each node file (it it exists) still reflects the structure of its related source file.
+A call to `breaker sync` checks that the structure of each node file (if it exists) still reflects the structure of its related source file.
 If there are differences then it reports them and asks the user to make edits to resolve the differences.
 
 ## Guidelines for the Claude requests
@@ -39,7 +41,7 @@ If there are differences then it reports them and asks the user to make edits to
       and the project glossary.
    2. Claude should spend its effort on judgement, not on facts that Breaker can compute.
 2. All edits to node files are done by Breaker, not by Claude directly.
-   The edit location is given as:
+   The edit location is passed in the callback as:
    - "@module": to indicate a change in the module node
    - \_get_api_url to indicate a change in the function node for that function
    - get_api_usage.\_get_api_url to disambiguate the location using the parent function name
@@ -61,6 +63,16 @@ If there are differences then it reports them and asks the user to make edits to
    3. methods that have several implementations across subclasses.
 4. In the code restructure, every other method may be turned into an action or rule that takes the instance as its
    first argument.
+
+## Nested functions
+
+1. A function that is nested in the Python code (e.g. a closure) is part of the body of its enclosing function.
+   1. It has no node of its own: its name and local symbols are covered by the `local_terms`, `renamings` and
+      `steps` of the enclosing function.
+   2. It stays nested in the Python code.
+2. Nesting in the node file has a different meaning: a function node in `helper_function_nodes` is a helper
+   function of its parent function node.
+   1. In the Python code, a helper function is a top-level function in the same module as its parent function.
 
 ## Chunking the work
 
@@ -100,7 +112,8 @@ An example node file is given in `./module_node_example.md`.
    11. `renamings: Dict[str, str]`
    12. `aliases: Dict[str, List[str]]`
    13. `abbreviations: Dict[str, str]`
-   14. `helper_function_nodes: List[FunctionNode]`
+   14. `helper_function_nodes: List[FunctionNode]`: the helper functions of this function. They are top-level
+       functions in the Python code (see "Nested functions").
 3. A `ClassNode` has the fields:
    1. `name: str`
    2. `rename_to: str | None`
@@ -113,9 +126,12 @@ An example node file is given in `./module_node_example.md`.
    9. `method_nodes: List[FunctionNode]`
 4. A `VariableNode` has the fields `name: str`, `rename_to: str | None` and `move_to_file: str | None`.
 5. A `PackageNode` has the fields:
-   1. `name: str`: the path of the package, relative to the source root.
-   2. `module_names: List[str]`: the modules in the package.
-   3. `proposed_modules: Dict[str, str]`: only used in the root package node file.
+   1. `name: str`: the path of the package, relative to the source root. The root package (the target dir) has
+      the name `"."`.
+   2. `module_names: List[str]`: the modules in the package (including `__init__.py`, but not the
+      sub-packages).
+   3. `proposed_modules: Dict[str, str]`: only used in the root package node file (the package node file of
+      the target dir).
 6. The `concepts` and `local_terms` fields map each concept or local term onto a short description.
    1. The description is empty if it is already given elsewhere (e.g. in `ModuleNode.concepts`).
    2. Breaker writes an empty description as `null`, but accepts both `null` and `""`.
@@ -126,20 +142,24 @@ An example node file is given in `./module_node_example.md`.
 
 ## MS-1: A developer initiates a breaker session
 
-1. The developer runs `breaker init --branch-name=<branch-name>`
-   1. Breaker will check that the working tree is clean.
-   2. Breaker will check that there is no existing `.breaker/session.yaml` file.
+1. The developer runs `breaker init --target-dir=<target-dir> --branch-name=<branch-name>`
 2. Breaker will create a new branch with --branch-name
-   1. The branch-name defaults to "breaker"
-3. Breaker will create a breaker-session.yaml file in the repository root.
+3. Breaker will create a .breaker/session.yaml file in the repository root.
    1. This session file contains a `next_stage` field that identifies the next stage of the refactoring
-   2. It also contains the `target_dir` field (defaults to `src`) that identifies the target code.
+   2. It also contains the `target_dir` field that identifies the target code.
 4. Breaker will create node files that form a source map
    1. Per package it will create a package node file (called `package-node.breaker.yaml`) in the package root.
-   2. Per python module it will create a module node file (with extension `.breaker.yaml`)
+      1. A package is the target dir (the root package), or a dir below it that contains Python modules, directly
+         or in a sub-dir.
+      2. A dir does not need an `__init__.py` to be a package (i.e. namespace packages are packages).
+   2. Per python module it will create a module node file (e.g. `books.py.breaker.yaml` for `books.py`)
       1. Initially, each module node file just reflects the current contents of the module.
       2. Specifically, Breaker sets the initial contents of the `function_nodes`, `class_nodes` and
          `variable_nodes` fields.
+      3. Every top-level function gets a node in `function_nodes`, and every method gets a node in the `method_nodes`
+         of its class; the `helper_function_nodes` fields are still empty.
+      4. Functions that are nested in the Python code get no node (see "Nested functions").
+      5. An `__init__.py` is just another module, so it also gets a module node file.
 5. Breaker creates a first commit with the session file and the new node files.
    1. It will set `next_stage` to `identify-helper-functions`.
 
@@ -151,6 +171,8 @@ An example node file is given in `./module_node_example.md`.
    1. Claude decides which functions are helper functions and uses the move_function_to_parent action to nest them under their parent function.
       1. Not every helper candidate will necessarily turn out to be a helper function.
       2. A function that is called from outside the module is never a helper function.
+      3. The move_function_to_parent action only changes the node file: in the Python code, the helper function
+         stays a top-level function.
    2. A function that is called by several functions in the module is not nested. It stays a top-level function
       (it later will typically become a rule or util).
 4. Breaker renames the helper functions so that they start with an underscore (in the node file and in the source).
@@ -208,12 +230,12 @@ An example node file is given in `./module_node_example.md`.
       2. the aliases that are used in the code-base for this concept.
       3. optionally, an abbreviation.
       4. a one-line description (based on the descriptions in the node files).
-   2. When two concepts in different modules have the same meaning, Claude merges them into one glossary entry.
+   1. When two concepts in different modules have the same meaning, Claude merges them into one glossary entry.
       1. One of the two concepts will become an alias.
-   3. When the same name is used for different meanings in different modules (as can be seen from the
+   1. When the same name is used for different meanings in different modules (as can be seen from the
       descriptions), Claude records this as a conflict
       in the glossary, so that the developer can resolve it.
-   4. Abbreviations may be used to keep names relatively short.
+   1. Abbreviations may be used to keep names relatively short.
       1. Concepts that are already short usually don't need an abbreviation.
       2. Abbreviations are recorded in the glossary so that they can be applied consistently across the code-base.
          1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative abbreviations.
