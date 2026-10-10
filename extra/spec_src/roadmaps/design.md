@@ -108,7 +108,8 @@ An example node file is given in `./module_node_example.md`.
    7. `local_terms: Dict[str, str | None]`
    8. `responsibilities: List[str]`
    9. `steps: List[str]`
-   10. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a']`
+   10. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a'] | None`: `None` means that the
+       priority is not set yet.
    11. `renamings: Dict[str, str]`
    12. `aliases: Dict[str, List[str]]`
    13. `abbreviations: Dict[str, str]`
@@ -121,10 +122,11 @@ An example node file is given in `./module_node_example.md`.
    4. `code_unit_type: str | None`: one of `model`, `schema`, `enum`, `exception`, `other`.
    5. `concepts: Dict[str, str | None]`
    6. `responsibilities: List[str]`
-   7. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a']`
+   7. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a'] | None`
    8. `renamings: Dict[str, str]`
    9. `method_nodes: List[FunctionNode]`
-4. A `VariableNode` has the fields `name: str`, `rename_to: str | None` and `move_to_file: str | None`.
+4. A `VariableNode` has the fields `name: str`, `rename_to: str | None`, `move_to_file: str | None` and
+   `code_unit_type: str | None` (for now, `constant` is the only value).
 5. A `PackageNode` has the fields:
    1. `name: str`: the path of the package, relative to the source root. The root package (the target dir) has
       the name `"."`.
@@ -137,6 +139,10 @@ An example node file is given in `./module_node_example.md`.
    2. Breaker writes an empty description as `null`, but accepts both `null` and `""`.
 7. All paths in node files use the same notation: a file path relative to the source root
    (e.g. `myapp/reports/rules/create_user_stats_report.py`).
+8. Breaker leaves out the fields that have their default value (`null`, `{}`, `[]` or `false`) when it writes a
+   node file, and it reads a missing field as its default value.
+   1. Therefore, a missing field and a field with the default value mean the same thing.
+   2. The fields are written in the order of the schema, so that loading and saving a node file keeps its contents.
 
 # Milestones
 
@@ -173,6 +179,9 @@ An example node file is given in `./module_node_example.md`.
       2. A function that is called from outside the module is never a helper function.
       3. The move_function_to_parent action only changes the node file: in the Python code, the helper function
          stays a top-level function.
+      4. The move_function_to_parent action is a plain edit of the node file: it does not check who calls the
+         function (that is Claude's judgement). It can also move a helper function to another parent, and move a
+         method (which signifies that the method is treated as a helper function of its new parent).
    2. A function that is called by several functions in the module is not nested. It stays a top-level function
       (it later will typically become a rule or util).
 4. Breaker renames the helper functions so that they start with an underscore (in the node file and in the source).
@@ -317,8 +326,8 @@ An example node file is given in `./module_node_example.md`.
 5. Breaker asks Claude to propose a structuring for each module node file, using the proposed module layout.
    1. For every top-level function, class and module-level variable, Claude sets the `code_unit_type` field
       and the `move_to_file` field.
-      1. Claude sets `move_to_file` to null when the target is the current file, so that Breaker can check that
-         every node was considered.
+      1. Claude leaves `move_to_file` empty when the target is the current file. Since an empty field is left
+         out of the node file, Breaker uses `code_unit_type` to check that every node was considered.
    2. Claude sets `ModuleNode.rename_to` when the module will continue to exist (typically it is renamed after
       the main function in that file), or to null when no rename is needed.
 6. The target code structure follows the following guidelines:
@@ -364,7 +373,7 @@ An example node file is given in `./module_node_example.md`.
       2. Imports between modules must not create circular imports at runtime.
          1. Type references to models in other modules use a `typing.TYPE_CHECKING` guard.
 7. Breaker validates the proposal.
-   1. It checks that every top-level node has a `code_unit_type` and a `move_to_file`.
+   1. It checks that every top-level node has a `code_unit_type`.
    2. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
    3. It checks that no target file receives more than one public code unit (except for util group files,
       enums, schemas and the exception/form classes that go with an action).

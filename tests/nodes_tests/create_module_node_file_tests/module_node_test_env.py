@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.module_nodes.actions.create_module_node_file import (
+from breaker.nodes.actions.create_module_node_file import (
     create_module_node_file,
 )
-from breaker.module_nodes.models.module_node import ModuleNode
-from breaker.module_nodes.rules.load_module_node import load_module_node
+from breaker.nodes.models.module_node import ModuleNode
+from breaker.nodes.rules.load_module_node import load_module_node
 
 
 @dataclass
