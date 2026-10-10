@@ -126,7 +126,7 @@ An example node file is given in `./module_node_example.md`.
    8. `renamings: Dict[str, str]`
    9. `method_nodes: List[FunctionNode]`
 4. A `VariableNode` has the fields `name: str`, `rename_to: str | None`, `move_to_file: str | None` and
-   `code_unit_type: str | None` (for now, `constant` is the only value).
+   `code_unit_type: str | None`: one of `constant`, `setting`.
 5. A `PackageNode` has the fields:
    1. `name: str`: the path of the package, relative to the source root. The root package (the target dir) has
       the name `"."`.
@@ -355,11 +355,22 @@ An example node file is given in `./module_node_example.md`.
       5. Pydantic classes that describe the structure of a JSON blob are schemas.
          1. They go into a schema file that is located close to the code that uses it.
       6. Enums go to `<module>/enums.py`. All enums of a module live in this single file.
-      7. Settings (including all reads of environment variables) go to the single file `<app_package>/settings.py`.
-      8. Application entrypoints go to `<app_package>/runtime/entrypoints/<name>.py`.
+      7. A module-level variable whose value configures the application (e.g. a timeout, a URL, a limit or a
+         value that is read from an environment variable) is a setting.
+         1. Settings (including all reads of environment variables) go to the single file
+            `<app_package>/settings.py`.
+      8. Any other module-level variable is a constant.
+         1. It goes to the target file of the code unit that uses it.
+         2. When several code units in different target files use it, it goes to the target file of one of them,
+            and the other files import it from there.
+            1. Preferably, this is the file of the lowest code unit in the dependency direction (see
+               "Dependencies"), so that the imports follow that direction.
+            2. If this creates a circular import, then the developer fixes it later (Breaker does not try to
+               prevent it).
+      9. Application entrypoints go to `<app_package>/runtime/entrypoints/<name>.py`.
          1. Entrypoints are usually registered in the `[project.scripts]` section of `pyproject.toml`, but this is outside of scope for Breaker.
-      9. An exception class is defined in the action file that raises it.
-         1. Only very generic exceptions that are shared by many actions go to `<module>/utils/exceptions.py`.
+      10. An exception class is defined in the action file that raises it.
+          1. Only very generic exceptions that are shared by many actions go to `<module>/utils/exceptions.py`.
    3. Files
       1. Each action, rule, util and model gets its own file (except for util group files).
       2. The file is named after the code unit it contains, in snake_case
@@ -376,6 +387,6 @@ An example node file is given in `./module_node_example.md`.
    1. It checks that every top-level node has a `code_unit_type`.
    2. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
    3. It checks that no target file receives more than one public code unit (except for util group files,
-      enums, schemas and the exception/form classes that go with an action).
+      enums, schemas, settings, constants and the exception/form classes that go with an action).
    4. It uses the call graph to report dependencies that violate the dependency direction.
 8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
