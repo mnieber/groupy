@@ -119,7 +119,7 @@ An example node file is given in `./module_node_example.md`.
    1. `name: str`
    2. `rename_to: str | None`
    3. `move_to_file: str | None`
-   4. `code_unit_type: str | None`: one of `model`, `schema`, `enum`, `exception`, `other`.
+   4. `code_unit_type: str | None`: one of `model`, `schema`, `enum`, `exception`, `policy`, `other`.
    5. `concepts: Dict[str, str | None]`
    6. `responsibilities: List[str]`
    7. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a'] | None`
@@ -371,6 +371,11 @@ An example node file is given in `./module_node_example.md`.
          1. Entrypoints are usually registered in the `[project.scripts]` section of `pyproject.toml`, but this is outside of scope for Breaker.
       10. An exception class is defined in the action file that raises it.
           1. Only very generic exceptions that are shared by many actions go to `<module>/utils/exceptions.py`.
+      11. A class that defines the interface to an external service (e.g. Claude, Jira or a payment provider) is a
+          policy.
+          1. The abstract policy goes to `<module>/policies/<policy_name>.py` (e.g. `rfa_policy.py`), and each
+             implementation goes to its own file in the same directory (e.g. `claude_rfa_policy.py`).
+          2. Fake implementations for tests live with the tests (e.g. in `fake_policies.py`).
    3. Files
       1. Each action, rule, util and model gets its own file (except for util group files).
       2. The file is named after the code unit it contains, in snake_case
@@ -381,12 +386,16 @@ An example node file is given in `./module_node_example.md`.
       1. Dependencies point in one direction: entrypoints → actions → rules → utils.
          1. A rule never calls an action, and a util never calls a rule or an action.
          2. Models, schemas and enums may be used by all code units.
+         3. A policy is passed as an argument to the action that uses it, so that a test can pass a fake policy.
+            1. A policy does not import actions or rules. When it needs to call back (e.g. to run a callback of
+               Claude), it receives the function as an argument.
       2. Imports between modules must not create circular imports at runtime.
          1. Type references to models in other modules use a `typing.TYPE_CHECKING` guard.
 7. Breaker validates the proposal.
    1. It checks that every top-level node has a `code_unit_type`.
    2. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
    3. It checks that no target file receives more than one public code unit (except for util group files,
-      enums, schemas, settings, constants and the exception/form classes that go with an action).
+      enums, schemas, settings, constants and the exception/form classes that go with an action). Each policy
+      implementation is a code unit of its own.
    4. It uses the call graph to report dependencies that violate the dependency direction.
 8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
