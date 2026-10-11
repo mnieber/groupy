@@ -38,7 +38,7 @@ If there are differences then it reports them and asks the user to make edits to
 
 1. Breaker pre-computes everything that can be computed deterministically and passes it to Claude as context.
    1. E.g. the call graph (who calls which function, inside and outside the module), the source of the module,
-      and the project glossary.
+      and the project glossary (in the analyze-terminology stage: the glossary so far).
    2. Claude should spend its effort on judgement, not on facts that Breaker can compute.
 2. All edits to node files are done by Breaker, not by Claude directly.
    The edit location is passed in the callback as:
@@ -151,6 +151,36 @@ An example node file is given in `./module_node_example.md`.
    1. Therefore, a missing field and a field with the default value mean the same thing.
    2. The fields are written in the order of the schema, so that loading and saving a node file keeps its contents.
 
+## Glossary file
+
+1. The project glossary (`glossary.breaker.yaml` in the root of the target dir) is a list of entries. Each entry
+   describes one concept, with the fields:
+   1. `name: str`: the name of the concept.
+   2. `description: str`: a one-line description.
+   3. `aliases: List[str]`: other names that are used in the code-base for this concept.
+   4. `abbreviation: str | None`: the abbreviation of the concept, if any.
+2. When a name is used for several meanings in the code-base, the glossary has an entry per meaning (with the same
+   name), each with its own aliases and abbreviation.
+3. As for node files, fields that have their default value are left out.
+4. Breaker saves the entries sorted by name. The sort is stable, so entries with the same name keep their order.
+5. Callbacks identify an entry by its name.
+   1. When several entries have that name, the callback also passes `meaning_nr`: the (1-based) position of the
+      entry among the entries with that name. Without it, the callback is rejected as ambiguous.
+6. The glossary is a guide for choosing names. The concepts in the node files do not need to have an entry in the
+   glossary, and the glossary does not record where its concepts are used.
+
+```yaml
+- name: report
+  description: a markdown document with the statistics of a user
+- name: report
+  description: an error report that is sent to Sentry
+  aliases: [error_doc]
+- name: title
+  description: the name of a book
+  aliases: [name, book_title]
+  abbreviation: ttl
+```
+
 # Milestones
 
 ## MS-1: A developer initiates a breaker session
@@ -210,6 +240,8 @@ An example node file is given in `./module_node_example.md`.
          2. The value optionally describes the concept.
             1. Claude leaves the description empty if it is already given elsewhere (e.g. in another node of the
                same module), unless the meaning in this function is specific.
+            2. When the glossary has several entries (meanings) for the name, the meaning is always specific, so
+               Claude gives a description.
          3. A concept is a term that helps explain the purpose and responsibilities of the function.
       2. It updates the `FunctionNode.local_terms: Dict[str, str | None]` field
          1. Each key names a local term that is used in the function
@@ -234,32 +266,31 @@ An example node file is given in `./module_node_example.md`.
          `FunctionNode.aliases: Dict[str, List[str]]` field.
          1. E.g. `outlier: [outlier_point]`.
          2. The list of aliases serves as an input for determining the renamings that are used to get rid of aliases.
-3. Breaker commits the results and updates `next_stage` to `create-glossary`.
-
-## MS-4: Breaker creates a project glossary
-
-1. The developer runs `breaker next`.
-2. Breaker collects all concepts, aliases and local terms (with their descriptions) from all node files.
-3. Breaker asks Claude to create a project glossary in `glossary.breaker.yaml`.
-   1. The glossary is built using incremental accumulation (see `./chunking.md`), with the glossary as the state file.
-   1. The glossary contains, for each concept:
-      1. the canonical name.
-      2. the aliases that are used in the code-base for this concept.
-      3. optionally, an abbreviation.
-      4. a one-line description (based on the descriptions in the node files).
-   1. When two concepts in different modules have the same meaning, Claude merges them into one glossary entry.
-      1. One of the two concepts will become an alias.
-   1. When the same name is used for different meanings in different modules (as can be seen from the
-      descriptions), Claude records this as a conflict
-      in the glossary, so that the developer can resolve it.
-   1. Abbreviations may be used to keep names relatively short.
-      1. Concepts that are already short usually don't need an abbreviation.
-      2. Abbreviations are recorded in the glossary so that they can be applied consistently across the code-base.
-         1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative abbreviations.
-4. The developer reviews the glossary and may edit it.
+   3. Claude updates the project glossary (see "Glossary file") with the concepts of the chunk.
+      1. Each RFA receives the glossary so far, so that Claude can reuse the names and descriptions of earlier chunks.
+      2. A concept that is not in the glossary yet is added with its description.
+      3. When a concept has the same meaning as a glossary entry with another name, Claude adds its name as an alias
+         of that entry.
+      4. When a concept has the same name as a glossary entry, but a different meaning, Claude adds a new entry
+         with the same name. Claude does not try to resolve this.
+      5. Abbreviations may be used to keep names relatively short.
+         1. Concepts that are already short usually don't need an abbreviation.
+         2. Abbreviations are recorded in the glossary so that they can be applied consistently across the
+            code-base.
+            1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative
+               abbreviations.
+3. After the last chunk, Breaker asks Claude to consolidate the glossary (in a single session that receives the
+   entire glossary).
+   1. Early chunks may have added entries that turn out to have the same meaning. Claude merges them into one entry,
+      and the other names become aliases.
+   2. Claude makes the abbreviations consistent.
+   3. Claude does not resolve names with several meanings; that is up to the developer.
+4. The developer reviews the glossary and cleans it up.
+   1. In particular, the developer gives entries with the same name distinct names (e.g. `report` for the user
+      statistics, and `error_report`, with the alias `report`, for the error reports).
 5. Breaker commits the results and updates `next_stage` to `propose-renamings`.
 
-## MS-5: Breaker proposes renamings that unify the terminology
+## MS-4: Breaker proposes renamings that unify the terminology
 
 1. The developer runs `breaker next`.
 2. Breaker asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field, using the glossary.
@@ -269,13 +300,19 @@ An example node file is given in `./module_node_example.md`.
    2. Claude will chose `renamings` such that all aliases are replaced by the canonical name.
       1. Ideally, the canonical name comes from the global glossary,
       2. Claude may also choose the canonical name from the module scope.
+   3. The glossary is a guide. When a concept in the node file has the same meaning as a glossary entry (judged
+      from its description and the source), Claude may rename the concept to the name of that entry, also when
+      the glossary lists the concept as an alias.
+      1. When the glossary still has several entries with the same name, Claude chooses the entry from the
+         context, or leaves the name unchanged.
+      2. A concept without a glossary entry keeps its name, unless one of the other rules applies.
       3. The entire symbol is stored as the key, not some part thereof (since there is no partial matching).
       4. The new name maintains the meaning (e.g. plural stays plural).
          1. E.g. if the function uses `outlier` and `outlier_point` as aliases then `new_outlier_points` will be renamed to `new_outliers` and `find_next_outlier_point` will be renamed to `find_next_outlier`.
-   3. Renamings can also be used to create shorter symbol names.
-   4. A renaming of the function itself is stored in `FunctionNode.rename_to`.
+   4. Renamings can also be used to create shorter symbol names.
+   5. A renaming of the function itself is stored in `FunctionNode.rename_to`.
       Renamings of module-level symbols are stored in `ModuleNode.renamings`.
-   5. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
+   6. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
       1. Map types are renamed to `foo_by_bar` where `foo` is the value and `bar` is the key.
          1. It's also possible to have `foo_by_bar_by_baz`, where `baz` is the key and `foo_by_bar` is the value.
       2. Abbreviations from the glossary may be used to keep the new name relatively short.
@@ -290,7 +327,7 @@ An example node file is given in `./module_node_example.md`.
    1. It reports a conflict when a new name clashes with an existing name in the same scope.
 4. Breaker commits the results and updates `next_stage` to `apply-renamings`.
 
-## MS-6: Breaker applies the unified terminology
+## MS-5: Breaker applies the unified terminology
 
 1. The developer reviews all node files, possibly making edits to the proposed renamings and terminology.
 2. When they are done, they run `breaker next`.
@@ -298,7 +335,7 @@ An example node file is given in `./module_node_example.md`.
       code-base.
 3. Breaker commits the results and updates `next_stage` to `extract-methods`.
 
-## MS-7: Breaker extract methods
+## MS-6: Breaker extract methods
 
 1. The developer runs `breaker next`.
 2. Breaker creates a list of functions to refactor based on the `FunctionNode.extract_method_priority` field.
@@ -308,7 +345,7 @@ An example node file is given in `./module_node_example.md`.
       steps) and updates the analysis of the parent function.
 4. Breaker commits the results and updates `next_stage` to `move-steps-to-caller`.
 
-## MS-8: Breaker moves steps to the caller
+## MS-7: Breaker moves steps to the caller
 
 1. The developer runs `breaker next`.
 2. Breaker asks Claude to identify steps in a function F that should be done by the caller of F, before it calls F.
@@ -320,7 +357,7 @@ An example node file is given in `./module_node_example.md`.
 3. Claude moves the step to the caller(s) of F, and updates the analysis of F and of its callers.
 4. Breaker commits the results and updates `next_stage` to `propose-module-layout`.
 
-## MS-9: Breaker proposes to restructure the code
+## MS-8: Breaker proposes to restructure the code
 
 1. The developer runs `breaker next`.
 2. Breaker asks Claude to propose the module layout of the application package.

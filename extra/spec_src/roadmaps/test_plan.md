@@ -25,46 +25,18 @@ Feature packages:
 ## Done
 
 1. `breaker init` (MS-1): session file, branch, node files, clean working tree, existing session, namespace packages.
-   - Exercises: `runtime/entrypoints/breaker.py`, `sessions/actions/init_session.py` (with `DirtyWorkingTreeError` and
-     `SessionExistsError`), `sessions/models/session.py` (`Session`, `get_session`, `reset_session`).
-   - Implied: `sessions/actions/save_session.py`, `nodes/actions/create_node_files.py`, `nodes/rules/find_packages.py`,
-     `utils/git_utils.py`.
 2. Node files.
-   - Exercises: `nodes/actions/create_module_node_file.py`, `nodes/actions/create_package_node_file.py`,
-     `nodes/rules/load_module_node.py`, `nodes/actions/save_module_node.py`, `nodes/rules/load_package_node.py`,
-     `nodes/models/module_node.py`, `nodes/models/package_node.py`.
-   - Implied: `nodes/models/function_node.py`, `nodes/models/class_node.py`, `nodes/models/variable_node.py`,
-     `nodes/actions/save_package_node.py`.
 3. `move_function_to_parent`.
-   - Exercises: `functions/actions/move_function_to_parent.py` (with `InvalidParentError`),
-     `nodes/utils/exceptions.py` (`NodeNotFoundError`).
 4. Node file edits (batch 1, in `tests/node_edits_tests/`): finding edit locations, and setting the scalar, dict and
    list fields of nodes.
-   - Exercises: `nodes/rules/find_node.py`, `nodes/actions/set_rename_to.py`, `nodes/actions/set_move_to_file.py`,
-     `nodes/actions/set_code_unit_type.py`, `functions/actions/set_extract_method_priority.py`,
-     `functions/actions/add_responsibility.py`, `functions/actions/update_responsibility.py`,
-     `functions/actions/remove_responsibility.py`, `functions/actions/add_step.py`, `functions/actions/update_step.py`,
-     `functions/actions/remove_step.py`, `concepts/actions/set_concept.py`, `concepts/actions/remove_concept.py`,
-     `concepts/actions/set_local_term.py`, `concepts/actions/remove_local_term.py`, `concepts/actions/add_alias.py`,
-     `concepts/actions/remove_alias.py`, `concepts/actions/set_abbreviation.py`,
-     `concepts/actions/remove_abbreviation.py`, `renamings/actions/set_renaming.py`,
-     `renamings/actions/remove_renaming.py`.
-   - Exercises: `nodes/utils/exceptions.py` (`NodeNotFoundError`, `AmbiguousLocationError`, `FieldNotSupportedError`,
-     `InvalidValueError`, `InvalidIndexError`, `EntryNotFoundError`).
 5. Call graph (batch 2, in `tests/call_graph_tests/`): building (also after the code has changed), the view for
    a chunk, and the query callbacks.
-   - Exercises: `call_graph/actions/build_call_graph.py`, `call_graph/rules/load_call_graph.py`,
-     `call_graph/models/call_graph.py`, `call_graph/models/call_edge.py`, `call_graph/rules/get_call_graph_view.py`,
-     `call_graph/models/call_graph_view.py` (`CallGraphView`, `FunctionView`), `call_graph/enums.py` (`CallScopes`),
-     `call_graph/rules/get_callers.py`, `call_graph/rules/get_callees.py`, `functions/rules/get_source.py`.
-   - Implied: `call_graph/rules/parse_module.py` (finds the definitions and calls of a module),
-     `call_graph/rules/resolve_calls.py` (turns the calls of all modules into edges).
 
 ## Test infrastructure for Claude requests
 
 1. Every request to Claude has a deterministic id that is derived from what it is about:
    1. RFA: `<stage-id>/<chunk-id>`, e.g. `identify-helper-functions/chunk-1`.
-   2. Incremental accumulation: `<task>/batch-<n>`, e.g. `create-glossary/batch-2`.
+   2. Incremental accumulation: `<task>/batch-<n>`, e.g. `assign-groups/batch-2`.
    3. RFR: `<action>/<location>`, e.g. `extract_method/myapp/books.py:create_book`.
    4. The real policy uses the id for logging and as the key of finished chunks in the session file (for resuming
       an interrupted stage).
@@ -119,7 +91,29 @@ The tests use the sessions Env (git repo) plus the fake policies.
 4. The group file is updated when an action renames a file or splits off a new file.
    - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py`.
 
-## 5. The stages
+## 5. Glossary
+
+These are plain edits of the glossary file, tested like the node file edits: the tests write a glossary, run the
+action, and reload the glossary. Every action takes `(glossary_path, name, ...)` and is available as a callback.
+
+1. Loading and saving: a glossary with all fields (including two entries with the same name) keeps its contents;
+   fields with their default value are left out; entries are saved sorted by name, and entries with the same name
+   keep their order.
+   - Exercises: `concepts/rules/load_glossary.py`, `concepts/actions/save_glossary.py`, `concepts/models/glossary.py`
+     (`Glossary`, `GlossaryEntry`).
+2. Adding and changing entries: a new entry; a new entry with an existing name (a second meaning); descriptions;
+   aliases (listed once); abbreviations; merging an entry into another one (its name and aliases become aliases of
+   the other entry). An unknown name raises `EntryNotFoundError`.
+   - Exercises: `concepts/actions/add_glossary_entry.py`, `concepts/actions/set_glossary_description.py`,
+     `concepts/actions/add_glossary_alias.py`, `concepts/actions/set_glossary_abbreviation.py`,
+     `concepts/actions/merge_glossary_entries.py`.
+3. Names with several meanings: an edit of a name with two entries needs `meaning_nr`; without it, it raises
+   `AmbiguousEntryError`; with it, only that entry changes; a `meaning_nr` that does not exist raises
+   `EntryNotFoundError`.
+   - Exercises: the actions of item 2, `concepts/rules/find_glossary_entry.py`, `concepts/utils/exceptions.py`
+     (`AmbiguousEntryError`).
+
+## 6. The stages
 
 One workflow test per stage, plus impl tests for its validations. Each workflow test runs `breaker next` with
 scripted callbacks and checks the node files, the source, the commits and `next_stage`. Every stage is an action
@@ -131,28 +125,26 @@ that `stages/actions/run_next_stage.py` calls.
    - Exercises: `functions/actions/identify_helper_functions.py`, `functions/actions/mark_helper_candidates.py`,
      `functions/actions/rename_helper_functions.py`, `renamings/actions/rename_symbol.py` (rope).
 2. `analyze-terminology` (MS-3): the callbacks fill concepts, local terms, responsibilities, steps, aliases and
-   `extract_method_priority`; the RFA context contains the module source and the call-graph view.
-   - Exercises: `concepts/actions/analyze_terminology.py`, the actions of section 1.
-3. `create-glossary` (MS-4): incremental accumulation with the glossary as state file; merging of synonyms into
-   aliases; conflicts for one name with different meanings.
-   - Exercises: `concepts/actions/create_glossary.py`, `concepts/rules/collect_terms.py`,
-     `concepts/rules/load_glossary.py`, `concepts/actions/save_glossary.py`, `concepts/models/glossary.py`,
-     `concepts/rules/validate_glossary_update.py`.
-4. `propose-renamings` (MS-5): renamings are recorded; Breaker reports a new name that clashes with an existing
-   name in the same scope.
+   `extract_method_priority`, and update the glossary; the RFA context contains the module source, the call-graph
+   view and the glossary so far; a second chunk that uses a known name with another meaning adds a second entry with
+   that name; the consolidation RFA merges two entries with the same meaning.
+   - Exercises: `concepts/actions/analyze_terminology.py`, `concepts/actions/consolidate_glossary.py`, the actions of
+     batch 1 and of section 5.
+3. `propose-renamings` (MS-4): renamings are recorded; the RFA context contains the glossary; Breaker reports a new
+   name that clashes with an existing name in the same scope.
    - Exercises: `renamings/actions/propose_renamings.py`, `renamings/rules/find_renaming_conflicts.py`.
-5. `apply-renamings` (MS-6): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
+4. `apply-renamings` (MS-5): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
    including their call sites in other modules.
    - Exercises: `renamings/actions/apply_renamings.py`, `renamings/actions/rename_symbol.py`.
-6. `extract-methods` (MS-7): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
+5. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
    node for the extracted function; the callbacks fill its analysis and update the parent.
    - Exercises: `functions/actions/extract_methods.py` (the stage), `functions/actions/extract_method.py` (the
      callback), `functions/rules/get_extract_method_candidates.py`.
-7. `move-steps-to-caller` (MS-8): the RFA context contains the callers of F with their source; the scripted RFR
+6. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
    moves the call.
    - Exercises: `functions/actions/move_steps_to_caller.py` (the stage), `functions/actions/move_step_to_caller.py`
      (the callback).
-8. `propose-module-layout` and `propose-code-restructure` (MS-9): `proposed_modules` in the root package node file;
+7. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
    the validations (missing `code_unit_type`, location rule per code unit type, one public code unit per file,
    dependency direction).
    - Exercises: `restructure/actions/propose_module_layout.py`, `nodes/actions/set_proposed_module.py`,
@@ -160,7 +152,7 @@ that `stages/actions/run_next_stage.py` calls.
      `restructure/rules/validate_code_restructure.py`, `restructure/rules/get_expected_location.py`,
      `restructure/rules/find_dependency_violations.py`.
 
-## 6. `breaker sync`
+## 7. `breaker sync`
 
 1. No differences after `breaker init`.
 2. A function, class or variable that was added, removed or renamed in the source is reported.
@@ -171,6 +163,6 @@ that `stages/actions/run_next_stage.py` calls.
 
 ## Open points in the design
 
-1. MS-9 sets `next_stage` to `apply-code-restructure`, but there is no milestone for that stage yet.
+1. MS-8 sets `next_stage` to `apply-code-restructure`, but there is no milestone for that stage yet.
 2. How the user resolves the differences that `breaker sync` reports (edit the node file by hand, or let Breaker
    update the node file?).
