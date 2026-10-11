@@ -38,6 +38,19 @@ Feature packages:
 3. `move_function_to_parent`.
    - Exercises: `functions/actions/move_function_to_parent.py` (with `InvalidParentError`),
      `nodes/utils/exceptions.py` (`NodeNotFoundError`).
+4. Node file edits (batch 1, in `tests/node_edits_tests/`): finding edit locations, and setting the scalar, dict and
+   list fields of nodes.
+   - Exercises: `nodes/rules/find_node.py`, `nodes/actions/set_rename_to.py`, `nodes/actions/set_move_to_file.py`,
+     `nodes/actions/set_code_unit_type.py`, `functions/actions/set_extract_method_priority.py`,
+     `functions/actions/add_responsibility.py`, `functions/actions/update_responsibility.py`,
+     `functions/actions/remove_responsibility.py`, `functions/actions/add_step.py`, `functions/actions/update_step.py`,
+     `functions/actions/remove_step.py`, `concepts/actions/set_concept.py`, `concepts/actions/remove_concept.py`,
+     `concepts/actions/set_local_term.py`, `concepts/actions/remove_local_term.py`, `concepts/actions/add_alias.py`,
+     `concepts/actions/remove_alias.py`, `concepts/actions/set_abbreviation.py`,
+     `concepts/actions/remove_abbreviation.py`, `renamings/actions/set_renaming.py`,
+     `renamings/actions/remove_renaming.py`.
+   - Exercises: `nodes/utils/exceptions.py` (`NodeNotFoundError`, `AmbiguousLocationError`, `FieldNotSupportedError`,
+     `InvalidValueError`, `InvalidIndexError`, `EntryNotFoundError`).
 
 ## Test infrastructure for Claude requests
 
@@ -63,30 +76,6 @@ Feature packages:
    `groups/policies/grouping_policy.py` (the abstract policies that the fakes implement).
    - Implied: `claude_requests/policies/claude_rfa_policy.py`, `claude_requests/policies/claude_rfr_policy.py`,
      `groups/policies/claude_grouping_policy.py` (the real implementations, which the tests don't run).
-
-## 1. Node file edits
-
-These are plain edits of a module node file (like `move_function_to_parent`). The tests create a node file from
-a small module, run the action, reload the node file, and check that the module itself is unchanged. Every action
-takes `(source_root, module_name, location, ...)` and is available as a callback. There is one action per field
-(rather than generic actions per field kind), so that Claude gets a clear list of tools.
-
-1. Resolving an edit location (`@module`, `create_book`, `create_book._validate`, `Book.add_chapter`); an unknown
-   location raises `NodeNotFoundError`.
-   - Exercises: `nodes/rules/find_node.py`.
-2. Scalar fields, with validation of the allowed values (e.g. `code_unit_type` per kind of node).
-   - Exercises: `nodes/actions/set_rename_to.py`, `nodes/actions/set_move_to_file.py`,
-     `nodes/actions/set_code_unit_type.py`, `functions/actions/set_extract_method_priority.py`.
-3. Dict fields: add or change an entry, and remove it.
-   - Exercises: `concepts/actions/set_concept.py`, `concepts/actions/remove_concept.py`,
-     `concepts/actions/set_local_term.py`, `concepts/actions/remove_local_term.py`,
-     `concepts/actions/add_alias.py`, `concepts/actions/remove_alias.py`,
-     `concepts/actions/set_abbreviation.py`, `concepts/actions/remove_abbreviation.py`,
-     `renamings/actions/set_renaming.py`, `renamings/actions/remove_renaming.py`.
-4. List fields: add, update (by index) and remove an item; an invalid index raises `InvalidIndexError`.
-   - Exercises: `functions/actions/add_responsibility.py`, `functions/actions/update_responsibility.py`,
-     `functions/actions/remove_responsibility.py`, `functions/actions/add_step.py`, `functions/actions/update_step.py`,
-     `functions/actions/remove_step.py`, `nodes/utils/exceptions.py` (`InvalidIndexError`).
 
 ## 2. Call graph
 

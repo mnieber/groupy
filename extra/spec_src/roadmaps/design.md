@@ -45,6 +45,13 @@ If there are differences then it reports them and asks the user to make edits to
    - "@module": to indicate a change in the module node
    - \_get_api_url to indicate a change in the function node for that function
    - get_api_usage.\_get_api_url to disambiguate the location using the parent function name
+   - Book.save to indicate a change in the node of a method (or of a helper function of a method)
+
+   A location that is the full qualified name of a node (e.g. `validate` for a top-level function) finds that node.
+   Otherwise, the location must match the end of the qualified name of exactly one node; if it matches several
+   nodes (e.g. `save` when `Book` and `Author` both have a `save` method), the location is ambiguous and the edit is
+   rejected.
+
 3. When an action or RFR changes the code of a function, then the analysis of that function (e.g. its concepts,
    responsibilities and steps) is updated in the same RFA, so that later stages don't work with stale data.
 
@@ -226,6 +233,7 @@ An example node file is given in `./module_node_example.md`.
          term once (using the name that it considers canonical) and lists the aliases in the
          `FunctionNode.aliases: Dict[str, List[str]]` field.
          1. E.g. `outlier: [outlier_point]`.
+         2. Usually, the list of aliases serves as an input for the stage that determines the renamings that are used to get rid of aliases.
 3. Breaker commits the results and updates `next_stage` to `create-glossary`.
 
 ## MS-4: Breaker creates a project glossary
