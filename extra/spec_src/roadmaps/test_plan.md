@@ -51,6 +51,14 @@ Feature packages:
      `renamings/actions/remove_renaming.py`.
    - Exercises: `nodes/utils/exceptions.py` (`NodeNotFoundError`, `AmbiguousLocationError`, `FieldNotSupportedError`,
      `InvalidValueError`, `InvalidIndexError`, `EntryNotFoundError`).
+5. Call graph (batch 2, in `tests/call_graph_tests/`): building (also after the code has changed), the view for
+   a chunk, and the query callbacks.
+   - Exercises: `call_graph/actions/build_call_graph.py`, `call_graph/rules/load_call_graph.py`,
+     `call_graph/models/call_graph.py`, `call_graph/models/call_edge.py`, `call_graph/rules/get_call_graph_view.py`,
+     `call_graph/models/call_graph_view.py` (`CallGraphView`, `FunctionView`), `call_graph/enums.py` (`CallScopes`),
+     `call_graph/rules/get_callers.py`, `call_graph/rules/get_callees.py`, `functions/rules/get_source.py`.
+   - Implied: `call_graph/rules/parse_module.py` (finds the definitions and calls of a module),
+     `call_graph/rules/resolve_calls.py` (turns the calls of all modules into edges).
 
 ## Test infrastructure for Claude requests
 
@@ -76,23 +84,6 @@ Feature packages:
    `groups/policies/grouping_policy.py` (the abstract policies that the fakes implement).
    - Implied: `claude_requests/policies/claude_rfa_policy.py`, `claude_requests/policies/claude_rfr_policy.py`,
      `groups/policies/claude_grouping_policy.py` (the real implementations, which the tests don't run).
-
-## 2. Call graph
-
-The tests write a few small modules, build the call graph, and assert on its edges and views.
-
-1. Building: edges between functions and methods across modules, with the call location; nodes are named as
-   `<file>:<qualified name>`; calls to methods of an unknown type are uncertain; test code is ignored.
-   - Exercises: `call_graph/actions/build_call_graph.py` (writes `.breaker/call-graph.yaml`),
-     `call_graph/rules/load_call_graph.py`, `call_graph/models/call_graph.py`, `call_graph/models/call_edge.py`.
-2. Updating: after a module changes, only that module is re-analyzed, and the edges match a full rebuild.
-   - Exercises: `call_graph/actions/update_call_graph.py`.
-   - Implied: `call_graph/rules/find_calls_in_module.py`.
-3. The view: callers and callees labelled as same module / other module in the chunk / outside the chunk; a one-line
-   responsibility for functions outside the chunk; a summary when there are many callers.
-   - Exercises: `call_graph/rules/get_call_graph_view.py`, `call_graph/models/call_graph_view.py`.
-4. The query callbacks (read-only, so they are rules).
-   - Exercises: `call_graph/rules/get_callers.py`, `call_graph/rules/get_callees.py`, `functions/rules/get_source.py`.
 
 ## 3. `breaker next` and the stage runner
 

@@ -233,7 +233,7 @@ An example node file is given in `./module_node_example.md`.
          term once (using the name that it considers canonical) and lists the aliases in the
          `FunctionNode.aliases: Dict[str, List[str]]` field.
          1. E.g. `outlier: [outlier_point]`.
-         2. Usually, the list of aliases serves as an input for the stage that determines the renamings that are used to get rid of aliases.
+         2. The list of aliases serves as an input for determining the renamings that are used to get rid of aliases.
 3. Breaker commits the results and updates `next_stage` to `create-glossary`.
 
 ## MS-4: Breaker creates a project glossary
