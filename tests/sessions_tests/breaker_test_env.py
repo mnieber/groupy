@@ -4,8 +4,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from breaker.groups.models.group import Group
+from breaker.groups.rules.load_group_file import load_group_file
 from breaker.runtime.entrypoints.breaker import main as breaker_main
+from breaker.sessions.models.config import Config
 from breaker.sessions.models.session import Session, get_session, reset_session
+from breaker.sessions.rules.load_config import load_config
 
 BOOKS_PY = """\
 MAX_CHAPTERS = 10
@@ -47,6 +51,8 @@ class TestEnv:
         self.context = context
         self.repo_dir = context.repo_dir
         self.session: Session = None
+        self.config: Config = None
+        self.groups: T.List[Group] = []
         self.remembered_git_head: str = None
         self.error: Exception = None
         # The session is a singleton, so a session of an earlier test must not
@@ -98,6 +104,12 @@ class TestEnv:
         reset_session()
         self.session = get_session()
 
+    def load_config(self) -> None:
+        self.config = load_config(self.repo_dir / ".breaker" / "config.yaml")
+
+    def load_groups(self) -> None:
+        self.groups = load_group_file(self.repo_dir / ".breaker" / "groups.txt")
+
     def run_git(self, *args: str) -> None:
         self._git(*args)
 
@@ -119,6 +131,9 @@ class TestEnv:
 
     # Queries (for use in asserts)
 
+    def read_file(self, relative_path: str) -> str:
+        return (self.repo_dir / relative_path).read_text()
+
     def file_exists(self, relative_path: str) -> bool:
         return (self.repo_dir / relative_path).exists()
 
@@ -127,6 +142,9 @@ class TestEnv:
             str(path.relative_to(self.repo_dir))
             for path in self.repo_dir.rglob("*.breaker.yaml")
         }
+
+    def module_names_per_group(self) -> T.List[T.List[str]]:
+        return [group.module_names for group in self.groups]
 
     def git_head(self) -> str:
         return self._git("rev-parse", "HEAD")

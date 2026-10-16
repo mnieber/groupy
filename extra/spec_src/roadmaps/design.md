@@ -9,6 +9,7 @@ fixing the errors and testing.
 - action: an operation - offered by Breaker - that changes nodes files and/or target code
 - callback: a call from Claude to Breaker - using the Claude Agent API - requesting Breaker to run an action
 - chunk: a sub-set of node files in a group that is processed together
+- config file: a file with the choices that the developer makes for a session (e.g. the grouping strategy)
 - group: a group of semantically related node files
 - group file: a file that assigns each node file to a group
 - helper candidate: a function that might just be a helper function (e.g. because it's is only called by one other function in the same module)
@@ -28,6 +29,43 @@ Typically the user will initiate a Breaker session and call `breaker next` to pe
 Breaker will make RFAs. In response, Claude will issue callbacks to run Breaker actions.
 These actions may update node files, or refactor the code via rope, or trigger RFRs that cause Claude to refactor the Python code directly.
 Breaker commits the updated node files and source files after each action; it groups the commits by prefixing the commit message with the stage id.
+
+## Breaker next
+
+A call to `breaker next` runs the stage in the `next_stage` field of the session file.
+
+1. It refuses to run when there is no session, when there is no group file (see ./chunking.md), or when the working
+   tree is not clean.
+2. It runs the stage. Most stages make an RFA per chunk.
+   1. The callbacks of Claude run actions, and Breaker commits after each action, with the commit message
+      `<stage-id>: <callback name>`.
+   2. After each chunk, Breaker records the chunk as finished in the session file (in the `finished_chunks` field,
+      using the RFA id `<stage-id>/<chunk-id>`), and commits with the message `<stage-id>: finish <chunk-id>`.
+   3. When a stage is interrupted (e.g. by an error), the next call to `breaker next` runs the same stage again,
+      and skips the finished chunks.
+3. After the stage, Breaker sets `next_stage` to the stage that follows it, clears `finished_chunks`, and commits
+   with the message `<stage-id>: finish the stage`.
+
+## Breaker group
+
+A call to `breaker group` recreates the group file, using the grouping strategy and the sizes in the config file, and
+commits it. The developer uses it after changing the config file.
+
+## Config file
+
+The config file (`.breaker/config.yaml`) contains the choices that the developer makes for a session.
+
+1. `rfa_policy`, `rfr_policy` and `grouping_policy`: the import path (`<module>:<name>`) of a callable that returns
+   the policy that Breaker uses to make RFAs, RFRs and smart groups. This is usually the policy class itself (e.g.
+   `breaker.claude_requests.policies.claude_rfa_policy:ClaudeRfaPolicy`), but tests use a function that returns a
+   fake policy.
+   1. Breaker creates a policy when it needs it, and does not keep it.
+2. `grouping_strategy`: `simple`, `package` or `smart` (default: `package`).
+3. `max_group_lines` and `max_chunk_lines`: the maximum size of a group and of a chunk (in lines of code, default:
+   2000 and 500).
+4. Fields that are missing in the config file get their default value.
+5. The config file is part of the session, so a change of the config file must be committed before
+   `breaker next` runs.
 
 ## Breaker sync
 
@@ -190,6 +228,8 @@ An example node file is given in `./module_node_example.md`.
 3. Breaker will create a .breaker/session.yaml file in the repository root.
    1. This session file contains a `next_stage` field that identifies the next stage of the refactoring
    2. It also contains the `target_dir` field that identifies the target code.
+   3. When the repository does not contain a config file (see "Config file"), Breaker creates it with all fields set
+      to their default value. Otherwise, it keeps the existing config file.
 4. Breaker will create node files that form a source map
    1. Per package it will create a package node file (called `package-node.breaker.yaml`) in the package root.
       1. A package is the target dir (the root package), or a dir below it that contains Python modules, directly
@@ -203,7 +243,9 @@ An example node file is given in `./module_node_example.md`.
          of its class; the `helper_function_nodes` fields are still empty.
       4. Functions that are nested in the Python code get no node (see "Nested functions").
       5. An `__init__.py` is just another module, so it also gets a module node file.
-5. Breaker creates a first commit with the session file and the new node files.
+5. Breaker creates the group file (see ./chunking.md), using the grouping strategy and the sizes in the config file.
+   1. The developer can inspect (and edit) the group file before running the first stage.
+6. Breaker creates a first commit with the session file, the config file, the group file and the new node files.
    1. It will set `next_stage` to `identify-helper-functions`.
 
 ## MS-2: Breaker identifies helper functions

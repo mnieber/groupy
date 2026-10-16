@@ -37,12 +37,14 @@ Feature packages:
 ## Test infrastructure for Claude requests
 
 1. Every request to Claude has a deterministic id that is derived from what it is about:
-   1. RFA: `<stage-id>/<chunk-id>`, e.g. `identify-helper-functions/chunk-1`.
+   1. RFA: `<stage-id>/<chunk-id>`, e.g. `identify-helper-functions/group-1/chunk-1`.
    2. Incremental accumulation: `<task>/batch-<n>`, e.g. `assign-groups/batch-2`.
    3. RFR: `<action>/<location>`, e.g. `extract_method/myapp/books.py:create_book`.
    4. The real policy uses the id for logging and as the key of finished chunks in the session file (for resuming
       an interrupted stage).
-2. The tests use fake policies (in a `fake_policies.py` next to the tests):
+2. The tests use fake policies (in a `fake_policies.py` next to the tests). The config file of a test refers to a
+   function in that module that returns the fake policy (e.g. `get_fake_rfa_policy`), and the test scripts the fake
+   before it runs `breaker next`. A fake is only added once a test needs it.
    1. `FakeRfaPolicy` maps each RFA id onto a list of scripted callbacks (an action name plus its arguments). It runs
       these callbacks through the same callback dispatcher that the real policy uses.
    2. `FakeRfrPolicy` maps each RFR id onto scripted file edits.
@@ -50,8 +52,8 @@ Feature packages:
    4. Every fake records the requests that it receives (id, prompt and context), so that tests can assert on the
       context that Breaker pre-computed (e.g. the call-graph view).
    5. A request without a script raises an error, so that unexpected requests fail the test.
-3. Tests use the `simple` grouping strategy with a large group size, so that the chunk ids are predictable, except
-   in the tests of the grouping strategies themselves.
+3. Tests use the `simple` grouping strategy with a large group and chunk size (set in the config file), so that the
+   chunk ids are predictable, except in the tests of the grouping strategies themselves.
 4. Exercises: `claude_requests/models/rfa.py`, `claude_requests/models/rfr.py`, `claude_requests/models/callback.py`,
    `claude_requests/actions/run_callback.py` (the dispatcher, with `UnknownCallbackError`),
    `claude_requests/policies/rfa_policy.py`, `claude_requests/policies/rfr_policy.py`,
@@ -71,19 +73,29 @@ records them.
 `run_next_stage` lives in `runtime`, because it imports the stage actions of all feature packages, and only
 `breaker next` uses it. This keeps `sessions` free of imports from the feature packages.
 
-1. `breaker next` refuses to run when the working tree is not clean (`DirtyWorkingTreeError`), or when there is no
-   session (`NoSessionError`).
+The runner tests (in `tests/breaker_next_tests/`) replace the first stage with a fake stage that makes an RFA per
+chunk, by monkeypatching the table of stage actions (`STAGE_ACTIONS`) in `run_next_stage`. So they don't depend on
+what the real stages do.
+
+1. The config file and the group file (in `tests/sessions_tests/`): `breaker init` writes a config file with default
+   values, or keeps an existing one; missing fields get their default value; `breaker init` creates the group file
+   with the grouping strategy of the config.
+   - Exercises: `sessions/actions/init_session.py`, `sessions/models/config.py` (`Config`),
+     `sessions/rules/load_config.py`, `groups/actions/create_group_file.py`, `groups/actions/save_group_file.py`,
+     `groups/rules/load_group_file.py`, `groups/enums.py` (`GroupingStrategies`).
+2. `breaker next` refuses to run when the working tree is not clean (`DirtyWorkingTreeError`), when there is no
+   session (`NoSessionError`), or when there is no group file (`NoGroupFileError`).
    - Exercises: `runtime/entrypoints/breaker.py`, `runtime/actions/run_next_stage.py`, `sessions/utils/exceptions.py`.
    - Note: `DirtyWorkingTreeError` is then shared by `init_session` and `run_next_stage`, so it moves from
      `sessions/actions/init_session.py` to `sessions/utils/exceptions.py`.
-2. `breaker next` runs the stage in `next_stage`, commits after each action with the stage id as the commit-message
+3. `breaker next` runs the stage in `next_stage`, commits after each action with the stage id as the commit-message
    prefix, and updates `next_stage`.
-   - Exercises: `runtime/actions/run_next_stage.py`, `sessions/enums.py` (`Stages`),
-     `sessions/actions/commit_changes.py`.
-   - Note: `groups/enums.py` (`GroupingStrategies`) is first needed when `breaker next` creates the group file.
-3. An interrupted stage resumes at the first chunk that is not recorded as finished in the session file.
-   - Exercises: `sessions/actions/process_chunks.py` (the shared helper), `sessions/actions/record_finished_chunk.py`,
-     `sessions/rules/get_unfinished_chunks.py`.
+   - Exercises: `runtime/actions/run_next_stage.py` (with `STAGE_ACTIONS`), `sessions/enums.py` (`Stages`),
+     `sessions/actions/commit_changes.py`, `sessions/actions/process_chunks.py` (the shared helper),
+     `groups/rules/get_chunks.py`, `claude_requests/rules/create_rfa_policy.py`, `utils/import_object.py`, and the
+     code units of the test infrastructure for Claude requests (except the RFR and grouping policies).
+4. An interrupted stage resumes at the first chunk that is not recorded as finished in the session file.
+   - Exercises: `sessions/actions/record_finished_chunk.py`, `sessions/rules/get_unfinished_chunks.py`.
 
 ## 6. Smart grouping and the group file
 
@@ -93,13 +105,15 @@ depends on actions that rename or split off files, which arrive with the later s
 1. Smart grouping with `FakeGroupingPolicy`: the index file, the group description file and the group file;
    Breaker rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
    - Exercises: `groups/actions/create_index_file.py`, `groups/actions/create_smart_groups.py`,
-     `groups/rules/load_group_file.py`, `groups/actions/save_group_file.py`,
-     `groups/rules/validate_group_descriptions.py`.
+     `groups/rules/load_group_file.py` (malformed lines), `groups/rules/validate_group_descriptions.py`.
 2. Incremental accumulation as a generic mechanism: batches of K items, validation of the state file after each
    batch, unprocessed items are added to the next batch.
    - Exercises: `claude_requests/actions/run_incremental_accumulation.py`.
 3. The group file is updated when an action renames a file or splits off a new file.
    - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py`.
+4. `breaker group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
+   and commits it.
+   - Exercises: `runtime/entrypoints/breaker.py`, `groups/actions/create_group_file.py`.
 
 ## 7. Glossary
 

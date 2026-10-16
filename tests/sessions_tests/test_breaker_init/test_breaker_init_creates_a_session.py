@@ -33,15 +33,20 @@ def test_breaker_init_creates_a_session(context: Context):
 
     # We run breaker init with the src dir as the target dir and a branch name.
     #
-    # Breaker should have created the branch and committed the session file
-    # and the node files on it.
+    # Breaker should have created the branch and committed the session file,
+    # the config file, the group file and the node files on it.
     if env.step(
         env.run_breaker("init", "--target-dir=src", "--branch-name=refactor-myapp"),
     ):
         assert env.git_branch() == "refactor-myapp"
         assert env.git_head() != env.remembered_git_head
         assert env.git_status() == ""
-        assert env.files_in_head_commit() == {".breaker/session.yaml", *NODE_FILES}
+        assert env.files_in_head_commit() == {
+            ".breaker/session.yaml",
+            ".breaker/config.yaml",
+            ".breaker/groups.txt",
+            *NODE_FILES,
+        }
 
     # We look at the session.
     #

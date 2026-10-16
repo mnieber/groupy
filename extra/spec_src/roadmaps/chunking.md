@@ -22,8 +22,10 @@ group into chunks and processes these chunks in series.
    3. A module that is larger than the maximum chunk size gets a chunk of its own.
    4. Chunks are numbered per group, and the chunk id contains both numbers (e.g. `group-2/chunk-1`). The same
       group gives the same chunks, with the same ids.
-6. `breaker next` creates the group file when it does not exist yet. As long as there is no group file, groups
-   cannot be used.
+6. `breaker init` creates the group file, using the grouping strategy and the sizes in the config file.
+   1. `breaker group` recreates the group file (e.g. after the developer changed the config file).
+   2. `breaker next` refuses to run when there is no group file.
+   1. A stage gets its chunks by loading the group file and splitting each group into chunks.
 
 ## Incremental accumulation
 

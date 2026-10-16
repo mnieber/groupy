@@ -1,4 +1,4 @@
-from breaker.sessions.actions.init_session import DirtyWorkingTreeError
+from breaker.sessions.utils.exceptions import DirtyWorkingTreeError
 from sessions_tests.breaker_test_env import Context, TestEnv
 
 
