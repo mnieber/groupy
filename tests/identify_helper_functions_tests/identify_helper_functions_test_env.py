@@ -4,7 +4,6 @@ from breaker.call_graph.actions.build_call_graph import build_call_graph
 from breaker.call_graph.models.call_graph import CallGraph
 from breaker.call_graph.models.call_graph_view import CallGraphView, FunctionView
 from breaker.call_graph.rules.load_call_graph import load_call_graph
-from breaker.claude_requests.models.callback import Callback
 from breaker.functions.actions.mark_helper_candidates import mark_helper_candidates
 from breaker.functions.actions.move_function_to_parent import (
     move_function_to_parent,
@@ -135,19 +134,6 @@ class TestEnv(BreakerNextTestEnv):
             (call.location, call.scope, call.is_certain)
             for call in self.function_view(location).callers
         }
-
-
-def move_function_to_parent_callback(
-    module_name: str, function_location: str, parent_location: str
-) -> Callback:
-    return Callback(
-        name="move_function_to_parent",
-        args={
-            "module_name": module_name,
-            "function_location": function_location,
-            "parent_location": parent_location,
-        },
-    )
 
 
 def _find_by_name(nodes: T.List[T.Any], name: str):

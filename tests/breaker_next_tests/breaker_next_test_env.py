@@ -109,14 +109,8 @@ class TestEnv(BreakerTestEnv):
         return matches[0].responsibilities
 
 
-def add_responsibility_callback(
-    module_name: str, location: str, responsibility: str
-) -> Callback:
-    return Callback(
-        name="add_responsibility",
-        args={
-            "module_name": module_name,
-            "location": location,
-            "responsibility": responsibility,
-        },
-    )
+def callback(name: str, **args: T.Any) -> Callback:
+    """Returns a callback for a script. The args are the arguments of the
+    action, without the source root and the glossary path, which the callback
+    dispatcher supplies."""
+    return Callback(name=name, args=args)

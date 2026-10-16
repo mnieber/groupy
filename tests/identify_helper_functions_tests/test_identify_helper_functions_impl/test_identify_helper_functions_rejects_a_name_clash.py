@@ -1,9 +1,9 @@
 from breaker.renamings.actions.rename_symbol import RenameConflictError
+from breaker_next_tests.breaker_next_test_env import callback
 from identify_helper_functions_tests.identify_helper_functions_test_env import (
     RFA_ID,
     Context,
     TestEnv,
-    move_function_to_parent_callback,
 )
 
 TITLES_PY = """\
@@ -35,8 +35,11 @@ def test_identify_helper_functions_rejects_a_name_clash(context: Context):
         env.create_session_with_modules({"myapp/titles.py": TITLES_PY}),
         env.script_rfa(
             RFA_ID,
-            move_function_to_parent_callback(
-                "myapp/titles.py", "format_title", "create_title"
+            callback(
+                "move_function_to_parent",
+                module_name="myapp/titles.py",
+                function_location="format_title",
+                parent_location="create_title",
             ),
         ),
         env.remember_git_head(),

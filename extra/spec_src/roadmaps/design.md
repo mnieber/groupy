@@ -334,12 +334,16 @@ An example node file is given in `./module_node_example.md`.
 
 1. The developer runs `breaker next`
 2. Breaker will pass each node file to Claude and ask it to update it (by running actions)
-   1. Claude first updates the `ModuleNode.concepts: Dict[str, str | None]` field
+   1. Breaker makes an RFA per chunk. The RFA context contains:
+      1. `module_sources`: the source of each module of the chunk (by module name).
+      2. `call_graph_view`: the call graph view of the chunk, with the callers and the callees.
+      3. `glossary`: the text of the glossary file so far (empty when there is no glossary file yet).
+   2. Claude first updates the `ModuleNode.concepts: Dict[str, str | None]` field
       1. These are the concepts that apply to the module as a whole.
       2. Each key names a concept and the value is a short description of that concept.
       3. They are recorded once at the module level to avoid repeating them in each FunctionNode.
          Concepts in `FunctionNode.concepts` are not necessarily less important.
-   2. Claude will then update each function-node in `function_nodes` (and each class-node in `class_nodes`):
+   3. Claude will then update each function-node in `function_nodes` (and each class-node in `class_nodes`):
       1. It updates the `FunctionNode.concepts: Dict[str, str | None]` field
          1. Each key names a concept that is used in the function, and that is not already present (with the same meaning) in `ModuleNode.concepts`.
             1. If it's present there with a different meaning (which should be rare), then it can be duplicated in the FunctionNode.
@@ -372,7 +376,7 @@ An example node file is given in `./module_node_example.md`.
          `FunctionNode.aliases: Dict[str, List[str]]` field.
          1. E.g. `outlier: [outlier_point]`.
          2. The list of aliases serves as an input for determining the renamings that are used to get rid of aliases.
-   3. Claude updates the project glossary (see "Glossary file") with the concepts of the chunk.
+   4. Claude updates the project glossary (see "Glossary file") with the concepts of the chunk.
       1. Each RFA receives the glossary so far, so that Claude can reuse the names and descriptions of earlier chunks.
       2. A concept that is not in the glossary yet is added with its description.
       3. When a concept has the same meaning as a glossary entry with another name, Claude adds its name as an alias
@@ -385,12 +389,22 @@ An example node file is given in `./module_node_example.md`.
             code-base.
             1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative
                abbreviations.
+   5. After the RFA of a chunk, Breaker checks that Claude analyzed every function node (also method nodes and
+      helper function nodes) and class node of the chunk, i.e. that its `extract_method_priority` is set.
+      1. If some nodes are not analyzed, Breaker makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose
+         context lists their locations (`unanalyzed_nodes`, sorted, e.g. `myapp/books.py:Book.__init__`).
+      2. If nodes are still not analyzed after the follow-up RFA, Breaker raises an error that lists them. This
+         interrupts the stage, and the chunk is not finished.
 3. After the last chunk, Breaker asks Claude to consolidate the glossary (in a single session that receives the
    entire glossary).
-   1. Early chunks may have added entries that turn out to have the same meaning. Claude merges them into one entry,
+   1. The consolidation RFA has the id `analyze-terminology/consolidate-glossary`, and its context contains the
+      `glossary`. It is treated as a final chunk: Breaker records it in `finished_chunks` and commits with the message
+      `analyze-terminology: finish consolidate-glossary`, so that a stage that is interrupted during the
+      consolidation only reruns the consolidation.
+   2. Early chunks may have added entries that turn out to have the same meaning. Claude merges them into one entry,
       and the other names become aliases.
-   2. Claude makes the abbreviations consistent.
-   3. Claude does not resolve names with several meanings; that is up to the developer.
+   3. Claude makes the abbreviations consistent.
+   4. Claude does not resolve names with several meanings; that is up to the developer.
 4. The developer reviews the glossary and cleans it up.
    1. In particular, the developer gives entries with the same name distinct names (e.g. `report` for the user
       statistics, and `error_report`, with the alias `report`, for the error reports).

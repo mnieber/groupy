@@ -40,6 +40,9 @@ Feature packages:
    names with several meanings).
 9. `breaker sync` (batch 6, in `tests/breaker_sync_tests/`): updating the node files, the package node files and the
    group file after the source changed, the report of the changes, and keeping the helpers of a removed node.
+10. `identify-helper-functions` (batch 7, in `tests/identify_helper_functions_tests/`): marking the helper
+    candidates per chunk, nesting the helpers via callbacks, renaming them with rope (also the call sites in other
+    modules), and the name clash error.
 
 ## Test infrastructure for Claude requests
 
@@ -77,37 +80,31 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `identify-helper-functions` (MS-2, in `tests/identify_helper_functions_tests/`): per chunk, the helper candidates
-   are marked from the call graph (one certain caller in the same module, no dunder methods); the RFA context has the
-   call graph view; the scripted callbacks nest helpers with `move_function_to_parent`; Breaker renames the helpers
-   to start with an underscore in the node file and in the source (including call sites in other modules); a name
-   clash raises `RenameConflictError` and interrupts the stage.
-   - Exercises: `functions/actions/identify_helper_functions.py` (the stage, registered in `STAGE_ACTIONS`),
-     `functions/actions/mark_helper_candidates.py` (`mark_helper_candidates(source_root, call_graph,
-     module_names)`), `functions/actions/rename_helper_functions.py` (`rename_helper_functions(source_root,
-     module_names)`), `renamings/actions/rename_symbol.py` (rope, with `RenameConflictError`), the RFA context key
-     `call_graph_view`.
-2. `analyze-terminology` (MS-3): the callbacks fill concepts, local terms, responsibilities, steps, aliases and
-   `extract_method_priority`, and update the glossary; the RFA context contains the module source, the call-graph
-   view and the glossary so far; a second chunk that uses a known name with another meaning adds a second entry with
-   that name; the consolidation RFA merges two entries with the same meaning.
-   - Exercises: `concepts/actions/analyze_terminology.py`, `concepts/actions/consolidate_glossary.py`, the actions of
-     batch 1 and of section 7.
-3. `propose-renamings` (MS-4): renamings are recorded; the RFA context contains the glossary; Breaker reports a new
+1. `analyze-terminology` (MS-3, in `tests/analyze_terminology_tests/`): the callbacks fill concepts, local terms,
+   responsibilities, steps, aliases and `extract_method_priority`, and update the glossary; the RFA context contains
+   the module sources, the call-graph view (callers and callees) and the glossary so far; a second chunk that uses a
+   known name with another meaning adds a second entry with that name; the consolidation RFA (a final pseudo-chunk
+   `analyze-terminology/consolidate-glossary`) merges two entries with the same meaning; a follow-up RFA
+   (`<rfa-id>/retry-1`) for unanalyzed nodes, and `UnanalyzedNodesError` when nodes are still unanalyzed; resuming
+   at the consolidation. Scripts use the generic `callback(name, **args)` helper of `breaker_next_test_env`.
+   - Exercises: `concepts/actions/analyze_terminology.py` (the stage, with `UnanalyzedNodesError`),
+     `concepts/actions/consolidate_glossary.py`, the RFA context keys `module_sources`, `call_graph_view`,
+     `glossary` and `unanalyzed_nodes`, and the node edits (batch 1) and glossary edits (batch 5) as callbacks.
+2. `propose-renamings` (MS-4): renamings are recorded; the RFA context contains the glossary; Breaker reports a new
    name that clashes with an existing name in the same scope.
    - Exercises: `renamings/actions/propose_renamings.py`, `renamings/rules/find_renaming_conflicts.py`.
-4. `apply-renamings` (MS-5): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
+3. `apply-renamings` (MS-5): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
    including their call sites in other modules.
    - Exercises: `renamings/actions/apply_renamings.py`, `renamings/actions/rename_symbol.py`.
-5. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
+4. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
    node for the extracted function; the callbacks fill its analysis and update the parent.
    - Exercises: `functions/actions/extract_methods.py` (the stage), `functions/actions/extract_method.py` (the
      callback), `functions/rules/get_extract_method_candidates.py`.
-6. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
+5. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
    moves the call.
    - Exercises: `functions/actions/move_steps_to_caller.py` (the stage), `functions/actions/move_step_to_caller.py`
      (the callback).
-7. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
+6. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
    the validations (missing `code_unit_type`, location rule per code unit type, one public code unit per file,
    dependency direction).
    - Exercises: `restructure/actions/propose_module_layout.py`, `nodes/actions/set_proposed_module.py`,

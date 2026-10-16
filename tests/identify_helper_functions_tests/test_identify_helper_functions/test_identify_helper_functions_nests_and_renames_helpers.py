@@ -1,9 +1,9 @@
 from breaker.call_graph.enums import CallScopes
+from breaker_next_tests.breaker_next_test_env import callback
 from identify_helper_functions_tests.identify_helper_functions_test_env import (
     RFA_ID,
     Context,
     TestEnv,
-    move_function_to_parent_callback,
 )
 
 REPORTS_PY = """\
@@ -71,14 +71,23 @@ def test_identify_helper_functions_nests_and_renames_helpers(context: Context):
         env.create_session_with_modules({"myapp/reports.py": REPORTS_PY}),
         env.script_rfa(
             RFA_ID,
-            move_function_to_parent_callback(
-                "myapp/reports.py", "format_stat", "format_lines"
+            callback(
+                "move_function_to_parent",
+                module_name="myapp/reports.py",
+                function_location="format_stat",
+                parent_location="format_lines",
             ),
-            move_function_to_parent_callback(
-                "myapp/reports.py", "format_lines", "create_report"
+            callback(
+                "move_function_to_parent",
+                module_name="myapp/reports.py",
+                function_location="format_lines",
+                parent_location="create_report",
             ),
-            move_function_to_parent_callback(
-                "myapp/books.py", "_normalize_title", "create_book"
+            callback(
+                "move_function_to_parent",
+                module_name="myapp/books.py",
+                function_location="_normalize_title",
+                parent_location="create_book",
             ),
         ),
         env.remember_git_head(),

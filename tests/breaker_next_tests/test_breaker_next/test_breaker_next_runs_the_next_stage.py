@@ -1,7 +1,7 @@
 from breaker_next_tests.breaker_next_test_env import (
     Context,
     TestEnv,
-    add_responsibility_callback,
+    callback,
 )
 
 
@@ -24,13 +24,17 @@ def test_breaker_next_runs_the_next_stage(context: Context):
         env.install_fake_stage(),
         env.script_rfa(
             "identify-helper-functions/group-1/chunk-1",
-            add_responsibility_callback(
-                "myapp/books.py", "create_book", "Creates a book"
+            callback(
+                "add_responsibility",
+                module_name="myapp/books.py",
+                location="create_book",
+                responsibility="Creates a book",
             ),
-            add_responsibility_callback(
-                "myapp/chapters/create_chapter.py",
-                "create_chapter",
-                "Creates a chapter",
+            callback(
+                "add_responsibility",
+                module_name="myapp/chapters/create_chapter.py",
+                location="create_chapter",
+                responsibility="Creates a chapter",
             ),
         ),
         env.remember_git_head(),

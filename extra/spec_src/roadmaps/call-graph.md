@@ -57,8 +57,9 @@ and offers actions that allow Claude to query the graph for more information.
    (e.g. "called from 37 places in 12 modules", where a place is a call).
 4. Each RFA defines which view of the call graph it uses. For example:
    1. identify-helper-functions: callers only (mainly the number of callers, and whether they are in the same module).
-   2. move-steps-to-caller: the callers of F, including their source.
-   3. propose-module-layout and propose-code-restructure: the dependencies between modules, aggregated from the
+   2. analyze-terminology: the callers and the callees.
+   3. move-steps-to-caller: the callers of F, including their source.
+   4. propose-module-layout and propose-code-restructure: the dependencies between modules, aggregated from the
       function-level call graph.
 
 ## Query actions
