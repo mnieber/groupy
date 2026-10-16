@@ -78,7 +78,8 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
    1. Helper function nodes count as top-level functions (also the helpers of methods), because helper functions
       are top-level functions in the Python code (see "Nested functions").
    2. Functions that are nested in the Python code have no node, so they are not compared.
-   3. Breaker does not detect changes inside a function body, so the analysis of a changed function may be stale.
+   3. Breaker does not detect changes inside a function body, so the analysis of a changed function may be stale
+      (MS-9 adds this).
 2. Breaker updates the node files:
    1. It adds a node for every name that is in the source but not in the node file. The new node is inserted in
       source order among its siblings.
@@ -100,7 +101,7 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
       the line ends with `(it had <fields>)`, e.g. `(it had responsibilities, steps)`, as a hint to move them.
    2. `<module>: created the node file` and `<module>: deleted the node file`.
    3. The lines are sorted by module and location, and followed by the line `Please review the changes to the node
-      files (e.g. with git diff), and move the analysis of renamed nodes.` A change of `line_count` alone is not
+files (e.g. with git diff), and move the analysis of renamed nodes.` A change of `line_count` alone is not
       reported. Without changes, Breaker prints `The node files match the source.`
 4. `breaker sync` does not commit, and does not require a clean working tree. Since `breaker next` requires a clean
    working tree, the developer reviews and commits the changes before the next stage.
@@ -296,8 +297,17 @@ An example node file is given in `./module_node_example.md`.
 ## MS-2: Breaker identifies helper functions
 
 1. The user calls `breaker next` to start the next stage.
-2. Breaker computes the call graph and marks helper candidates.
+2. The stage processes the chunks one by one. For each chunk, Breaker computes the call graph and marks the helper
+   candidates in the node files of the chunk (setting `is_helper_candidate`), and commits with the message
+   `identify-helper-functions: mark_helper_candidates`.
+   1. A function or method is a helper candidate when it has exactly one caller, and this caller is a function or
+      method in the same module that calls it through a certain edge.
+   2. Therefore, a function is not a helper candidate when it has no callers, when it is called from module-level
+      code, from another module or by several functions, or when one of its calls is uncertain.
+   3. Dunder methods (e.g. `__init__`) are never helper candidates, because Python calls them.
 3. Breaker will ask Claude to examine the FunctionNodes in the module node file.
+   1. The RFA context contains the call graph view of the chunk (see ./call-graph.md), with the callers of each
+      function.
    1. Claude decides which functions are helper functions and uses the move_function_to_parent action to nest them under their parent function.
       1. Not every helper candidate will necessarily turn out to be a helper function.
       2. A function that is called from outside the module is never a helper function.
@@ -308,7 +318,16 @@ An example node file is given in `./module_node_example.md`.
          method (which signifies that the method is treated as a helper function of its new parent).
    2. A function that is called by several functions in the module is not nested. It stays a top-level function
       (it later will typically become a rule or util).
-4. Breaker renames the helper functions so that they start with an underscore (in the node file and in the source).
+4. After the RFA of a chunk, Breaker renames the helper functions in the chunk so that they start with an underscore
+   (in the node file and in the source, using rope), and commits with the message
+   `identify-helper-functions: rename_helper_functions`. Then it finishes the chunk.
+   1. This applies to all helper function nodes, also to helpers of helpers and to helpers of methods. A helper
+      whose name already starts with an underscore keeps its name.
+   2. Rope also renames the call sites (and imports) in other modules.
+   3. Renaming the helpers per chunk keeps the node files, the source and the call graph consistent for the next
+      chunk.
+   4. When the new name clashes with an existing name in the module, Breaker raises an error (before it changes any
+      file), which interrupts the stage. The developer resolves the clash and runs `breaker next` again.
 5. Breaker commits the results and updates `next_stage` to `analyze-terminology`.
 
 ## MS-3: Breaker analyzes the terminology
@@ -531,3 +550,20 @@ An example node file is given in `./module_node_example.md`.
       implementation is a code unit of its own.
    4. It uses the call graph to report dependencies that violate the dependency direction.
 8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
+
+## MS-9: Breaker sync detects changed and renamed functions
+
+1. Every `FunctionNode` gets a `body_hash: str | None` field: the first 12 hex characters of the md5 hash of the
+   `ast.dump()` of the function's decorators, arguments and body (but not its name).
+   1. Since the hash is computed from the AST, formatting and comments don't change it (docstrings do).
+   2. Breaker sets the hash when it creates a node (e.g. in `breaker init` and `breaker sync`).
+2. Whenever Breaker commits, it first refreshes the `body_hash` of the functions in the modules that changed, so
+   that its own changes of the code (e.g. by rope or by an RFR) are not reported by `breaker sync`.
+   1. Alternatively, we require the user to run `breaker hash` before they edit the source code manually.
+3. `breaker sync` uses the hash:
+   1. It reports a function whose hash differs from the source as `<module>: changed <location>`, and updates the
+      hash. It does not change the analysis: the developer reviews whether it is still correct.
+   2. When a removed node and an added node in the same module (with the same parent) have the same hash, Breaker
+      treats them as a rename: it renames the node, so that it keeps its analysis, and reports
+      `<module>: renamed <old location> to <new location>`.
+   3. A rename combined with a change of the body is still reported as a removed and an added node.

@@ -77,11 +77,16 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `identify-helper-functions` (MS-2): helper candidates are marked from the call graph; the scripted callbacks
-   nest helpers with `move_function_to_parent`; Breaker renames the helpers to start with an underscore in the node
-   file and in the source (including call sites).
-   - Exercises: `functions/actions/identify_helper_functions.py`, `functions/actions/mark_helper_candidates.py`,
-     `functions/actions/rename_helper_functions.py`, `renamings/actions/rename_symbol.py` (rope).
+1. `identify-helper-functions` (MS-2, in `tests/identify_helper_functions_tests/`): per chunk, the helper candidates
+   are marked from the call graph (one certain caller in the same module, no dunder methods); the RFA context has the
+   call graph view; the scripted callbacks nest helpers with `move_function_to_parent`; Breaker renames the helpers
+   to start with an underscore in the node file and in the source (including call sites in other modules); a name
+   clash raises `RenameConflictError` and interrupts the stage.
+   - Exercises: `functions/actions/identify_helper_functions.py` (the stage, registered in `STAGE_ACTIONS`),
+     `functions/actions/mark_helper_candidates.py` (`mark_helper_candidates(source_root, call_graph,
+     module_names)`), `functions/actions/rename_helper_functions.py` (`rename_helper_functions(source_root,
+     module_names)`), `renamings/actions/rename_symbol.py` (rope, with `RenameConflictError`), the RFA context key
+     `call_graph_view`.
 2. `analyze-terminology` (MS-3): the callbacks fill concepts, local terms, responsibilities, steps, aliases and
    `extract_method_priority`, and update the glossary; the RFA context contains the module source, the call-graph
    view and the glossary so far; a second chunk that uses a known name with another meaning adds a second entry with

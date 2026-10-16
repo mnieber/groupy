@@ -59,11 +59,16 @@ class TestEnv(BreakerTestEnv):
 
     # Actions
 
-    def create_session(self, **config_fields: T.Any) -> None:
+    def create_session(
+        self, modules: T.Dict[str, str] = None, **config_fields: T.Any
+    ) -> None:
         """Creates a git repo with the target code and a config file that uses
-        the fake RFA policy, and runs breaker init. The config_fields are added
-        to the config file."""
+        the fake RFA policy, and runs breaker init. The modules (a map from
+        module name to text) are added to the target code, and the
+        config_fields are added to the config file."""
         self.create_repo_with_target_code()
+        for module_name, text in (modules or {}).items():
+            self.write_file(f"src/{module_name}", text)
         config_lines = [f"rfa_policy: {FAKE_RFA_POLICY}"] + [
             f"{field}: {value}" for field, value in config_fields.items()
         ]
