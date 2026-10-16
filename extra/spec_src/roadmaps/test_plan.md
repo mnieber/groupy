@@ -10,7 +10,7 @@ that is only called by an action under test) are listed where they are first nee
 
 Feature packages:
 
-- `sessions`: the session file, `breaker init`, commits.
+- `sessions`: the session file, `breaker init`, commits, the stages (`Stages`) and the finished chunks.
 - `nodes`: node files (create, load, save, find, sync) and edits of fields that every kind of node has.
 - `functions`: edits and refactorings of function nodes and functions (helpers, steps, extract method).
 - `concepts`: terminology fields of nodes and the glossary.
@@ -18,8 +18,8 @@ Feature packages:
 - `call_graph`: the call graph and its views.
 - `claude_requests`: RFAs, RFRs, callbacks and incremental accumulation.
 - `groups`: grouping and chunking.
-- `stages`: `breaker next` and the stage runner.
 - `restructure`: the module layout and the code restructure.
+- `runtime`: the CLI entrypoint and `run_next_stage` (which dispatches `breaker next` to the stage actions).
 - `utils`: generic helpers (e.g. git).
 
 ## Done
@@ -57,41 +57,60 @@ Feature packages:
    - Implied: `claude_requests/policies/claude_rfa_policy.py`, `claude_requests/policies/claude_rfr_policy.py`,
      `groups/policies/claude_grouping_policy.py` (the real implementations, which the tests don't run).
 
-## 3. `breaker next` and the stage runner
+## 3. Groups and chunks
 
-The tests use the sessions Env (git repo) plus the fake policies.
-
-1. `breaker next` runs the stage in `next_stage`, commits after each action with the stage id as the commit-message
-   prefix, and updates `next_stage`.
-   - Exercises: `runtime/entrypoints/breaker.py`, `stages/actions/run_next_stage.py`, `stages/enums.py` (`Stages`),
-     `sessions/actions/commit_changes.py`.
-2. An interrupted stage resumes at the first chunk that is not recorded as finished in the session file.
-   - Exercises: `sessions/actions/record_finished_chunk.py`, `stages/rules/get_unfinished_chunks.py`.
-3. `breaker next` refuses to run when the working tree is not clean (`DirtyWorkingTreeError`), or when there is no
-   session (`NoSessionError`).
-   - Exercises: `stages/actions/run_next_stage.py`, `sessions/utils/exceptions.py`.
-   - Note: `DirtyWorkingTreeError` is then shared by `init_session` and `run_next_stage`, so it moves from
-     `sessions/actions/init_session.py` to `sessions/utils/exceptions.py`.
-
-## 4. Chunking
+These tests come before the stage runner tests, because they fix the `Chunk` model and the chunk ids that the
+stages use to record finished chunks.
 
 1. The `simple` and `package` grouping strategies: which node files end up in which group, and how a large group is
-   split into chunks.
+   split into chunks. The chunk ids are deterministic: the same node files give the same chunks in the same order.
    - Exercises: `groups/rules/create_simple_groups.py`, `groups/rules/create_package_groups.py`,
      `groups/rules/split_group_into_chunks.py`, `groups/models/group.py`, `groups/models/chunk.py`,
      `groups/enums.py` (`GroupingStrategies`).
-2. Smart grouping with `FakeGroupingPolicy`: the index file, the group description file and the group file;
+   - To decide: whether chunks are numbered across all groups (`chunk-1`) or per group (`group-2/chunk-1`).
+
+## 4. `breaker next` and the stage runner
+
+The tests use the sessions Env (git repo) plus the fake policies.
+
+The loop over the chunks lives in each stage, not in the stage runner: the stages chunk different things (node
+files in MS-2 to MS-5, a list of functions in MS-6, no groups at all in MS-8), and some stages run an extra RFA after
+the last chunk (the glossary consolidation in MS-3). Each stage uses a shared helper that skips finished chunks and
+records them.
+
+`run_next_stage` lives in `runtime`, because it imports the stage actions of all feature packages, and only
+`breaker next` uses it. This keeps `sessions` free of imports from the feature packages.
+
+1. `breaker next` refuses to run when the working tree is not clean (`DirtyWorkingTreeError`), or when there is no
+   session (`NoSessionError`).
+   - Exercises: `runtime/entrypoints/breaker.py`, `runtime/actions/run_next_stage.py`, `sessions/utils/exceptions.py`.
+   - Note: `DirtyWorkingTreeError` is then shared by `init_session` and `run_next_stage`, so it moves from
+     `sessions/actions/init_session.py` to `sessions/utils/exceptions.py`.
+2. `breaker next` runs the stage in `next_stage`, commits after each action with the stage id as the commit-message
+   prefix, and updates `next_stage`.
+   - Exercises: `runtime/actions/run_next_stage.py`, `sessions/enums.py` (`Stages`),
+     `sessions/actions/commit_changes.py`.
+3. An interrupted stage resumes at the first chunk that is not recorded as finished in the session file.
+   - Exercises: `sessions/actions/process_chunks.py` (the shared helper), `sessions/actions/record_finished_chunk.py`,
+     `sessions/rules/get_unfinished_chunks.py`.
+
+## 6. Smart grouping and the group file
+
+These tests don't affect the stage runner. They can also move to just before the stages that need them (item 3
+depends on actions that rename or split off files, which arrive with the later stages).
+
+1. Smart grouping with `FakeGroupingPolicy`: the index file, the group description file and the group file;
    Breaker rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
    - Exercises: `groups/actions/create_index_file.py`, `groups/actions/create_smart_groups.py`,
      `groups/rules/load_group_file.py`, `groups/actions/save_group_file.py`,
      `groups/rules/validate_group_descriptions.py`.
-3. Incremental accumulation as a generic mechanism: batches of K items, validation of the state file after each
+2. Incremental accumulation as a generic mechanism: batches of K items, validation of the state file after each
    batch, unprocessed items are added to the next batch.
    - Exercises: `claude_requests/actions/run_incremental_accumulation.py`.
-4. The group file is updated when an action renames a file or splits off a new file.
+3. The group file is updated when an action renames a file or splits off a new file.
    - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py`.
 
-## 5. Glossary
+## 7. Glossary
 
 These are plain edits of the glossary file, tested like the node file edits: the tests write a glossary, run the
 action, and reload the glossary. Every action takes `(glossary_path, name, ...)` and is available as a callback.
@@ -113,11 +132,11 @@ action, and reload the glossary. Every action takes `(glossary_path, name, ...)`
    - Exercises: the actions of item 2, `concepts/rules/find_glossary_entry.py`, `concepts/utils/exceptions.py`
      (`AmbiguousEntryError`).
 
-## 6. The stages
+## 8. The stages
 
 One workflow test per stage, plus impl tests for its validations. Each workflow test runs `breaker next` with
 scripted callbacks and checks the node files, the source, the commits and `next_stage`. Every stage is an action
-that `stages/actions/run_next_stage.py` calls.
+that `runtime/actions/run_next_stage.py` calls.
 
 1. `identify-helper-functions` (MS-2): helper candidates are marked from the call graph; the scripted callbacks
    nest helpers with `move_function_to_parent`; Breaker renames the helpers to start with an underscore in the node
@@ -129,7 +148,7 @@ that `stages/actions/run_next_stage.py` calls.
    view and the glossary so far; a second chunk that uses a known name with another meaning adds a second entry with
    that name; the consolidation RFA merges two entries with the same meaning.
    - Exercises: `concepts/actions/analyze_terminology.py`, `concepts/actions/consolidate_glossary.py`, the actions of
-     batch 1 and of section 5.
+     batch 1 and of section 7.
 3. `propose-renamings` (MS-4): renamings are recorded; the RFA context contains the glossary; Breaker reports a new
    name that clashes with an existing name in the same scope.
    - Exercises: `renamings/actions/propose_renamings.py`, `renamings/rules/find_renaming_conflicts.py`.
@@ -152,7 +171,7 @@ that `stages/actions/run_next_stage.py` calls.
      `restructure/rules/validate_code_restructure.py`, `restructure/rules/get_expected_location.py`,
      `restructure/rules/find_dependency_violations.py`.
 
-## 7. `breaker sync`
+## 9. `breaker sync`
 
 1. No differences after `breaker init`.
 2. A function, class or variable that was added, removed or renamed in the source is reported.
@@ -163,6 +182,10 @@ that `stages/actions/run_next_stage.py` calls.
 
 ## Open points in the design
 
-1. MS-8 sets `next_stage` to `apply-code-restructure`, but there is no milestone for that stage yet.
+1. MS-8 sets `next_stage` to `apply-code-restructure`, but there is no milestone for that stage yet. -> TBD
 2. How the user resolves the differences that `breaker sync` reports (edit the node file by hand, or let Breaker
-   update the node file?).
+   update the node file?). -> By hand
+3. When the group file is created: in `breaker init`, or in the first `breaker next`? -> I suggest to do it in breaker next. As long as there is no group file, groups cannot be used.
+4. What happens to the finished chunks that are recorded in the session file when `breaker next` recreates the group
+   file (chunking.md 4.3) while a stage is interrupted: are they discarded, or is the group file only recreated at
+   the start of a stage? -> Only at the start
