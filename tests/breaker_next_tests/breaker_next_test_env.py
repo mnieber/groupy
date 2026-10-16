@@ -1,6 +1,7 @@
 import typing as T
 from pathlib import Path
 
+from breaker.call_graph.models.call_graph_view import FunctionView
 from breaker.claude_requests.models.callback import Callback
 from breaker.claude_requests.models.rfa import Rfa
 from breaker.claude_requests.rules.create_rfa_policy import create_rfa_policy
@@ -92,6 +93,19 @@ class TestEnv(BreakerTestEnv):
 
     def rfa_ids(self) -> T.List[str]:
         return [rfa.id for rfa in self.rfa_policy().requests]
+
+    def rfa(self, rfa_id: str) -> Rfa:
+        matches = [rfa for rfa in self.rfa_policy().requests if rfa.id == rfa_id]
+        assert len(matches) == 1, f"Expected one RFA with the id {rfa_id}"
+        return matches[0]
+
+    def function_view_in_context(self, rfa_id: str, location: str) -> FunctionView:
+        """Returns the function view at the location, in the call graph view
+        in the context of the RFA."""
+        view = self.rfa(rfa_id).context["call_graph_view"]
+        matches = [v for v in view.function_views if v.location == location]
+        assert len(matches) == 1, f"Expected one function view for {location}"
+        return matches[0]
 
     def commit_messages_since_remembered_head(self) -> T.List[str]:
         log = self._git(

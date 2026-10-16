@@ -2,7 +2,6 @@ import typing as T
 
 from breaker.call_graph.actions.build_call_graph import build_call_graph
 from breaker.call_graph.models.call_graph import CallGraph
-from breaker.call_graph.models.call_graph_view import CallGraphView, FunctionView
 from breaker.call_graph.rules.load_call_graph import load_call_graph
 from breaker.functions.actions.mark_helper_candidates import mark_helper_candidates
 from breaker.functions.actions.move_function_to_parent import (
@@ -115,24 +114,12 @@ class TestEnv(BreakerNextTestEnv):
             if node.is_helper_candidate
         }
 
-    def call_graph_view_of_rfa(self) -> CallGraphView:
-        """Returns the call graph view in the context of the (only) RFA."""
-        [rfa] = self.rfa_policy().requests
-        return rfa.context["call_graph_view"]
-
-    def function_view(self, location: str) -> FunctionView:
-        matches = [
-            view
-            for view in self.call_graph_view_of_rfa().function_views
-            if view.location == location
-        ]
-        assert len(matches) == 1, f"Expected one function view for {location}"
-        return matches[0]
-
-    def callers(self, location: str) -> T.Set[T.Tuple]:
+    def callers_in_context(self, rfa_id: str, location: str) -> T.Set[T.Tuple]:
+        """Returns the (caller, scope, is_certain) triples of the function view
+        at the location, in the call graph view in the context of the RFA."""
         return {
             (call.location, call.scope, call.is_certain)
-            for call in self.function_view(location).callers
+            for call in self.function_view_in_context(rfa_id, location).callers
         }
 
 

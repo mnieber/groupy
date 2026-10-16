@@ -3,7 +3,6 @@ import typing as T
 
 import yaml
 from breaker.claude_requests.models.callback import Callback
-from breaker.claude_requests.models.rfa import Rfa
 from breaker.concepts.models.glossary import Glossary
 from breaker.concepts.rules.load_glossary import load_glossary
 from breaker.nodes.models.module_node import ModuleNode
@@ -83,11 +82,6 @@ class TestEnv(BreakerNextTestEnv):
 
     # Queries (for use in asserts)
 
-    def rfa(self, rfa_id: str) -> Rfa:
-        matches = [rfa for rfa in self.rfa_policy().requests if rfa.id == rfa_id]
-        assert len(matches) == 1, f"Expected one RFA with the id {rfa_id}"
-        return matches[0]
-
     def glossary_entries_in_context(self, rfa_id: str) -> T.List[T.Tuple[str, str]]:
         """Returns the (name, description) pairs of the glossary in the
         context of the RFA."""
@@ -97,10 +91,10 @@ class TestEnv(BreakerNextTestEnv):
     def callees_in_context(self, rfa_id: str, location: str) -> T.Set[T.Tuple]:
         """Returns the (callee, scope) pairs of the function view at the
         location, in the call graph view in the context of the RFA."""
-        view = self.rfa(rfa_id).context["call_graph_view"]
-        matches = [v for v in view.function_views if v.location == location]
-        assert len(matches) == 1, f"Expected one function view for {location}"
-        return {(call.location, call.scope) for call in matches[0].callees}
+        return {
+            (call.location, call.scope)
+            for call in self.function_view_in_context(rfa_id, location).callees
+        }
 
     def glossary_entries(self) -> T.List[T.Tuple[str, str, T.List[str]]]:
         """Returns the (name, description, aliases) triples of env.glossary."""

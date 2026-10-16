@@ -43,6 +43,10 @@ Feature packages:
 10. `identify-helper-functions` (batch 7, in `tests/identify_helper_functions_tests/`): marking the helper
     candidates per chunk, nesting the helpers via callbacks, renaming them with rope (also the call sites in other
     modules), and the name clash error.
+11. `analyze-terminology` (batch 8, in `tests/analyze_terminology_tests/`): filling the analysis and the glossary
+    via callbacks, the RFA context (module sources, call-graph view, glossary so far), a second meaning of a name,
+    the consolidation RFA as a final pseudo-chunk, the follow-up RFA for unanalyzed nodes, and resuming at the
+    consolidation.
 
 ## Test infrastructure for Claude requests
 
@@ -80,31 +84,21 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `analyze-terminology` (MS-3, in `tests/analyze_terminology_tests/`): the callbacks fill concepts, local terms,
-   responsibilities, steps, aliases and `extract_method_priority`, and update the glossary; the RFA context contains
-   the module sources, the call-graph view (callers and callees) and the glossary so far; a second chunk that uses a
-   known name with another meaning adds a second entry with that name; the consolidation RFA (a final pseudo-chunk
-   `analyze-terminology/consolidate-glossary`) merges two entries with the same meaning; a follow-up RFA
-   (`<rfa-id>/retry-1`) for unanalyzed nodes, and `UnanalyzedNodesError` when nodes are still unanalyzed; resuming
-   at the consolidation. Scripts use the generic `callback(name, **args)` helper of `breaker_next_test_env`.
-   - Exercises: `concepts/actions/analyze_terminology.py` (the stage, with `UnanalyzedNodesError`),
-     `concepts/actions/consolidate_glossary.py`, the RFA context keys `module_sources`, `call_graph_view`,
-     `glossary` and `unanalyzed_nodes`, and the node edits (batch 1) and glossary edits (batch 5) as callbacks.
-2. `propose-renamings` (MS-4): renamings are recorded; the RFA context contains the glossary; Breaker reports a new
+1. `propose-renamings` (MS-4): renamings are recorded; the RFA context contains the glossary; Breaker reports a new
    name that clashes with an existing name in the same scope.
    - Exercises: `renamings/actions/propose_renamings.py`, `renamings/rules/find_renaming_conflicts.py`.
-3. `apply-renamings` (MS-5): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
+2. `apply-renamings` (MS-5): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
    including their call sites in other modules.
    - Exercises: `renamings/actions/apply_renamings.py`, `renamings/actions/rename_symbol.py`.
-4. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
+3. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
    node for the extracted function; the callbacks fill its analysis and update the parent.
    - Exercises: `functions/actions/extract_methods.py` (the stage), `functions/actions/extract_method.py` (the
      callback), `functions/rules/get_extract_method_candidates.py`.
-5. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
+4. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
    moves the call.
    - Exercises: `functions/actions/move_steps_to_caller.py` (the stage), `functions/actions/move_step_to_caller.py`
      (the callback).
-6. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
+5. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
    the validations (missing `code_unit_type`, location rule per code unit type, one public code unit per file,
    dependency direction).
    - Exercises: `restructure/actions/propose_module_layout.py`, `nodes/actions/set_proposed_module.py`,

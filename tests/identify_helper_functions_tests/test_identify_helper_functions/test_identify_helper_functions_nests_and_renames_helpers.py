@@ -118,10 +118,10 @@ def test_identify_helper_functions_nests_and_renames_helpers(context: Context):
     # Its context should contain the call graph view of the chunk, with the
     # callers of each function.
     if env.step():
-        assert env.callers("myapp/reports.py:format_stat") == {
+        assert env.callers_in_context(RFA_ID, "myapp/reports.py:format_stat") == {
             ("myapp/reports.py:format_lines", CallScopes.SAME_MODULE, True),
         }
-        assert env.callers("myapp/reports.py:join_lines") == {
+        assert env.callers_in_context(RFA_ID, "myapp/reports.py:join_lines") == {
             ("myapp/reports.py:create_report", CallScopes.SAME_MODULE, True),
             ("myapp/reports.py:send_report", CallScopes.SAME_MODULE, True),
         }
