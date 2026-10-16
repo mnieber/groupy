@@ -100,9 +100,9 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
       (e.g. `Book.save`). For a removed node with fields that do not have their default value (other than `name`),
       the line ends with `(it had <fields>)`, e.g. `(it had responsibilities, steps)`, as a hint to move them.
    2. `<module>: created the node file` and `<module>: deleted the node file`.
-   3. The lines are sorted by module and location, and followed by the line `Please review the changes to the node
-files (e.g. with git diff), and move the analysis of renamed nodes.` A change of `line_count` alone is not
-      reported. Without changes, Breaker prints `The node files match the source.`
+   3. The lines are sorted by module and location, and followed by the line
+      `Please review the changes to the node files (e.g. with git diff), and move the analysis of renamed nodes.`
+      A change of `line_count` alone is not reported. Without changes, Breaker prints `The node files match the source.`
 4. `breaker sync` does not commit, and does not require a clean working tree. Since `breaker next` requires a clean
    working tree, the developer reviews and commits the changes before the next stage.
 
@@ -316,7 +316,7 @@ An example node file is given in `./module_node_example.md`.
       4. The move_function_to_parent action is a plain edit of the node file: it does not check who calls the
          function (that is Claude's judgement). It can also move a helper function to another parent, and move a
          method (which signifies that the method is treated as a helper function of its new parent).
-   2. A function that is called by several functions in the module is not nested. It stays a top-level function
+   1. A function that is called by several functions in the module is not nested. It stays a top-level function
       (it later will typically become a rule or util).
 4. After the RFA of a chunk, Breaker renames the helper functions in the chunk so that they start with an underscore
    (in the node file and in the source, using rope), and commits with the message
