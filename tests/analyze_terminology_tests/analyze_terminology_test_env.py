@@ -1,4 +1,3 @@
-import re
 import typing as T
 
 import yaml
@@ -51,26 +50,6 @@ class TestEnv(BreakerNextTestEnv):
             max_chunk_lines=10000,
         )
         self.set_next_stage(STAGE)
-
-    def set_next_stage(self, stage_id: str) -> None:
-        """Sets next_stage in the session file, and commits it (as if the
-        earlier stages have run)."""
-        session_path = ".breaker/session.yaml"
-        text = self.read_file(session_path)
-        self.write_file(
-            session_path,
-            re.sub(r"^next_stage: .*$", f"next_stage: {stage_id}", text, flags=re.M),
-        )
-        self.commit_all(f"start at {stage_id}")
-
-    def catch_error(self, env_action: T.Callable, *args, **kwargs) -> None:
-        """Runs the env action and stores the exception it is expected to
-        raise in env.error."""
-        self.error = None
-        try:
-            env_action(*args, **kwargs)
-        except Exception as error:
-            self.error = error
 
     def load_module_node(self, module_name: str) -> None:
         self.module_node = load_module_node(

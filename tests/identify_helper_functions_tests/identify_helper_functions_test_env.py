@@ -63,15 +63,6 @@ class TestEnv(BreakerNextTestEnv):
     def rename_helper_functions(self, module_names: T.List[str]) -> None:
         rename_helper_functions(self.source_root, module_names)
 
-    def catch_error(self, env_action: T.Callable, *args, **kwargs) -> None:
-        """Runs the env action and stores the exception it is expected to
-        raise in env.error."""
-        self.error = None
-        try:
-            env_action(*args, **kwargs)
-        except Exception as error:
-            self.error = error
-
     def load_module_node(self, module_name: str) -> None:
         self.module_node = load_module_node(
             self.source_root / f"{module_name}.breaker.yaml"

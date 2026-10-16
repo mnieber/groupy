@@ -414,13 +414,16 @@ An example node file is given in `./module_node_example.md`.
 
 1. The developer runs `breaker next`.
 2. Breaker asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field, using the glossary.
-   1. Renamings are used to get rid of aliases. They apply to:
+   1. Breaker makes an RFA per chunk. The RFA context contains `module_sources` (the source of each module of the
+      chunk) and `glossary` (the text of the glossary file). Claude reads the concepts and aliases from the node
+      files.
+   2. Renamings are used to get rid of aliases. They apply to:
       1. Symbols that are local to the function (variables and parameters).
       2. Concepts and local terms (in the node file)
-   2. Claude will chose `renamings` such that all aliases are replaced by the canonical name.
+   3. Claude will chose `renamings` such that all aliases are replaced by the canonical name.
       1. Ideally, the canonical name comes from the global glossary,
       2. Claude may also choose the canonical name from the module scope.
-   3. The glossary is a guide. When a concept in the node file has the same meaning as a glossary entry (judged
+   4. The glossary is a guide. When a concept in the node file has the same meaning as a glossary entry (judged
       from its description and the source), Claude may rename the concept to the name of that entry, also when
       the glossary lists the concept as an alias.
       1. When the glossary still has several entries with the same name, Claude chooses the entry from the
@@ -429,10 +432,10 @@ An example node file is given in `./module_node_example.md`.
       3. The entire symbol is stored as the key, not some part thereof (since there is no partial matching).
       4. The new name maintains the meaning (e.g. plural stays plural).
          1. E.g. if the function uses `outlier` and `outlier_point` as aliases then `new_outlier_points` will be renamed to `new_outliers` and `find_next_outlier_point` will be renamed to `find_next_outlier`.
-   4. Renamings can also be used to create shorter symbol names.
-   5. A renaming of the function itself is stored in `FunctionNode.rename_to`.
+   5. Renamings can also be used to create shorter symbol names.
+   6. A renaming of the function itself is stored in `FunctionNode.rename_to`.
       Renamings of module-level symbols are stored in `ModuleNode.renamings`.
-   6. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
+   7. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
       1. Map types are renamed to `foo_by_bar` where `foo` is the value and `bar` is the key.
          1. It's also possible to have `foo_by_bar_by_baz`, where `baz` is the key and `foo_by_bar` is the value.
       2. Abbreviations from the glossary may be used to keep the new name relatively short.
@@ -443,8 +446,25 @@ An example node file is given in `./module_node_example.md`.
          1. ❔how will we ensure this?
          2. Maybe scramble the third party names to protect them from being renamed, and afterwards undo the scrambling?
          3. The scrambled name should contain a special token that allows Breaker/Claude to skip that name.
-3. Breaker validates the proposed renamings.
-   1. It reports a conflict when a new name clashes with an existing name in the same scope.
+3. Breaker validates the proposed renamings after the RFA of each chunk.
+   1. It reports a conflict when a new name clashes with an existing name in the same scope, that is not itself
+      renamed. The scopes are:
+      1. A function: its local symbols (variables and parameters) and the keys of its `renamings`.
+      2. A class: its attributes and methods, with the class `renamings` and the `rename_to` of its methods.
+      3. A module: its top-level functions, classes and variables, with `ModuleNode.renamings` and the `rename_to`
+         of its top-level nodes.
+   2. It also reports a conflict when two renamings in the same scope have the same new name.
+   3. A chain (e.g. `title -> text` and `text -> body`) is allowed: the new name `text` is renamed away, and
+      apply-renamings orders the renames so that they work. A cycle (e.g. a swap of `title` and `text`) is a
+      conflict, because there is no such order without a temporary name.
+   4. Each conflict is a line `<module>:<scope location>: <description>`, where the scope location is `@module`
+      for the module scope, e.g.:
+      1. `myapp/reports.py:create_report: title -> text clashes with the existing name text`
+      2. `myapp/reports.py:create_report: report -> person and user -> person have the same new name`
+      3. `myapp/reports.py:create_report: text -> title and title -> text form a cycle`
+   5. When there are conflicts, Breaker makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context
+      lists them (`renaming_conflicts`, sorted). If conflicts remain after the follow-up RFA, Breaker raises an error
+      that lists them. This interrupts the stage, and the chunk is not finished.
 4. Breaker commits the results and updates `next_stage` to `apply-renamings`.
 
 ## MS-5: Breaker applies the unified terminology

@@ -1,3 +1,4 @@
+import re
 import typing as T
 from pathlib import Path
 
@@ -85,6 +86,26 @@ class TestEnv(BreakerTestEnv):
 
     def clear_rfa_requests(self) -> None:
         self.rfa_policy().requests.clear()
+
+    def set_next_stage(self, stage_id: str) -> None:
+        """Sets next_stage in the session file, and commits it (as if the
+        earlier stages have run)."""
+        session_path = ".breaker/session.yaml"
+        text = self.read_file(session_path)
+        self.write_file(
+            session_path,
+            re.sub(r"^next_stage: .*$", f"next_stage: {stage_id}", text, flags=re.M),
+        )
+        self.commit_all(f"start at {stage_id}")
+
+    def catch_error(self, env_action: T.Callable, *args, **kwargs) -> None:
+        """Runs the env action and stores the exception it is expected to
+        raise in env.error."""
+        self.error = None
+        try:
+            env_action(*args, **kwargs)
+        except Exception as error:
+            self.error = error
 
     # Queries (for use in asserts)
 

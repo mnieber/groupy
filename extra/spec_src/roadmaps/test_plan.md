@@ -84,9 +84,14 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `propose-renamings` (MS-4): renamings are recorded; the RFA context contains the glossary; Breaker reports a new
-   name that clashes with an existing name in the same scope.
-   - Exercises: `renamings/actions/propose_renamings.py`, `renamings/rules/find_renaming_conflicts.py`.
+1. `propose-renamings` (MS-4, in `tests/propose_renamings_tests/`): renamings and `rename_to` are recorded via
+   callbacks and the source is unchanged; the RFA context contains the module sources and the glossary; Breaker
+   finds conflicts per scope (a clash with an existing name that is not renamed, two renamings with the same new
+   name, a cycle; a chain is allowed), makes a follow-up RFA (`<rfa-id>/retry-1`, with `renaming_conflicts`), and
+   raises `RenamingConflictError` when conflicts remain.
+   - Exercises: `renamings/actions/propose_renamings.py` (the stage, with `RenamingConflictError`),
+     `renamings/rules/find_renaming_conflicts.py`, the RFA context keys `module_sources`, `glossary` and
+     `renaming_conflicts`, and the `set_renaming` and `set_rename_to` callbacks.
 2. `apply-renamings` (MS-5): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
    including their call sites in other modules.
    - Exercises: `renamings/actions/apply_renamings.py`, `renamings/actions/rename_symbol.py`.
