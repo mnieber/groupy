@@ -70,7 +70,9 @@ Such tasks use incremental accumulation:
 4. Breaker keeps the group file up-to-date.
    1. When an action renames a file, it also renames it in the group file.
    2. When an action splits off code into a new file, the new file goes into the same group as the original file.
-   3. For stages where we know that the structure may have changed a lot (e.g. after the code restructure),
+   3. `breaker sync` adds a new module to the group of a module in the same dir (or else to a new group), and
+      removes a deleted module from its group.
+   4. For stages where we know that the structure may have changed a lot (e.g. after the code restructure),
       `breaker next` first recreates the group file. It only does this at the start of a stage, and not when it
       resumes an interrupted stage, so that the finished chunks in the session file stay valid.
 5. An RFA refers to the group file.

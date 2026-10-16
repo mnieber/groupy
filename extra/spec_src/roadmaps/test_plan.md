@@ -36,6 +36,10 @@ Feature packages:
 7. `breaker next` and the stage runner (batch 4, in `tests/breaker_next_tests/` and `tests/sessions_tests/`): the
    config file, the group file in `breaker init`, the preconditions of `breaker next`, running a (fake) stage with
    commits per action, and resuming an interrupted stage.
+8. Glossary (batch 5, in `tests/glossary_tests/`): loading and saving the glossary, and the glossary edits (also for
+   names with several meanings).
+9. `breaker sync` (batch 6, in `tests/breaker_sync_tests/`): updating the node files, the package node files and the
+   group file after the source changed, the report of the changes, and keeping the helpers of a removed node.
 
 ## Test infrastructure for Claude requests
 
@@ -64,31 +68,7 @@ Feature packages:
    - Implied: `claude_requests/policies/claude_rfa_policy.py`, `claude_requests/policies/claude_rfr_policy.py`,
      `groups/policies/claude_grouping_policy.py` (the real implementations, which the tests don't run).
 
-## 7. Glossary
-
-These are plain edits of the glossary file, tested like the node file edits (in `tests/glossary_tests/`): the tests
-write a glossary, run the action, and reload the glossary. Every action takes `(glossary_path, name, ...)` and is
-available as a callback. A missing glossary file is an empty glossary.
-
-1. Loading and saving: a glossary with all fields (including two entries with the same name) keeps its contents;
-   fields with their default value are left out; entries are saved sorted by name, and entries with the same name
-   keep their order.
-   - Exercises: `concepts/rules/load_glossary.py`, `concepts/actions/save_glossary.py` (`save_glossary(glossary,
-     path)`, like `save_module_node`), `concepts/models/glossary.py` (`Glossary`, `GlossaryEntry`).
-2. Adding and changing entries: a new entry; a new entry with an existing name (a second meaning); descriptions;
-   aliases (listed once); abbreviations (`None` removes it); merging an entry into another one (its name and aliases
-   become aliases of the other entry, which keeps its abbreviation or else takes over the merged one). An unknown
-   name raises `EntryNotFoundError` (the existing one in `nodes/utils/exceptions.py`).
-   - Exercises: `concepts/actions/add_glossary_entry.py`, `concepts/actions/set_glossary_description.py`,
-     `concepts/actions/add_glossary_alias.py`, `concepts/actions/set_glossary_abbreviation.py`,
-     `concepts/actions/merge_glossary_entries.py`.
-3. Names with several meanings: an edit of a name with two entries needs `meaning_nr` (`into_meaning_nr` for the
-   target of a merge); without it, it raises `AmbiguousEntryError`; with it, only that entry changes; a `meaning_nr`
-   that does not exist raises `EntryNotFoundError`.
-   - Exercises: the actions of item 2, `concepts/rules/find_glossary_entry.py`, `concepts/utils/exceptions.py`
-     (`AmbiguousEntryError`).
-
-## 8. The stages
+## 9. The stages
 
 One workflow test per stage, plus impl tests for its validations. Each workflow test runs `breaker next` with
 scripted callbacks and checks the node files, the source, the commits and `next_stage`. Every stage is an action
@@ -130,15 +110,6 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
      `restructure/rules/validate_code_restructure.py`, `restructure/rules/get_expected_location.py`,
      `restructure/rules/find_dependency_violations.py`.
 
-## 9. `breaker sync`
-
-1. No differences after `breaker init`.
-2. A function, class or variable that was added, removed or renamed in the source is reported.
-3. A helper function that is nested in the node file but top-level in the source is not a difference.
-
-- Exercises: `runtime/entrypoints/breaker.py`, `nodes/actions/sync_node_files.py`,
-  `nodes/rules/find_node_file_differences.py`.
-
 ## 10. Smart grouping and the group file
 
 These tests don't affect the stage runner. They can also move to just before the stages that need them (item 3
@@ -152,7 +123,8 @@ depends on actions that rename or split off files, which arrive with the later s
    batch, unprocessed items are added to the next batch.
    - Exercises: `claude_requests/actions/run_incremental_accumulation.py`.
 3. The group file is updated when an action renames a file or splits off a new file.
-   - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py`.
+   - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py` (first needed
+     by `breaker sync`).
 4. `breaker group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
    and commits it.
    - Exercises: `runtime/entrypoints/breaker.py`, `groups/actions/create_group_file.py`.

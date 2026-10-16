@@ -69,8 +69,41 @@ The config file (`.breaker/config.yaml`) contains the choices that the developer
 
 ## Breaker sync
 
-A call to `breaker sync` checks that the structure of each node file (if it exists) still reflects the structure of its related source file.
-If there are differences then it reports them and asks the user to resolve them by editing the node files by hand.
+A call to `breaker sync` updates the node files so that their structure reflects the structure of the source files
+again (e.g. after the developer changed the code by hand). The developer then reviews the changes, and updates the
+analysis (e.g. the concepts and steps) where needed, because Breaker does not re-evaluate it.
+
+1. The structure consists of the names of the top-level functions, the classes and their methods, and the
+   module-level variables.
+   1. Helper function nodes count as top-level functions (also the helpers of methods), because helper functions
+      are top-level functions in the Python code (see "Nested functions").
+   2. Functions that are nested in the Python code have no node, so they are not compared.
+   3. Breaker does not detect changes inside a function body, so the analysis of a changed function may be stale.
+2. Breaker updates the node files:
+   1. It adds a node for every name that is in the source but not in the node file. The new node is inserted in
+      source order among its siblings.
+   2. It removes the node of every name that is in the node file but not in the source.
+      1. The helper function nodes of a removed node take its place (in the same list), so that they keep their
+         own analysis. The analysis of the removed node itself is dropped.
+      2. A renamed function, class or variable is therefore a removed node and an added node: Breaker cannot tell a
+         rename from a removal plus an addition. The analysis of the removed node is visible in the diff of the
+         node file, so the developer can move it to the new node.
+   3. It sets `line_count` of every module node file.
+   4. It creates the module node file of a module that has none (and the package node file of a new package), and
+      it deletes the node file of a module that no longer exists. It updates the `module_names` of the package node
+      files accordingly.
+   5. It updates the group file: a new module goes into the group of a module in the same dir, or else into a new
+      group (with the next free group number). A deleted module is removed from its group.
+3. Breaker reports each change on a line:
+   1. `<module>: added <location>` and `<module>: removed <location>`, where the location is the qualified name
+      (e.g. `Book.save`). For a removed node with fields that do not have their default value (other than `name`),
+      the line ends with `(it had <fields>)`, e.g. `(it had responsibilities, steps)`, as a hint to move them.
+   2. `<module>: created the node file` and `<module>: deleted the node file`.
+   3. The lines are sorted by module and location, and followed by the line `Please review the changes to the node
+      files (e.g. with git diff), and move the analysis of renamed nodes.` A change of `line_count` alone is not
+      reported. Without changes, Breaker prints `The node files match the source.`
+4. `breaker sync` does not commit, and does not require a clean working tree. Since `breaker next` requires a clean
+   working tree, the developer reviews and commits the changes before the next stage.
 
 ## Guidelines for the Claude requests
 
