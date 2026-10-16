@@ -33,6 +33,9 @@ Feature packages:
    a chunk, and the query callbacks.
 6. Groups and chunks (batch 3, in `tests/groups_tests/`): the `simple` and `package` grouping strategies, and
    splitting a group into chunks with per-group chunk ids.
+7. `breaker next` and the stage runner (batch 4, in `tests/breaker_next_tests/` and `tests/sessions_tests/`): the
+   config file, the group file in `breaker init`, the preconditions of `breaker next`, running a (fake) stage with
+   commits per action, and resuming an interrupted stage.
 
 ## Test infrastructure for Claude requests
 
@@ -61,79 +64,27 @@ Feature packages:
    - Implied: `claude_requests/policies/claude_rfa_policy.py`, `claude_requests/policies/claude_rfr_policy.py`,
      `groups/policies/claude_grouping_policy.py` (the real implementations, which the tests don't run).
 
-## 4. `breaker next` and the stage runner
-
-The tests use the sessions Env (git repo) plus the fake policies.
-
-The loop over the chunks lives in each stage, not in the stage runner: the stages chunk different things (node
-files in MS-2 to MS-5, a list of functions in MS-6, no groups at all in MS-8), and some stages run an extra RFA after
-the last chunk (the glossary consolidation in MS-3). Each stage uses a shared helper that skips finished chunks and
-records them.
-
-`run_next_stage` lives in `runtime`, because it imports the stage actions of all feature packages, and only
-`breaker next` uses it. This keeps `sessions` free of imports from the feature packages.
-
-The runner tests (in `tests/breaker_next_tests/`) replace the first stage with a fake stage that makes an RFA per
-chunk, by monkeypatching the table of stage actions (`STAGE_ACTIONS`) in `run_next_stage`. So they don't depend on
-what the real stages do.
-
-1. The config file and the group file (in `tests/sessions_tests/`): `breaker init` writes a config file with default
-   values, or keeps an existing one; missing fields get their default value; `breaker init` creates the group file
-   with the grouping strategy of the config.
-   - Exercises: `sessions/actions/init_session.py`, `sessions/models/config.py` (`Config`),
-     `sessions/rules/load_config.py`, `groups/actions/create_group_file.py`, `groups/actions/save_group_file.py`,
-     `groups/rules/load_group_file.py`, `groups/enums.py` (`GroupingStrategies`).
-2. `breaker next` refuses to run when the working tree is not clean (`DirtyWorkingTreeError`), when there is no
-   session (`NoSessionError`), or when there is no group file (`NoGroupFileError`).
-   - Exercises: `runtime/entrypoints/breaker.py`, `runtime/actions/run_next_stage.py`, `sessions/utils/exceptions.py`.
-   - Note: `DirtyWorkingTreeError` is then shared by `init_session` and `run_next_stage`, so it moves from
-     `sessions/actions/init_session.py` to `sessions/utils/exceptions.py`.
-3. `breaker next` runs the stage in `next_stage`, commits after each action with the stage id as the commit-message
-   prefix, and updates `next_stage`.
-   - Exercises: `runtime/actions/run_next_stage.py` (with `STAGE_ACTIONS`), `sessions/enums.py` (`Stages`),
-     `sessions/actions/commit_changes.py`, `sessions/actions/process_chunks.py` (the shared helper),
-     `groups/rules/get_chunks.py`, `claude_requests/rules/create_rfa_policy.py`, `utils/import_object.py`, and the
-     code units of the test infrastructure for Claude requests (except the RFR and grouping policies).
-4. An interrupted stage resumes at the first chunk that is not recorded as finished in the session file.
-   - Exercises: `sessions/actions/record_finished_chunk.py`, `sessions/rules/get_unfinished_chunks.py`.
-
-## 6. Smart grouping and the group file
-
-These tests don't affect the stage runner. They can also move to just before the stages that need them (item 3
-depends on actions that rename or split off files, which arrive with the later stages).
-
-1. Smart grouping with `FakeGroupingPolicy`: the index file, the group description file and the group file;
-   Breaker rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
-   - Exercises: `groups/actions/create_index_file.py`, `groups/actions/create_smart_groups.py`,
-     `groups/rules/load_group_file.py` (malformed lines), `groups/rules/validate_group_descriptions.py`.
-2. Incremental accumulation as a generic mechanism: batches of K items, validation of the state file after each
-   batch, unprocessed items are added to the next batch.
-   - Exercises: `claude_requests/actions/run_incremental_accumulation.py`.
-3. The group file is updated when an action renames a file or splits off a new file.
-   - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py`.
-4. `breaker group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
-   and commits it.
-   - Exercises: `runtime/entrypoints/breaker.py`, `groups/actions/create_group_file.py`.
-
 ## 7. Glossary
 
-These are plain edits of the glossary file, tested like the node file edits: the tests write a glossary, run the
-action, and reload the glossary. Every action takes `(glossary_path, name, ...)` and is available as a callback.
+These are plain edits of the glossary file, tested like the node file edits (in `tests/glossary_tests/`): the tests
+write a glossary, run the action, and reload the glossary. Every action takes `(glossary_path, name, ...)` and is
+available as a callback. A missing glossary file is an empty glossary.
 
 1. Loading and saving: a glossary with all fields (including two entries with the same name) keeps its contents;
    fields with their default value are left out; entries are saved sorted by name, and entries with the same name
    keep their order.
-   - Exercises: `concepts/rules/load_glossary.py`, `concepts/actions/save_glossary.py`, `concepts/models/glossary.py`
-     (`Glossary`, `GlossaryEntry`).
+   - Exercises: `concepts/rules/load_glossary.py`, `concepts/actions/save_glossary.py` (`save_glossary(glossary,
+     path)`, like `save_module_node`), `concepts/models/glossary.py` (`Glossary`, `GlossaryEntry`).
 2. Adding and changing entries: a new entry; a new entry with an existing name (a second meaning); descriptions;
-   aliases (listed once); abbreviations; merging an entry into another one (its name and aliases become aliases of
-   the other entry). An unknown name raises `EntryNotFoundError`.
+   aliases (listed once); abbreviations (`None` removes it); merging an entry into another one (its name and aliases
+   become aliases of the other entry, which keeps its abbreviation or else takes over the merged one). An unknown
+   name raises `EntryNotFoundError` (the existing one in `nodes/utils/exceptions.py`).
    - Exercises: `concepts/actions/add_glossary_entry.py`, `concepts/actions/set_glossary_description.py`,
      `concepts/actions/add_glossary_alias.py`, `concepts/actions/set_glossary_abbreviation.py`,
      `concepts/actions/merge_glossary_entries.py`.
-3. Names with several meanings: an edit of a name with two entries needs `meaning_nr`; without it, it raises
-   `AmbiguousEntryError`; with it, only that entry changes; a `meaning_nr` that does not exist raises
-   `EntryNotFoundError`.
+3. Names with several meanings: an edit of a name with two entries needs `meaning_nr` (`into_meaning_nr` for the
+   target of a merge); without it, it raises `AmbiguousEntryError`; with it, only that entry changes; a `meaning_nr`
+   that does not exist raises `EntryNotFoundError`.
    - Exercises: the actions of item 2, `concepts/rules/find_glossary_entry.py`, `concepts/utils/exceptions.py`
      (`AmbiguousEntryError`).
 
@@ -142,6 +93,9 @@ action, and reload the glossary. Every action takes `(glossary_path, name, ...)`
 One workflow test per stage, plus impl tests for its validations. Each workflow test runs `breaker next` with
 scripted callbacks and checks the node files, the source, the commits and `next_stage`. Every stage is an action
 that `runtime/actions/run_next_stage.py` calls.
+
+Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
+last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
 1. `identify-helper-functions` (MS-2): helper candidates are marked from the call graph; the scripted callbacks
    nest helpers with `move_function_to_parent`; Breaker renames the helpers to start with an underscore in the node
@@ -184,6 +138,24 @@ that `runtime/actions/run_next_stage.py` calls.
 
 - Exercises: `runtime/entrypoints/breaker.py`, `nodes/actions/sync_node_files.py`,
   `nodes/rules/find_node_file_differences.py`.
+
+## 10. Smart grouping and the group file
+
+These tests don't affect the stage runner. They can also move to just before the stages that need them (item 3
+depends on actions that rename or split off files, which arrive with the later stages).
+
+1. Smart grouping with `FakeGroupingPolicy`: the index file, the group description file and the group file;
+   Breaker rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
+   - Exercises: `groups/actions/create_index_file.py`, `groups/actions/create_smart_groups.py`,
+     `groups/rules/load_group_file.py` (malformed lines), `groups/rules/validate_group_descriptions.py`.
+2. Incremental accumulation as a generic mechanism: batches of K items, validation of the state file after each
+   batch, unprocessed items are added to the next batch.
+   - Exercises: `claude_requests/actions/run_incremental_accumulation.py`.
+3. The group file is updated when an action renames a file or splits off a new file.
+   - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py`.
+4. `breaker group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
+   and commits it.
+   - Exercises: `runtime/entrypoints/breaker.py`, `groups/actions/create_group_file.py`.
 
 ## Open points in the design
 

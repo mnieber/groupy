@@ -206,6 +206,18 @@ An example node file is given in `./module_node_example.md`.
       entry among the entries with that name. Without it, the callback is rejected as ambiguous.
 6. The glossary is a guide for choosing names. The concepts in the node files do not need to have an entry in the
    glossary, and the glossary does not record where its concepts are used.
+7. Breaker offers these actions on the glossary (they are also available as callbacks):
+   1. `add_glossary_entry(name, description)`: adds a new entry, also when there already is an entry with that name
+      (a second meaning).
+   2. `set_glossary_description(name, description)`.
+   3. `add_glossary_alias(name, alias)`: an alias is listed once.
+   4. `set_glossary_abbreviation(name, abbreviation)`: an abbreviation of `null` removes the abbreviation.
+   5. `merge_glossary_entries(name, into_name)`: removes the entry `name`, and adds its name and aliases to the
+      aliases of the entry `into_name`. The entry `into_name` keeps its description, and its abbreviation (if it has
+      none, it gets the abbreviation of the entry `name`). It takes `meaning_nr` for `name` and `into_meaning_nr`
+      for `into_name`.
+   6. An action on a name that is not in the glossary raises an error, and leaves the glossary unchanged.
+   7. When the glossary file does not exist yet, the actions treat it as an empty glossary.
 
 ```yaml
 - name: report
