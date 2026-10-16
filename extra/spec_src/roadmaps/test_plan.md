@@ -31,6 +31,8 @@ Feature packages:
    list fields of nodes.
 5. Call graph (batch 2, in `tests/call_graph_tests/`): building (also after the code has changed), the view for
    a chunk, and the query callbacks.
+6. Groups and chunks (batch 3, in `tests/groups_tests/`): the `simple` and `package` grouping strategies, and
+   splitting a group into chunks with per-group chunk ids.
 
 ## Test infrastructure for Claude requests
 
@@ -57,18 +59,6 @@ Feature packages:
    - Implied: `claude_requests/policies/claude_rfa_policy.py`, `claude_requests/policies/claude_rfr_policy.py`,
      `groups/policies/claude_grouping_policy.py` (the real implementations, which the tests don't run).
 
-## 3. Groups and chunks
-
-These tests come before the stage runner tests, because they fix the `Chunk` model and the chunk ids that the
-stages use to record finished chunks.
-
-1. The `simple` and `package` grouping strategies: which node files end up in which group, and how a large group is
-   split into chunks. The chunk ids are deterministic: the same node files give the same chunks in the same order.
-   - Exercises: `groups/rules/create_simple_groups.py`, `groups/rules/create_package_groups.py`,
-     `groups/rules/split_group_into_chunks.py`, `groups/models/group.py`, `groups/models/chunk.py`,
-     `groups/enums.py` (`GroupingStrategies`).
-   - To decide: whether chunks are numbered across all groups (`chunk-1`) or per group (`group-2/chunk-1`).
-
 ## 4. `breaker next` and the stage runner
 
 The tests use the sessions Env (git repo) plus the fake policies.
@@ -90,6 +80,7 @@ records them.
    prefix, and updates `next_stage`.
    - Exercises: `runtime/actions/run_next_stage.py`, `sessions/enums.py` (`Stages`),
      `sessions/actions/commit_changes.py`.
+   - Note: `groups/enums.py` (`GroupingStrategies`) is first needed when `breaker next` creates the group file.
 3. An interrupted stage resumes at the first chunk that is not recorded as finished in the session file.
    - Exercises: `sessions/actions/process_chunks.py` (the shared helper), `sessions/actions/record_finished_chunk.py`,
      `sessions/rules/get_unfinished_chunks.py`.
@@ -182,10 +173,4 @@ that `runtime/actions/run_next_stage.py` calls.
 
 ## Open points in the design
 
-1. MS-8 sets `next_stage` to `apply-code-restructure`, but there is no milestone for that stage yet. -> TBD
-2. How the user resolves the differences that `breaker sync` reports (edit the node file by hand, or let Breaker
-   update the node file?). -> By hand
-3. When the group file is created: in `breaker init`, or in the first `breaker next`? -> I suggest to do it in breaker next. As long as there is no group file, groups cannot be used.
-4. What happens to the finished chunks that are recorded in the session file when `breaker next` recreates the group
-   file (chunking.md 4.3) while a stage is interrupted: are they discarded, or is the group file only recreated at
-   the start of a stage? -> Only at the start
+1. MS-8 sets `next_stage` to `apply-code-restructure`, but there is no milestone for that stage yet.

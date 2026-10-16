@@ -1,11 +1,29 @@
 # Chunking the work
 
 To keep the workload per Claude request reasonable, Breaker groups the node files into groups, it splits each
-group into chunks and processes these chunks in series. There are three grouping strategies:
+group into chunks and processes these chunks in series.
 
-1. simple: We sort the node files by path and divide into groups of equal size (measured by lines of code).
-2. package: A group contains all files (i.e. the entire file-tree) within a sub-package within the target root dir.
-3. smart: We use Claude Haiku to create the groups.
+1. Groups and chunks contain module node files only. They refer to a module node file by the path of its module,
+   relative to the target dir (e.g. `myapp/books.py`). Package node files are not grouped.
+2. The size of a module is the number of lines in its source file.
+3. Groups are numbered from 1, in the order of their first module path.
+4. There are three grouping strategies:
+   1. simple: We sort the modules by path and divide them into groups of roughly equal size. Breaker adds modules
+      to a group until the next module would make it larger than the maximum group size; then it starts a new group.
+      A module that is larger than the maximum group size gets a group of its own.
+   2. package: A group contains all modules (i.e. the entire file-tree) within a sub-package of a top-level package
+      in the target dir (e.g. `myapp/books`). The modules that are directly in a top-level package (e.g.
+      `myapp/__init__.py`) form a group of their own.
+   3. smart: We use Claude Haiku to create the groups.
+5. Breaker splits a group into chunks of at most the maximum chunk size.
+   1. It sorts the modules by path, and tries to keep the modules of a package (i.e. the modules that are directly
+      in the same dir) in the same chunk: when a package doesn't fit in the current chunk, it starts a new chunk.
+   2. A package that is larger than the maximum chunk size is split by sorted path.
+   3. A module that is larger than the maximum chunk size gets a chunk of its own.
+   4. Chunks are numbered per group, and the chunk id contains both numbers (e.g. `group-2/chunk-1`). The same
+      group gives the same chunks, with the same ids.
+6. `breaker next` creates the group file when it does not exist yet. As long as there is no group file, groups
+   cannot be used.
 
 ## Incremental accumulation
 
@@ -51,7 +69,8 @@ Such tasks use incremental accumulation:
    1. When an action renames a file, it also renames it in the group file.
    2. When an action splits off code into a new file, the new file goes into the same group as the original file.
    3. For stages where we know that the structure may have changed a lot (e.g. after the code restructure),
-      `breaker next` first recreates the group file.
+      `breaker next` first recreates the group file. It only does this at the start of a stage, and not when it
+      resumes an interrupted stage, so that the finished chunks in the session file stay valid.
 5. An RFA refers to the group file.
    1. Each chunk is a fresh Claude session that receives the group description and the pre-computed context.
    2. Chunks are usually not independent. How work is handed over from one chunk to the next (e.g. via a

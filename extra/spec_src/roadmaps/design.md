@@ -32,7 +32,7 @@ Breaker commits the updated node files and source files after each action; it gr
 ## Breaker sync
 
 A call to `breaker sync` checks that the structure of each node file (if it exists) still reflects the structure of its related source file.
-If there are differences then it reports them and asks the user to make edits to resolve the differences.
+If there are differences then it reports them and asks the user to resolve them by editing the node files by hand.
 
 ## Guidelines for the Claude requests
 
