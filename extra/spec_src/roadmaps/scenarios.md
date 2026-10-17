@@ -46,7 +46,7 @@ then you can do so.
 
 ## The stages
 
-6. `s06_groupy_identifies_helper_functions`
+6. `s06_groupy_identifies_helper_functions` (written)
    Per chunk, Groupy marks helper candidates from the call graph, Claude nests the actual helpers under their parent
    function in the node file, and Groupy renames the helpers to start with an underscore (in the source too, via
    the refactoring policy).

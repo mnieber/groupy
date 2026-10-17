@@ -1,9 +1,3 @@
-# Glossary
-
-- helper candidate: a function that might just be a helper function (e.g. because it's is only called by one other function in the same module)
-- rope: a Python library that can perform refactorings
-- sub-session: a fresh Claude session that handles (part of) a chunk
-
 # Rationale
 
 ## Groupy group
@@ -11,56 +5,21 @@
 A call to `groupy group` recreates the group file, using the grouping strategy and the sizes in the config file, and
 commits it. The developer uses it after changing the config file.
 
-## Refactoring policy
-
-1. Groupy refactors the code (e.g. renaming a symbol, including its call sites) through a `RefactoringPolicy`
-   (`renamings/policies/refactoring_policy.py`). The default implementation, `RopeRefactoringPolicy`, uses rope.
-   1. `rename_symbol(source_root, module_name, scope_location, name, new_name)` renames the symbol `name` in the
-      scope (`@module` for module-level names, a class name for attributes and methods, or a function location for
-      local symbols), including its imports and call sites in other modules. It raises `RenameConflictError` when
-      the new name clashes with an existing name, before it changes any file.
-   2. The policy is passed to the actions that refactor (e.g. `rename_helper_functions` and `apply_renamings`), so
-      that the engine can be replaced (e.g. by libcst, or by an RFR when rope cannot do a refactoring).
-2. Tests use `FakeRefactoringPolicy`, which subclasses `RopeRefactoringPolicy`, records the refactorings (the
-   method, the module and the name), and raises an error for the refactorings that the test lets fail.
-
 ## Functions and methods
 
-1. Class methods are processed in the same way as standalone functions.
-   1. A method is considered to be a function that is called in a special way (with a `self` argument).
-   2. This applies to all analysis stages (e.g. helper functions, terminology, renamings and extract-method).
-2. In the call graph, calls to methods are marked as uncertain when Groupy cannot determine which method is called.
-   1. E.g. `obj.save()` cannot be resolved without knowing the type of `obj`, and subclasses may override `save`.
-   2. Claude takes this uncertainty into account when it uses the call graph (e.g. to decide whether a function
-      is a helper function).
-3. Some methods must stay methods, because Python or a framework calls them:
+1. Some methods must stay methods, because Python or a framework calls them:
    1. dunder methods (e.g. `__str__`, `__eq__`) and properties.
    2. overrides of methods of a base class (e.g. `save` in a Django model).
    3. methods that have several implementations across subclasses.
-4. In the code restructure, every other method may delegate to an action, rule or util that takes the instance as
+2. In the code restructure, every other method may delegate to an action, rule or util that takes the instance as
    its first argument (see MS-8 and MS-9).
    1. The method continues to exist, and its body becomes a call of the new function. Therefore, the call sites of
       the method (which may be uncertain in the call graph) don't change.
    2. The developer can later drop the method by inlining it, if they wish.
 
-## Nested functions
-
-1. A function that is nested in the Python code (e.g. a closure) is part of the body of its enclosing function.
-   1. It has no node of its own: its name and local symbols are covered by the `local_terms`, `renamings` and
-      `steps` of the enclosing function.
-   2. It stays nested in the Python code.
-2. Nesting in the node file has a different meaning: a function node in `helper_function_nodes` is a helper
-   function of its parent function node.
-   1. In the Python code, a helper function is a top-level function in the same module as its parent function.
-
 ## Chunking the work
 
 See ./chunking.md.
-
-## Call graph
-
-Groupy maintains a single call graph for the target code (ignoring test code), and passes a filtered view of it
-to Claude. See ./call-graph.md.
 
 ## Example
 
@@ -95,7 +54,7 @@ An example node file is given in `./module_node_example.md`.
    13. `aliases: Dict[str, List[str]]`
    14. `abbreviations: Dict[str, str]`
    15. `helper_function_nodes: List[FunctionNode]`: the helper functions of this function. They are top-level
-       functions in the Python code (see "Nested functions").
+       functions in the Python code.
 3. A `ClassNode` has the fields:
    1. `name: str`
    2. `rename_to: str | None`
@@ -161,42 +120,6 @@ An example node file is given in `./module_node_example.md`.
 ```
 
 # Milestones
-
-## MS-2: Groupy identifies helper functions
-
-1. The user calls `groupy next` to start the next stage.
-2. The stage processes the chunks one by one. For each chunk, Groupy computes the call graph and marks the helper
-   candidates in the node files of the chunk (setting `is_helper_candidate`), and commits with the message
-   `identify-helper-functions: mark_helper_candidates`.
-   1. A function or method is a helper candidate when it has exactly one caller, and this caller is a function or
-      method in the same module that calls it through a certain edge.
-   2. Therefore, a function is not a helper candidate when it has no callers, when it is called from module-level
-      code, from another module or by several functions, or when one of its calls is uncertain.
-   3. Dunder methods (e.g. `__init__`) are never helper candidates, because Python calls them.
-3. Groupy will ask Claude to examine the FunctionNodes in the module node file.
-   1. The RFA context contains the call graph view of the chunk (see ./call-graph.md), with the callers of each
-      function.
-   1. Claude decides which functions are helper functions and uses the move_function_to_parent action to nest them under their parent function.
-      1. Not every helper candidate will necessarily turn out to be a helper function.
-      2. A function that is called from outside the module is never a helper function.
-      3. The move_function_to_parent action only changes the node file: in the Python code, the helper function
-         stays a top-level function.
-      4. The move_function_to_parent action is a plain edit of the node file: it does not check who calls the
-         function (that is Claude's judgement). It can also move a helper function to another parent, and move a
-         method (which signifies that the method is treated as a helper function of its new parent).
-   1. A function that is called by several functions in the module is not nested. It stays a top-level function
-      (it later will typically become a rule or util).
-4. After the RFA of a chunk, Groupy renames the helper functions in the chunk so that they start with an underscore
-   (in the node file and in the source, using the refactoring policy), and commits with the message
-   `identify-helper-functions: rename_helper_functions`. Then it finishes the chunk.
-   1. This applies to all helper function nodes, also to helpers of helpers and to helpers of methods. A helper
-      whose name already starts with an underscore keeps its name.
-   2. Rope also renames the call sites (and imports) in other modules.
-   3. Renaming the helpers per chunk keeps the node files, the source and the call graph consistent for the next
-      chunk.
-   4. When the new name clashes with an existing name in the module, Groupy raises an error (before it changes any
-      file), which interrupts the stage. The developer resolves the clash and runs `groupy next` again.
-5. Groupy commits the results and updates `next_stage` to `analyze-terminology`.
 
 ## MS-3: Groupy analyzes the terminology
 
@@ -389,7 +312,7 @@ An example node file is given in `./module_node_example.md`.
       steps) and updates the analysis of the parent function.
       1. When the extracted function is a helper function of the parent, Claude nests it with
          `move_function_to_parent`. After the RFA, Groupy renames the helper functions of the chunk so that they
-         start with an underscore (as in MS-2), and commits with the message
+         start with an underscore (as in identify-helper-functions), and commits with the message
          `extract-methods: rename_helper_functions` (only when it renamed something).
    5. Claude sets the `extract_method_priority` of a candidate to `n/a` when it is done with it (also when it
       decides not to extract anything).
@@ -694,7 +617,7 @@ benefits from seeing the entire code-base (e.g. so that the glossary and the mod
    1. `groupy init`, `groupy sync` and `groupy group` keep a node file for every module, and the group file lists
       every module. The filter does not change the groups or the chunks, so that chunk ids do not depend on the
       filter.
-   2. The analysis stages ignore the filter: the nesting of helper functions (MS-2), analyze-terminology (MS-3)
+   2. The analysis stages ignore the filter: the nesting of helper functions (identify-helper-functions), analyze-terminology (MS-3)
       and propose-module-layout (MS-8, which receives the summaries of all modules).
    3. The call graph and the context of the Claude requests (e.g. `caller_sources`) cover the entire target dir.
 3. The proposals and refactorings only start from the nodes in modules that match the filter.

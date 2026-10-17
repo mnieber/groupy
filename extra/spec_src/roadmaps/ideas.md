@@ -6,6 +6,9 @@ Similarly, we will have `propose_merge_methods` and `merge_methods`.
 
 2. Discover models, not just functions. The design is centred on functions, but the models layer usually has to be found in implicit data: dicts with string keys, tuples, and long parameter lists that get passed around together. A step that proposes dataclassy models for these would give the other layers something to depend on.
 3. Use a supervisor. This is a Claude Haiku session that for example decides how to chunk the work.
+4. Cache the parse result of each module when building the call graph. Groupy rebuilds the call graph from scratch
+   before each chunk. If parsing turns out to be too slow, Groupy can cache the parse result of each module (keyed on a
+   hash of its contents) inside the build. This does not change how the call graph is used.
 
 Discarded ideas:
 
