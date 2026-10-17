@@ -7,16 +7,6 @@
 
 # Rationale
 
-## Resuming an interrupted stage
-
-1. When a stage is interrupted (e.g. by an error), the next call to `groupy next` runs the same stage again, and
-   skips the finished chunks.
-2. When an action fails, Groupy restores the working tree to the last commit (undoing the partial changes of the
-   action, e.g. of rope or an RFR) and re-raises the error, which interrupts the stage. The actions that succeeded
-   stay committed, so the developer can inspect and repair the state, and run `groupy next` again. Each stage
-   derives its remaining work from the node files (e.g. the renamings that are left, or the candidates that are
-   not `n/a`), so that a resumed stage does not repeat finished work.
-
 ## Groupy group
 
 A call to `groupy group` recreates the group file, using the grouping strategy and the sizes in the config file, and
@@ -716,7 +706,7 @@ myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
 5. Groupy commits per module, with the message `apply-code-restructure: restructure <module>`, where `<module>` is
    the path of the module before the restructure. A module without `rename_to`, without delegating methods and
    without nodes to move gets no commit.
-   1. A failed refactoring interrupts the stage and restores the working tree (see "Resuming an interrupted stage"). Since the
+   1. A failed refactoring interrupts the stage and restores the working tree (as for any failed action). Since the
       `rename_to` and `move_to_file` fields of the committed modules are cleared, a resumed stage continues with the
       remaining modules.
 6. Groupy does not try to fix circular imports or failing tests that the restructure causes. After the stage, the

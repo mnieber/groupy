@@ -29,7 +29,7 @@ then you can do so.
    policies from the config file plug in, and why Groupy pre-computes context (e.g. the call graph view) instead of
    letting Claude derive it.
 
-3. `s03_a_developer_resumes_an_interrupted_stage`
+3. `s03_a_developer_resumes_an_interrupted_stage` (written)
    An action fails halfway through a stage. Groupy restores the working tree to the last commit and stops. The
    developer repairs the state and runs `groupy next` again; Groupy skips the finished chunks, and the stage derives
    its remaining work from the node files so that nothing is done twice.
