@@ -172,8 +172,11 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
    1. dunder methods (e.g. `__str__`, `__eq__`) and properties.
    2. overrides of methods of a base class (e.g. `save` in a Django model).
    3. methods that have several implementations across subclasses.
-4. In the code restructure, every other method may be turned into an action or rule that takes the instance as its
-   first argument.
+4. In the code restructure, every other method may delegate to an action, rule or util that takes the instance as
+   its first argument (see MS-8 and MS-9).
+   1. The method continues to exist, and its body becomes a call of the new function. Therefore, the call sites of
+      the method (which may be uncertain in the call graph) don't change.
+   2. The developer can later drop the method by inlining it, if they wish.
 
 ## Nested functions
 
@@ -626,6 +629,13 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
          out of the node file, Breaker uses `code_unit_type` to check that every node was considered.
    2. Claude sets `ModuleNode.rename_to` when the module will continue to exist (typically it is renamed after
       the main function in that file), or to null when no rename is needed.
+   3. Claude may also set the `code_unit_type` (`action`, `rule` or `util`) and the `move_to_file` of a method node,
+      to propose that the method delegates to a new function in that file (see "Functions and methods").
+      1. The new function is named after the target file (e.g. `save_book` for
+         `myapp/books/actions/save_book.py`), or after the `rename_to` of the method node when the target is a util
+         group file.
+      2. A method without these fields stays as it is. Claude does not set them for the methods that must stay
+         methods (see "Functions and methods").
 6. The target code structure follows the following guidelines:
    1. Application package
       1. The application consists of a single application package (e.g. `myapp/`).
@@ -693,7 +703,16 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
    3. It checks that no target file receives more than one public code unit (except for util group files,
       enums, schemas, settings, constants and the exception/form classes that go with an action). Each policy
       implementation is a code unit of its own.
-   4. It uses the call graph to report dependencies that violate the dependency direction.
+   4. It checks that a method with a `move_to_file` can delegate: its `code_unit_type` is `action`, `rule` or
+      `util`, and it is not a dunder method, a property, a `classmethod` or `staticmethod`, an override of a method
+      of a base class in the target code, or a method that uses `super()` or name-mangled attributes
+      (`__name`). Overrides of methods of external base classes (e.g. `save` in a Django model) cannot be detected,
+      so they are Claude's (and the developer's) judgement.
+   5. It checks that no target package has the same name as an existing module that stays (e.g.
+      `myapp/books/actions/create_book.py` while `myapp/books.py` is not renamed), because Python cannot import
+      both.
+   6. It uses the call graph to report dependencies that violate the dependency direction. The call of a delegating
+      method to its new function is not reported, because the delegation is a deliberate, temporary state.
 8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
 
 ## MS-9: Breaker restructures the code
@@ -702,48 +721,59 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
    `ModuleNode.rename_to` fields), possibly editing it, and runs `breaker next`.
 2. Breaker first validates the proposal again (as in MS-8), because the developer may have edited it. It does this
    before it changes anything, and also when the stage is resumed.
-   1. A missing `code_unit_type`, a `move_to_file` that does not match the location rule of its `code_unit_type`,
-      and a target file that receives more than one public code unit raise `CodeRestructureHasProblemsError`,
-      which lists the problems.
+   1. The problems of MS-8 (a missing `code_unit_type`, a `move_to_file` that does not match the location rule of
+      its `code_unit_type`, a target file that receives more than one public code unit, a method that cannot
+      delegate, and a target package with the name of an existing module) raise `CodeRestructureHasProblemsError`,
+      which lists them.
    2. Dependencies that violate the dependency direction are only reported (printed), because the developer may
       have accepted them during the review.
 3. Breaker applies the restructure with the refactoring policy, so that the imports and call sites in the
    code-base are updated (rope's "move module" and "move global" refactorings). This stage makes no Claude requests.
-   1. The refactoring policy gets two more methods:
+   1. The refactoring policy gets three more methods:
       1. `move_module(source_root, module_name, new_module_name)`: moves (renames) a module.
       2. `move_symbol(source_root, module_name, name, target_module_name)`: moves a top-level function, class or
          module-level variable to another module (creating the target module when it does not exist yet).
+      3. `delegate_method(source_root, module_name, class_name, method_name, function_name)`: adds a top-level
+         function `function_name` to the module, with the body of the method, where `self` is replaced by a
+         parameter named after the class in snake_case (e.g. `book`). The body of the method becomes
+         `return <function_name>(self, <arguments>)`.
    2. Breaker processes the chunks with `process_chunks`, and the modules of a chunk in sorted order. Per module:
       1. It first renames the module to its `rename_to` (with `move_module`), so that the code units that stay in
          the module end up in their final file.
-      2. Then it moves each top-level node with a `move_to_file` to that file (with `move_symbol`), in source order.
+      2. Then it lets each method with a `move_to_file` delegate to a new function (with `delegate_method`), and
+         moves that function to the `move_to_file` (with `move_symbol`), together with the helper functions of the
+         method.
+         1. Rope adds a module-level import of the new function to the module of the class. Since the new function
+            typically imports the class (e.g. a model), Breaker replaces this import by a local import inside the
+            delegating method, to avoid a circular import.
+      3. Then it moves each top-level node with a `move_to_file` to that file (with `move_symbol`), in source order.
          1. The helper functions of a function move together with it, because they stay in the file of their
             parent function. A helper function node is moved after its parent, in the order of the node file.
-         2. A class moves with its methods. Methods are not moved or turned into functions in this stage
-            (❔ a later milestone may turn methods into actions or rules that take the instance as their first
-            argument; see "Functions and methods").
-      3. It deletes a module that no longer contains any code (except an `__init__.py`), together with its node
+         2. A class moves with its methods (including the delegating methods).
+      4. It deletes a module that no longer contains any code (except an `__init__.py`), together with its node
          file.
    3. A target package that does not exist yet is created with an empty `__init__.py` (❔ or as a namespace
       package, without `__init__.py`, if rope supports that).
-   4. ❔ When a target package has the same name as an existing module (e.g. `myapp/books/actions/create_book.py`
-      while `myapp/books.py` still exists), Python cannot import both. Breaker processes the modules in sorted order
-      and renames a module before it moves code into a package with the same name, but this does not resolve every
-      case. For now, `CodeRestructureHasProblemsError` also reports such a clash, and the developer resolves it by
-      choosing another name.
+   4. ❔ A target package with the same name as an existing module that stays is rejected by the validation (see
+      MS-8), and the developer resolves it by choosing another name. A later version may resolve such clashes
+      itself.
 4. Breaker updates the node files along with the source.
    1. A renamed module keeps its node file, which is renamed with it. Its `name` becomes the new path, and
       `rename_to` is cleared.
    2. A moved node (with its helper function nodes or method nodes) is removed from the node file of the source
       module and added to the node file of the target module (which Breaker creates when it does not exist), in
       source order. It keeps its analysis, and its `move_to_file` is cleared. Its `code_unit_type` is kept.
-   3. Breaker updates the `module_names` of the package node files and creates the package node file of a new
+   3. For a delegating method, Breaker adds a function node for the new function to the node file of the target
+      module, with the analysis of the method node (e.g. its concepts, responsibilities, steps and helper function
+      nodes) and its `code_unit_type`. The method node stays in its class, with `Delegates to <function_name>` as its
+      only responsibility, and without the other analysis, `code_unit_type` and `move_to_file`.
+   4. Breaker updates the `module_names` of the package node files and creates the package node file of a new
       package (as in "Breaker sync").
-   4. Breaker updates the group file: a module that is renamed keeps its group, and a new target module goes into
+   5. Breaker updates the group file: a module that is renamed keeps its group, and a new target module goes into
       the group of the module that its first code unit came from (see ./chunking.md, "Smart grouping", 4.1 and 4.2).
 5. Breaker commits per module, with the message `apply-code-restructure: restructure <module>`, where `<module>` is
-   the path of the module before the restructure. A module without `rename_to` and without nodes to move gets no
-   commit.
+   the path of the module before the restructure. A module without `rename_to`, without delegating methods and
+   without nodes to move gets no commit.
    1. A failed refactoring interrupts the stage and restores the working tree (see "Breaker next"). Since the
       `rename_to` and `move_to_file` fields of the committed modules are cleared, a resumed stage continues with the
       remaining modules.
