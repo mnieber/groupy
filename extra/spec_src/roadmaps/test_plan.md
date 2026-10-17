@@ -122,6 +122,16 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
      `nodes/actions/remove_proposed_module.py`, `restructure/actions/propose_code_restructure.py`,
      `restructure/rules/validate_code_restructure.py`, `restructure/rules/get_expected_location.py`,
      `restructure/rules/find_dependency_violations.py`.
+4. `apply-code-restructure` (MS-9): the proposal is validated again before any change (also the clash of a target
+   package with an existing module), and dependency violations are only reported; per module, the module is
+   renamed and its code units are moved (with their helper functions or methods) with the refactoring policy,
+   including the imports and call sites; the node files, package node files and group file follow; emptied
+   modules are deleted; a commit per module; resuming after a failed refactoring; `next_stage` becomes `done`, and
+   `breaker next` then reports that the refactoring is done.
+   - Exercises: `restructure/actions/apply_code_restructure.py` (the stage), `move_module` and `move_symbol` of
+     `renamings/policies/refactoring_policy.py`, `restructure/rules/validate_code_restructure.py` (with
+     `CodeRestructureHasProblemsError`), `nodes/actions/move_node_to_module.py`,
+     `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py`.
 
 ## 10. Smart grouping and the group file
 
@@ -141,4 +151,9 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
 
 ## Open points in the design
 
-1. MS-8 sets `next_stage` to `apply-code-restructure`, but there is no milestone for that stage yet.
+1. MS-9: should a later milestone turn methods into actions or rules that take the instance as their first argument?
+2. MS-9: should new target packages be namespace packages (without `__init__.py`), if rope supports that?
+3. MS-9: how should Breaker handle a target package with the same name as an existing module? For now, the
+   validation reports it and the developer picks another name.
+4. MS-9: should `done` be followed by a new round (e.g. `breaker group` and `analyze-terminology` on the
+   restructured code)?

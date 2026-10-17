@@ -98,7 +98,7 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
       are top-level functions in the Python code (see "Nested functions").
    2. Functions that are nested in the Python code have no node, so they are not compared.
    3. Breaker does not detect changes inside a function body, so the analysis of a changed function may be stale
-      (MS-9 adds this).
+      (MS-10 adds this).
 2. Breaker updates the node files:
    1. It adds a node for every name that is in the source but not in the node file. The new node is inserted in
       source order among its siblings.
@@ -696,7 +696,66 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
    4. It uses the call graph to report dependencies that violate the dependency direction.
 8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
 
-## MS-9: Breaker sync detects changed and renamed functions
+## MS-9: Breaker restructures the code
+
+1. The developer reviews the proposed code restructure (the `code_unit_type`, `move_to_file` and
+   `ModuleNode.rename_to` fields), possibly editing it, and runs `breaker next`.
+2. Breaker first validates the proposal again (as in MS-8), because the developer may have edited it. It does this
+   before it changes anything, and also when the stage is resumed.
+   1. A missing `code_unit_type`, a `move_to_file` that does not match the location rule of its `code_unit_type`,
+      and a target file that receives more than one public code unit raise `CodeRestructureHasProblemsError`,
+      which lists the problems.
+   2. Dependencies that violate the dependency direction are only reported (printed), because the developer may
+      have accepted them during the review.
+3. Breaker applies the restructure with the refactoring policy, so that the imports and call sites in the
+   code-base are updated (rope's "move module" and "move global" refactorings). This stage makes no Claude requests.
+   1. The refactoring policy gets two more methods:
+      1. `move_module(source_root, module_name, new_module_name)`: moves (renames) a module.
+      2. `move_symbol(source_root, module_name, name, target_module_name)`: moves a top-level function, class or
+         module-level variable to another module (creating the target module when it does not exist yet).
+   2. Breaker processes the chunks with `process_chunks`, and the modules of a chunk in sorted order. Per module:
+      1. It first renames the module to its `rename_to` (with `move_module`), so that the code units that stay in
+         the module end up in their final file.
+      2. Then it moves each top-level node with a `move_to_file` to that file (with `move_symbol`), in source order.
+         1. The helper functions of a function move together with it, because they stay in the file of their
+            parent function. A helper function node is moved after its parent, in the order of the node file.
+         2. A class moves with its methods. Methods are not moved or turned into functions in this stage
+            (❔ a later milestone may turn methods into actions or rules that take the instance as their first
+            argument; see "Functions and methods").
+      3. It deletes a module that no longer contains any code (except an `__init__.py`), together with its node
+         file.
+   3. A target package that does not exist yet is created with an empty `__init__.py` (❔ or as a namespace
+      package, without `__init__.py`, if rope supports that).
+   4. ❔ When a target package has the same name as an existing module (e.g. `myapp/books/actions/create_book.py`
+      while `myapp/books.py` still exists), Python cannot import both. Breaker processes the modules in sorted order
+      and renames a module before it moves code into a package with the same name, but this does not resolve every
+      case. For now, `CodeRestructureHasProblemsError` also reports such a clash, and the developer resolves it by
+      choosing another name.
+4. Breaker updates the node files along with the source.
+   1. A renamed module keeps its node file, which is renamed with it. Its `name` becomes the new path, and
+      `rename_to` is cleared.
+   2. A moved node (with its helper function nodes or method nodes) is removed from the node file of the source
+      module and added to the node file of the target module (which Breaker creates when it does not exist), in
+      source order. It keeps its analysis, and its `move_to_file` is cleared. Its `code_unit_type` is kept.
+   3. Breaker updates the `module_names` of the package node files and creates the package node file of a new
+      package (as in "Breaker sync").
+   4. Breaker updates the group file: a module that is renamed keeps its group, and a new target module goes into
+      the group of the module that its first code unit came from (see ./chunking.md, "Smart grouping", 4.1 and 4.2).
+5. Breaker commits per module, with the message `apply-code-restructure: restructure <module>`, where `<module>` is
+   the path of the module before the restructure. A module without `rename_to` and without nodes to move gets no
+   commit.
+   1. A failed refactoring interrupts the stage and restores the working tree (see "Breaker next"). Since the
+      `rename_to` and `move_to_file` fields of the committed modules are cleared, a resumed stage continues with the
+      remaining modules.
+6. Breaker does not try to fix circular imports or failing tests that the restructure causes. After the stage, the
+   developer runs the tests and fixes the remaining problems (e.g. by moving a constant, or by adding a
+   `typing.TYPE_CHECKING` guard).
+7. Breaker commits the results and updates `next_stage` to `done`.
+   1. `breaker next` with `next_stage` set to `done` prints `The refactoring is done.` and does nothing.
+   2. ❔ A later version may start a new round (e.g. by running `breaker group` and `analyze-terminology` again on
+      the restructured code).
+
+## MS-10: Breaker sync detects changed and renamed functions
 
 1. Every `FunctionNode` gets a `body_hash: str | None` field: the first 12 hex characters of the md5 hash of the
    `ast.dump()` of the function's decorators, arguments and body (but not its name).
