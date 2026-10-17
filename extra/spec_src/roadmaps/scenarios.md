@@ -34,7 +34,7 @@ then you can do so.
    developer repairs the state and runs `groupy next` again; Groupy skips the finished chunks, and the stage derives
    its remaining work from the node files so that nothing is done twice.
 
-4. `s04_claude_refactors_code_in_an_rfr`
+4. `s04_claude_refactors_code_in_an_rfr` (written)
    A stage (or a callback) makes an RFR, in which Claude edits the source directly. Only node file edits, glossary
    edits and `commit_refactoring` are allowed as callbacks. `commit_refactoring` checks that the code parses and
    commits the source and node files together; uncommitted work after the RFR is rejected.

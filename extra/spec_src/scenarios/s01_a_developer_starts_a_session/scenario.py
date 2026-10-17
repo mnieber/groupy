@@ -20,31 +20,49 @@ def run_scenario():
 
         # Start the session
         with the(r.developer).runs(r.groupy_cli).with_the(r.init_command):
-            it().calls(r.init_session_action).with_the(r.target_dir).and_the(r.branch_name)
+            it().calls(r.init_session_action).with_the(r.target_dir).and_the(
+                r.branch_name
+            )
 
         with the(r.init_session_action).checks_the(r.preconditions):
-            it().raises(r.session_exists_error).if_the_repo_already_has_a(r.session_file)
-            it().raises(r.dirty_working_tree_error).if_the(r.working_tree).is_not_clean()
+            it().raises(r.session_exists_error).if_the_repo_already_has_a(
+                r.session_file
+            )
+            it().raises(r.dirty_working_tree_error).if_the(
+                r.working_tree
+            ).is_not_clean()
 
         with the(r.init_session_action).creates_the(r.branch):
             it().creates(r.session).with_the(r.target_dir).and_the(r.next_stage)
             it().writes(r.session).to_the(r.session_file)
-            it().writes_the_default(r.config).to_the(r.config_file).if_the_repo_has_none()
+            it().writes_the_default(r.config).to_the(
+                r.config_file
+            ).if_the_repo_has_none()
 
         # Create the source map
         with the(r.init_session_action).creates_node_files_for(r.target_code):
-            with the(r.init_session_action).calls(r.create_package_node_file_action).for_each(r.package):
+            with the(r.init_session_action).calls(
+                r.create_package_node_file_action
+            ).for_each(r.package):
                 it().creates(r.package_node_file).with_the(r.module_names)
 
-            with the(r.init_session_action).calls(r.create_module_node_file_action).for_each(r.module):
-                it().creates(r.module_node_file).that_reflects_the_structure_of(r.module)
+            with the(r.init_session_action).calls(
+                r.create_module_node_file_action
+            ).for_each(r.module):
+                it().creates(r.module_node_file).that_reflects_the_structure_of(
+                    r.module
+                )
 
         # Group the modules
-        with the(r.init_session_action).calls(r.create_group_file_action).with_the(r.config):
+        with the(r.init_session_action).calls(r.create_group_file_action).with_the(
+            r.config
+        ):
             it().assigns_each(r.module).to_a(r.group)
             it().writes(r.group_file)
 
-        the(r.init_session_action).commits(r.session_file).and_the(r.config_file).and_the(r.group_file).and_the(r.node_files)
+        the(r.init_session_action).commits(r.session_file).and_the(
+            r.config_file
+        ).and_the(r.group_file).and_the(r.node_files)
         the(r.developer).reviews(r.node_files).and_the(r.group_file)
 
 

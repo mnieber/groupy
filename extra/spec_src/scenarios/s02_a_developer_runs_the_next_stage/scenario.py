@@ -30,26 +30,40 @@ def run_scenario():
         with the(r.run_next_stage_action).checks_the(r.preconditions):
             it().raises(r.no_session_error).if_there_is_no(r.session)
             it().raises(r.no_group_file_error).if_there_is_no(r.group_file)
-            it().raises(r.dirty_working_tree_error).if_the(r.working_tree).is_not_clean()
+            it().raises(r.dirty_working_tree_error).if_the(
+                r.working_tree
+            ).is_not_clean()
 
-        the(r.run_next_stage_action).calls_the(r.stage_action).for_the(r.next_stage).of_the(r.session)
+        the(r.run_next_stage_action).calls_the(r.stage_action).for_the(
+            r.next_stage
+        ).of_the(r.session)
 
         # Divide the work into chunks
-        with the(r.stage_action).calls(r.get_chunks_rule).with_the(r.group_file).and_the(r.config):
+        with the(r.stage_action).calls(r.get_chunks_rule).with_the(
+            r.group_file
+        ).and_the(r.config):
             it().splits_each(r.group).into(r.chunks)
             it().returns(r.chunks)
 
         # Process each chunk
         with the(r.stage_action).calls(r.process_chunks_action).with_the(r.chunks):
-            with it().calls_the(r.stage_action).for_each(r.chunk).that_is_not_finished():
+            with it().calls_the(r.stage_action).for_each(
+                r.chunk
+            ).that_is_not_finished():
                 the(r.stage_action).calls(r.create_rfa_policy_rule).with_the(r.config)
                 with the(r.stage_action).calls(r.rfa_policy).with_an(r.rfa):
                     it().sends(r.rfa).with_the(r.precomputed_context).to(r.claude)
                     with the(r.claude).sends(r.callbacks).to(r.run_callback_action):
-                        with the(r.run_callback_action).runs_the(r.action).for_each(r.callback):
-                            the(r.action).calls(r.find_node_rule).with_the(r.edit_location)
+                        with the(r.run_callback_action).runs_the(r.action).for_each(
+                            r.callback
+                        ):
+                            the(r.action).calls(r.find_node_rule).with_the(
+                                r.edit_location
+                            )
                             the(r.action).edits(r.node_files).or_the(r.target_code)
-                        it().commits(r.changes).with_the(r.stage_id).and_the(r.callback_name)
+                        it().commits(r.changes).with_the(r.stage_id).and_the(
+                            r.callback_name
+                        )
             it().records(r.chunk).in_the(r.finished_chunks).of_the(r.session)
             it().commits(r.session_file)
 

@@ -1,7 +1,6 @@
 # Glossary
 
 - helper candidate: a function that might just be a helper function (e.g. because it's is only called by one other function in the same module)
-- request for refactoring (RFR): a request to Claude to refactor the Python code directly, without calling actions
 - rope: a Python library that can perform refactorings
 - sub-session: a fresh Claude session that handles (part of) a chunk
 
@@ -63,22 +62,6 @@ analysis (e.g. the concepts and steps) where needed, because Groupy does not re-
       A change of `line_count` alone is not reported. Without changes, Groupy prints `The node files match the source.`
 4. `groupy sync` does not commit, and does not require a clean working tree. Since `groupy next` requires a clean
    working tree, the developer reviews and commits the changes before the next stage.
-
-## Requests for refactoring
-
-1. An RFR edits the source directly, but it may also run callbacks to update the node files.
-   1. In an RFR, only the node file edits (e.g. `add_step`, `move_function_to_parent`), the glossary edits and
-      `commit_refactoring` are allowed. Callbacks that refactor the code (e.g. `extract_method`) are rejected with
-      `CallbackNotAllowedError`, so that an RFR never starts another RFR.
-   2. The callbacks in an RFR do not commit by themselves, because the source may be half-refactored while they
-      run. Instead, `commit_refactoring(description)` checks that the changed Python files parse, and commits the
-      source and the node files together with the message `<stage-id>: <description>`. If a file does not parse,
-      Groupy restores the working tree to the last commit and raises `RefactoringDoesNotParseError`.
-   3. An RFR that is made by a stage (rather than by a callback) must commit its work with `commit_refactoring`
-      (typically once per refactoring). When there are uncommitted changes after the RFR, Groupy restores the
-      working tree and raises `UncommittedRefactoringError`.
-   4. An RFR that is made by a callback (e.g. `extract_method`) does not call `commit_refactoring`: the callback
-      verifies the result and commits.
 
 ## Functions and methods
 
@@ -494,7 +477,7 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
       order of the steps), `module_sources`, and `caller_sources` (the source of each caller of a function with
       steps to move).
    3. Claude edits the source, updates the steps of F and of its callers with the node file edits, and calls
-      `commit_refactoring` after each move (see "Requests for refactoring"). Removing the step from F
+      `commit_refactoring` after each move. Removing the step from F
       (with `remove_step`) also removes it from `steps_to_move_to_caller`. When Claude decides that a step cannot be moved,
       it withdraws the proposal with `remove_step_to_move_to_caller`.
    4. After the RFR of a chunk, Groupy makes one follow-up RFR (with the id `<rfr-id>/retry-1`) for the steps that
