@@ -15,7 +15,9 @@ from breaker.sessions.enums import Stages
 from breaker.sessions.models.session import get_session
 from breaker.sessions.rules.load_config import load_config
 from breaker_next_tests.fake_policies import (
+    FakeRefactoringPolicy,
     FakeRfaPolicy,
+    get_fake_refactoring_policy,
     get_fake_rfa_policy,
     reset_fake_policies,
 )
@@ -25,6 +27,8 @@ from sessions_tests.breaker_test_env import TestEnv as BreakerTestEnv
 __all__ = ["Context", "TestEnv"]
 
 FAKE_RFA_POLICY = "breaker_next_tests.fake_policies:get_fake_rfa_policy"
+
+FAKE_REFACTORING_POLICY = "breaker_next_tests.fake_policies:get_fake_refactoring_policy"
 
 # The fake stage replaces the first real stage, so that the tests of the stage
 # runner don't depend on what the real stages do.
@@ -65,15 +69,17 @@ class TestEnv(BreakerTestEnv):
         self, modules: T.Dict[str, str] = None, **config_fields: T.Any
     ) -> None:
         """Creates a git repo with the target code and a config file that uses
-        the fake RFA policy, and runs breaker init. The modules (a map from
+        the fake RFA policy and the fake refactoring policy, and runs breaker
+        init. The modules (a map from
         module name to text) are added to the target code, and the
         config_fields are added to the config file."""
         self.create_repo_with_target_code()
         for module_name, text in (modules or {}).items():
             self.write_file(f"src/{module_name}", text)
-        config_lines = [f"rfa_policy: {FAKE_RFA_POLICY}"] + [
-            f"{field}: {value}" for field, value in config_fields.items()
-        ]
+        config_lines = [
+            f"rfa_policy: {FAKE_RFA_POLICY}",
+            f"refactoring_policy: {FAKE_REFACTORING_POLICY}",
+        ] + [f"{field}: {value}" for field, value in config_fields.items()]
         self.write_file(".breaker/config.yaml", "\n".join(config_lines) + "\n")
         self.commit_all("add breaker config")
         self.run_breaker("init", "--target-dir=src")
@@ -86,6 +92,17 @@ class TestEnv(BreakerTestEnv):
 
     def clear_rfa_requests(self) -> None:
         self.rfa_policy().requests.clear()
+
+    def fail_rename(self, module_name: str, name: str) -> None:
+        """Lets the fake refactoring policy raise an error when it renames the
+        symbol name in the module."""
+        self.refactoring_policy().failing_renames.add((module_name, name))
+
+    def clear_failing_renames(self) -> None:
+        self.refactoring_policy().failing_renames.clear()
+
+    def clear_renames(self) -> None:
+        self.refactoring_policy().renames.clear()
 
     def set_next_stage(self, stage_id: str) -> None:
         """Sets next_stage in the session file, and commits it (as if the
@@ -111,6 +128,17 @@ class TestEnv(BreakerTestEnv):
 
     def rfa_policy(self) -> FakeRfaPolicy:
         return get_fake_rfa_policy()
+
+    def refactoring_policy(self) -> FakeRefactoringPolicy:
+        return get_fake_refactoring_policy()
+
+    def renamed_names(self) -> T.List[T.Tuple[str, str]]:
+        """Returns the (module_name, name) pairs of the renames of the fake
+        refactoring policy, in the order in which they were made."""
+        return [
+            (module_name, name)
+            for module_name, _, name, _ in self.refactoring_policy().renames
+        ]
 
     def rfa_ids(self) -> T.List[str]:
         return [rfa.id for rfa in self.rfa_policy().requests]

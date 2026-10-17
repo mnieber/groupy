@@ -47,6 +47,9 @@ Feature packages:
     via callbacks, the RFA context (module sources, call-graph view, glossary so far), a second meaning of a name,
     the consolidation RFA as a final pseudo-chunk, the follow-up RFA for unanalyzed nodes, and resuming at the
     consolidation.
+12. `propose-renamings` (batch 9, in `tests/propose_renamings_tests/`): recording renamings via callbacks, the RFA
+    context (module sources, glossary), the conflicts per scope (clashes, same new name, cycles; chains are
+    allowed), the follow-up RFA for conflicts, and the error when conflicts remain.
 
 ## Test infrastructure for Claude requests
 
@@ -63,9 +66,11 @@ Feature packages:
       these callbacks through the same callback dispatcher that the real policy uses.
    2. `FakeRfrPolicy` maps each RFR id onto scripted file edits.
    3. `FakeGroupingPolicy` (for smart grouping with Haiku) maps each batch id onto a scripted answer.
-   4. Every fake records the requests that it receives (id, prompt and context), so that tests can assert on the
+   4. `FakeRefactoringPolicy` subclasses `RopeRefactoringPolicy`: it refactors with rope, records the renames and
+      raises `FakeRefactoringError` for the renames that a test lets fail.
+   5. Every fake records the requests that it receives (id, prompt and context), so that tests can assert on the
       context that Breaker pre-computed (e.g. the call-graph view).
-   5. A request without a script raises an error, so that unexpected requests fail the test.
+   6. A request without a script raises an error, so that unexpected requests fail the test.
 3. Tests use the `simple` grouping strategy with a large group and chunk size (set in the config file), so that the
    chunk ids are predictable, except in the tests of the grouping strategies themselves.
 4. Exercises: `claude_requests/models/rfa.py`, `claude_requests/models/rfr.py`, `claude_requests/models/callback.py`,
@@ -84,26 +89,27 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `propose-renamings` (MS-4, in `tests/propose_renamings_tests/`): renamings and `rename_to` are recorded via
-   callbacks and the source is unchanged; the RFA context contains the module sources and the glossary; Breaker
-   finds conflicts per scope (a clash with an existing name that is not renamed, two renamings with the same new
-   name, a cycle; a chain is allowed), makes a follow-up RFA (`<rfa-id>/retry-1`, with `renaming_conflicts`), and
-   raises `RenamingConflictError` when conflicts remain.
-   - Exercises: `renamings/actions/propose_renamings.py` (the stage, with `RenamingConflictError`),
-     `renamings/rules/find_renaming_conflicts.py`, the RFA context keys `module_sources`, `glossary` and
-     `renaming_conflicts`, and the `set_renaming` and `set_rename_to` callbacks.
-2. `apply-renamings` (MS-5): `rename_symbol` (rope) renames local symbols, functions and module-level symbols,
-   including their call sites in other modules.
-   - Exercises: `renamings/actions/apply_renamings.py`, `renamings/actions/rename_symbol.py`.
-3. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
+1. `apply-renamings` (MS-5, in `tests/apply_renamings_tests/`): `rename_symbol` of the refactoring policy (rope)
+   renames module-level variables, local symbols, parameters, functions, class attributes and methods, including
+   the imports and call sites in other modules; a commit per module with renamings; the node file gets the new
+   names, renamed concept and local term keys, and cleared `renamings`, `rename_to` and `aliases`; a renaming of a
+   non-symbol only changes the node file; chains are ordered; all renamings are checked for conflicts before any
+   change; a failed rename restores the working tree and the stage resumes at that module.
+   - Exercises: `renamings/actions/apply_renamings.py` (the stage), `renamings/policies/refactoring_policy.py`
+     (with `RenameConflictError`), `renamings/policies/rope_refactoring_policy.py`, the `refactoring_policy` config
+     field, `renamings/rules/find_renaming_conflicts.py` (with `ProposedRenamingHasConflictError` from
+     `renamings/actions/propose_renamings.py`).
+   - Also changes: `functions/actions/rename_helper_functions.py` takes the refactoring policy, and
+     `renamings/actions/rename_symbol.py` (batch 7) is replaced by the policy.
+2. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
    node for the extracted function; the callbacks fill its analysis and update the parent.
    - Exercises: `functions/actions/extract_methods.py` (the stage), `functions/actions/extract_method.py` (the
      callback), `functions/rules/get_extract_method_candidates.py`.
-4. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
+3. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
    moves the call.
    - Exercises: `functions/actions/move_steps_to_caller.py` (the stage), `functions/actions/move_step_to_caller.py`
      (the callback).
-5. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
+4. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
    the validations (missing `code_unit_type`, location rule per code unit type, one public code unit per file,
    dependency direction).
    - Exercises: `restructure/actions/propose_module_layout.py`, `nodes/actions/set_proposed_module.py`,

@@ -55,8 +55,9 @@ commits it. The developer uses it after changing the config file.
 
 The config file (`.breaker/config.yaml`) contains the choices that the developer makes for a session.
 
-1. `rfa_policy`, `rfr_policy` and `grouping_policy`: the import path (`<module>:<name>`) of a callable that returns
-   the policy that Breaker uses to make RFAs, RFRs and smart groups. This is usually the policy class itself (e.g.
+1. `rfa_policy`, `rfr_policy`, `grouping_policy` and `refactoring_policy`: the import path (`<module>:<name>`) of a
+   callable that returns the policy that Breaker uses to make RFAs, RFRs and smart groups, and to refactor the code
+   (see "Refactoring policy"). This is usually the policy class itself (e.g.
    `breaker.claude_requests.policies.claude_rfa_policy:ClaudeRfaPolicy`), but tests use a function that returns a
    fake policy.
    1. Breaker creates a policy when it needs it, and does not keep it.
@@ -66,6 +67,19 @@ The config file (`.breaker/config.yaml`) contains the choices that the developer
 4. Fields that are missing in the config file get their default value.
 5. The config file is part of the session, so a change of the config file must be committed before
    `breaker next` runs.
+
+## Refactoring policy
+
+1. Breaker refactors the code (e.g. renaming a symbol, including its call sites) through a `RefactoringPolicy`
+   (`renamings/policies/refactoring_policy.py`). The default implementation, `RopeRefactoringPolicy`, uses rope.
+   1. `rename_symbol(source_root, module_name, scope_location, name, new_name)` renames the symbol `name` in the
+      scope (`@module` for module-level names, a class name for attributes and methods, or a function location for
+      local symbols), including its imports and call sites in other modules. It raises `RenameConflictError` when
+      the new name clashes with an existing name, before it changes any file.
+   2. The policy is passed to the actions that refactor (e.g. `rename_helper_functions` and `apply_renamings`), so
+      that the engine can be replaced (e.g. by libcst, or by an RFR when rope cannot do a refactoring).
+2. Tests use `FakeRefactoringPolicy`, which subclasses `RopeRefactoringPolicy`, records the renames, and raises an
+   error for the renames that the test lets fail.
 
 ## Breaker sync
 
@@ -319,7 +333,7 @@ An example node file is given in `./module_node_example.md`.
    1. A function that is called by several functions in the module is not nested. It stays a top-level function
       (it later will typically become a rule or util).
 4. After the RFA of a chunk, Breaker renames the helper functions in the chunk so that they start with an underscore
-   (in the node file and in the source, using rope), and commits with the message
+   (in the node file and in the source, using the refactoring policy), and commits with the message
    `identify-helper-functions: rename_helper_functions`. Then it finishes the chunk.
    1. This applies to all helper function nodes, also to helpers of helpers and to helpers of methods. A helper
       whose name already starts with an underscore keeps its name.
@@ -471,8 +485,30 @@ An example node file is given in `./module_node_example.md`.
 
 1. The developer reviews all node files, possibly making edits to the proposed renamings and terminology.
 2. When they are done, they run `breaker next`.
-   1. Breaker will then apply the renamings (using the `rename_symbol` action), including in all call sites in the
-      code-base.
+   1. Breaker first checks all renamings for conflicts (see MS-4), before it changes anything. When there are
+      conflicts, it raises the same error as propose-renamings, which lists them. Since a module whose renamings
+      are applied has no renamings left, the check also works when the stage is resumed.
+   2. Breaker will then apply the renamings (using `rename_symbol` of the refactoring policy), including in all call
+      sites in the code-base.
+      1. This stage makes no Claude requests. It processes the chunks with `process_chunks`, and the modules of a
+         chunk in sorted order.
+      2. Per module, Breaker applies all renamings of the module node file (the `renamings` of the module, its
+         classes and its functions, and the `rename_to` of its functions, methods and classes), updates the node
+         file, and commits with the message `apply-renamings: apply the renamings of <module>`. A module without
+         renamings gets no commit.
+      3. Within a scope, Breaker orders the renames so that a chain works (e.g. for `title -> text` and
+         `text -> body`, it renames `text` first).
+      4. A renaming whose old name is not a symbol in the source scope (e.g. a concept such as `outlier_point`)
+         only renames the keys in the node file.
+      5. When a rename fails, Breaker discards the uncommitted changes (it restores the working tree to the last
+         commit, which also undoes the renames of the module that already succeeded), and re-raises the error. The
+         module keeps its renamings, so the next `breaker next` resumes at that module.
+   3. Breaker updates each node whose renamings it applied:
+      1. `name` becomes `rename_to`, and `rename_to` is cleared.
+      2. The keys of `concepts`, `local_terms` and `abbreviations` are renamed by the `renamings` of the node, all at
+         once (so `text -> body` and `body -> content` turn the keys `text` and `body` into `body` and `content`).
+         When a key that is not renamed already has the new name, it keeps its own description.
+      3. `renamings` and `aliases` are cleared, because the aliases are gone.
 3. Breaker commits the results and updates `next_stage` to `extract-methods`.
 
 ## MS-6: Breaker extract methods

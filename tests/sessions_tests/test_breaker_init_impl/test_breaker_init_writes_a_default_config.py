@@ -31,6 +31,10 @@ def test_breaker_init_writes_a_default_config(context: Context):
         assert env.config.grouping_policy == (
             "breaker.groups.policies.claude_grouping_policy:ClaudeGroupingPolicy"
         )
+        assert env.config.refactoring_policy == (
+            "breaker.renamings.policies.rope_refactoring_policy:"
+            "RopeRefactoringPolicy"
+        )
         assert env.config.grouping_strategy == "package"
         assert env.config.max_group_lines == 2000
         assert env.config.max_chunk_lines == 500
@@ -45,6 +49,7 @@ def test_breaker_init_writes_a_default_config(context: Context):
             "rfa_policy",
             "rfr_policy",
             "grouping_policy",
+            "refactoring_policy",
             "grouping_strategy",
             "max_group_lines",
             "max_chunk_lines",

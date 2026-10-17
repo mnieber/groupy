@@ -61,7 +61,9 @@ class TestEnv(BreakerNextTestEnv):
         )
 
     def rename_helper_functions(self, module_names: T.List[str]) -> None:
-        rename_helper_functions(self.source_root, module_names)
+        rename_helper_functions(
+            self.source_root, module_names, self.refactoring_policy()
+        )
 
     def load_module_node(self, module_name: str) -> None:
         self.module_node = load_module_node(

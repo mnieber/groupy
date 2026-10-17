@@ -1,4 +1,4 @@
-from breaker.renamings.actions.rename_symbol import RenameConflictError
+from breaker.renamings.policies.refactoring_policy import RenameConflictError
 from breaker_next_tests.breaker_next_test_env import callback
 from identify_helper_functions_tests.identify_helper_functions_test_env import (
     RFA_ID,

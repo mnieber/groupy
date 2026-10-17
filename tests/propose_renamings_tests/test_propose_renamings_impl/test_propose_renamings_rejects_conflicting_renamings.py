@@ -1,4 +1,4 @@
-from breaker.renamings.actions.propose_renamings import RenamingConflictError
+from breaker.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
 from breaker_next_tests.breaker_next_test_env import callback
 from propose_renamings_tests.propose_renamings_test_env import (
     RETRY_RFA_ID,
@@ -82,7 +82,7 @@ def test_propose_renamings_rejects_conflicting_renamings(context: Context):
         env.catch_error(env.run_breaker, "next"),
         env.load_session(),
     ):
-        assert isinstance(env.error, RenamingConflictError)
+        assert isinstance(env.error, ProposedRenamingHasConflictError)
         assert (
             "myapp/reports.py:Report: save -> store clashes with the existing"
             " name store" in str(env.error)
