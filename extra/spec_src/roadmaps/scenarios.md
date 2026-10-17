@@ -22,7 +22,7 @@ then you can do so.
    file per module and package, and the group file, and commits them. The developer can review the node files and
    the group file before the first stage.
 
-2. `s02_a_developer_runs_the_next_stage`
+2. `s02_a_developer_runs_the_next_stage` (written)
    The developer runs `groupy next`. Groupy checks the preconditions (a session, a group file and a clean working
    tree), splits the groups into chunks, and makes an RFA per chunk. Claude answers with callbacks that run
    actions; Groupy commits after each action and after each chunk, and finally sets `next_stage`. Shows how the

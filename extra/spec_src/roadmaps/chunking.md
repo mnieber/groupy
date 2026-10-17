@@ -3,29 +3,11 @@
 To keep the workload per Claude request reasonable, Groupy groups the node files into groups, it splits each
 group into chunks and processes these chunks in series.
 
-1. Groups and chunks contain module node files only. They refer to a module node file by the path of its module,
-   relative to the target dir (e.g. `myapp/books.py`). Package node files are not grouped.
-2. The size of a module is the number of lines in its source file.
-3. Groups are numbered from 1, in the order of their first module path.
-4. There are three grouping strategies:
-   1. simple: We sort the modules by path and divide them into groups of roughly equal size. Groupy adds modules
-      to a group until the next module would make it larger than the maximum group size; then it starts a new group.
-      A module that is larger than the maximum group size gets a group of its own.
-   2. package: A group contains all modules (i.e. the entire file-tree) within a sub-package of a top-level package
-      in the target dir (e.g. `myapp/books`). The modules that are directly in a top-level package (e.g.
-      `myapp/__init__.py`) form a group of their own.
-   3. smart: We use Claude Haiku to create the groups.
-5. Groupy splits a group into chunks of at most the maximum chunk size.
-   1. It sorts the modules by path, and tries to keep the modules of a package (i.e. the modules that are directly
-      in the same dir) in the same chunk: when a package doesn't fit in the current chunk, it starts a new chunk.
-   2. A package that is larger than the maximum chunk size is split by sorted path.
-   3. A module that is larger than the maximum chunk size gets a chunk of its own.
-   4. Chunks are numbered per group, and the chunk id contains both numbers (e.g. `group-2/chunk-1`). The same
-      group gives the same chunks, with the same ids.
-6. `groupy init` creates the group file, using the grouping strategy and the sizes in the config file.
-   1. `groupy group` recreates the group file (e.g. after the developer changed the config file).
-   2. `groupy next` refuses to run when there is no group file.
-   3. A stage gets its chunks by loading the group file and splitting each group into chunks.
+The groups, the chunks, and the `simple` and `package` grouping strategies are described in the scenario
+`s02_a_developer_runs_the_next_stage`. This document describes the parts that are not implemented yet.
+
+1. `groupy group` recreates the group file (e.g. after the developer changed the config file).
+2. The `smart` grouping strategy uses Claude Haiku to create the groups (see "Smart grouping").
 
 ## Incremental accumulation
 

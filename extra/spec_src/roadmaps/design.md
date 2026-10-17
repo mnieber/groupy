@@ -1,71 +1,26 @@
 # Glossary
 
-- action: an operation - offered by Groupy - that changes nodes files and/or target code
-- callback: a call from Claude to Groupy - using the Claude Agent API - requesting Groupy to run an action
-- chunk: a sub-set of node files in a group that is processed together
-- config file: a file with the choices that the developer makes for a session (e.g. the grouping strategy)
-- group: a group of semantically related node files
-- group file: a file that assigns each node file to a group
 - helper candidate: a function that might just be a helper function (e.g. because it's is only called by one other function in the same module)
-- node file: a yaml file that captures the structure of a Python module or package
-- request for actions (RFA): a request to Claude to analyze the node files and Python code and run actions
 - request for refactoring (RFR): a request to Claude to refactor the Python code directly, without calling actions
 - rope: a Python library that can perform refactorings
-- stage id: the id of the current stage in the refactoring. The user call `groupy next` to move to the next stage.
 - sub-session: a fresh Claude session that handles (part of) a chunk
-- target code: the Python code that we're refactoring
 
 # Rationale
 
-## Groupy and Claude collaborate on editing node files and source files
+## Resuming an interrupted stage
 
-Typically the user will initiate a Groupy session and call `groupy next` to perform the next stage in the refactoring.
-Groupy will make RFAs. In response, Claude will issue callbacks to run Groupy actions.
-These actions may update node files, or refactor the code via rope, or trigger RFRs that cause Claude to refactor the Python code directly.
-Groupy commits the updated node files and source files after each action; it groups the commits by prefixing the commit message with the stage id.
-
-## Groupy next
-
-A call to `groupy next` runs the stage in the `next_stage` field of the session file.
-
-1. It refuses to run when there is no session, when there is no group file (see ./chunking.md), or when the working
-   tree is not clean.
-2. It runs the stage. Most stages make an RFA per chunk.
-   1. The callbacks of Claude run actions, and Groupy commits after each action, with the commit message
-      `<stage-id>: <callback name>`.
-   2. After each chunk, Groupy records the chunk as finished in the session file (in the `finished_chunks` field,
-      using the RFA id `<stage-id>/<chunk-id>`), and commits with the message `<stage-id>: finish <chunk-id>`.
-   3. When a stage is interrupted (e.g. by an error), the next call to `groupy next` runs the same stage again,
-      and skips the finished chunks.
-   4. When an action fails, Groupy restores the working tree to the last commit (undoing the partial changes of the
-      action, e.g. of rope or an RFR) and re-raises the error, which interrupts the stage. The actions that succeeded
-      stay committed, so the developer can inspect and repair the state, and run `groupy next` again. Each stage
-      derives its remaining work from the node files (e.g. the renamings that are left, or the candidates that are
-      not `n/a`), so that a resumed stage does not repeat finished work.
-3. After the stage, Groupy sets `next_stage` to the stage that follows it, clears `finished_chunks`, and commits
-   with the message `<stage-id>: finish the stage`.
+1. When a stage is interrupted (e.g. by an error), the next call to `groupy next` runs the same stage again, and
+   skips the finished chunks.
+2. When an action fails, Groupy restores the working tree to the last commit (undoing the partial changes of the
+   action, e.g. of rope or an RFR) and re-raises the error, which interrupts the stage. The actions that succeeded
+   stay committed, so the developer can inspect and repair the state, and run `groupy next` again. Each stage
+   derives its remaining work from the node files (e.g. the renamings that are left, or the candidates that are
+   not `n/a`), so that a resumed stage does not repeat finished work.
 
 ## Groupy group
 
 A call to `groupy group` recreates the group file, using the grouping strategy and the sizes in the config file, and
 commits it. The developer uses it after changing the config file.
-
-## Config file
-
-The config file (`.groupy/config.yaml`) contains the choices that the developer makes for a session.
-
-1. `rfa_policy`, `rfr_policy`, `grouping_policy` and `refactoring_policy`: the import path (`<module>:<name>`) of a
-   callable that returns the policy that Groupy uses to make RFAs, RFRs and smart groups, and to refactor the code
-   (see "Refactoring policy"). This is usually the policy class itself (e.g.
-   `groupy.claude_requests.policies.claude_rfa_policy:ClaudeRfaPolicy`), but tests use a function that returns a
-   fake policy.
-   1. Groupy creates a policy when it needs it, and does not keep it.
-2. `grouping_strategy`: `simple`, `package` or `smart` (default: `package`).
-3. `max_group_lines` and `max_chunk_lines`: the maximum size of a group and of a chunk (in lines of code, default:
-   2000 and 500).
-4. Fields that are missing in the config file get their default value.
-5. The config file is part of the session, so a change of the config file must be committed before
-   `groupy next` runs.
 
 ## Refactoring policy
 
@@ -119,27 +74,9 @@ analysis (e.g. the concepts and steps) where needed, because Groupy does not re-
 4. `groupy sync` does not commit, and does not require a clean working tree. Since `groupy next` requires a clean
    working tree, the developer reviews and commits the changes before the next stage.
 
-## Guidelines for the Claude requests
+## Requests for refactoring
 
-1. Groupy pre-computes everything that can be computed deterministically and passes it to Claude as context.
-   1. E.g. the call graph (who calls which function, inside and outside the module), the source of the module,
-      and the project glossary (in the analyze-terminology stage: the glossary so far).
-   2. Claude should spend its effort on judgement, not on facts that Groupy can compute.
-2. All edits to node files are done by Groupy, not by Claude directly.
-   The edit location is passed in the callback as:
-   - "@module": to indicate a change in the module node
-   - \_get_api_url to indicate a change in the function node for that function
-   - get_api_usage.\_get_api_url to disambiguate the location using the parent function name
-   - Book.save to indicate a change in the node of a method (or of a helper function of a method)
-
-   A location that is the full qualified name of a node (e.g. `validate` for a top-level function) finds that node.
-   Otherwise, the location must match the end of the qualified name of exactly one node; if it matches several
-   nodes (e.g. `save` when `Book` and `Author` both have a `save` method), the location is ambiguous and the edit is
-   rejected.
-
-3. When an action or RFR changes the code of a function, then the analysis of that function (e.g. its concepts,
-   responsibilities and steps) is updated in the same RFA (or RFR), so that later stages don't work with stale data.
-4. An RFR edits the source directly, but it may also run callbacks to update the node files.
+1. An RFR edits the source directly, but it may also run callbacks to update the node files.
    1. In an RFR, only the node file edits (e.g. `add_step`, `move_function_to_parent`), the glossary edits and
       `commit_refactoring` are allowed. Callbacks that refactor the code (e.g. `extract_method`) are rejected with
       `CallbackNotAllowedError`, so that an RFR never starts another RFR.
@@ -567,7 +504,7 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
       order of the steps), `module_sources`, and `caller_sources` (the source of each caller of a function with
       steps to move).
    3. Claude edits the source, updates the steps of F and of its callers with the node file edits, and calls
-      `commit_refactoring` after each move (see "Guidelines for the Claude requests"). Removing the step from F
+      `commit_refactoring` after each move (see "Requests for refactoring"). Removing the step from F
       (with `remove_step`) also removes it from `steps_to_move_to_caller`. When Claude decides that a step cannot be moved,
       it withdraws the proposal with `remove_step_to_move_to_caller`.
    4. After the RFR of a chunk, Groupy makes one follow-up RFR (with the id `<rfr-id>/retry-1`) for the steps that
@@ -779,7 +716,7 @@ myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
 5. Groupy commits per module, with the message `apply-code-restructure: restructure <module>`, where `<module>` is
    the path of the module before the restructure. A module without `rename_to`, without delegating methods and
    without nodes to move gets no commit.
-   1. A failed refactoring interrupts the stage and restores the working tree (see "Groupy next"). Since the
+   1. A failed refactoring interrupts the stage and restores the working tree (see "Resuming an interrupted stage"). Since the
       `rename_to` and `move_to_file` fields of the committed modules are cleared, a resumed stage continues with the
       remaining modules.
 6. Groupy does not try to fix circular imports or failing tests that the restructure causes. After the stage, the
