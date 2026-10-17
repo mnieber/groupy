@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,12 +7,12 @@ scenario = sunya.add_scenario(f"s09_groupy_applies_renamings")
 
 
 def run_scenario():
-    r.developer = m.External.Actors.Developer
-    r.groupy_cli = m.Runtime.Entrypoints.Groupy
-    r.stage_action = m.Renamings.Actions.ApplyRenamings
-    r.validate_renamings_rule = m.Renamings.Rules.ValidateRenamings
-    r.process_chunks_action = m.Sessions.Actions.ProcessChunks
-    r.refactoring_policy = m.Renamings.Policies.RefactoringPolicy
+    r.developer = c.External.Actors.Developer
+    r.groupy_cli = c.Runtime.Entrypoints.Groupy
+    r.stage_action = c.Renamings.Actions.ApplyRenamings
+    r.validate_renamings_rule = c.Renamings.Rules.ValidateRenamings
+    r.process_chunks_action = c.Sessions.Actions.ProcessChunks
+    r.refactoring_policy = c.Renamings.Policies.RefactoringPolicy
 
     with goal().apply_the(r.renamings).to_the(r.target_code):
         the(r.developer).reviews_the(r.renamings).in_the(r.node_files)

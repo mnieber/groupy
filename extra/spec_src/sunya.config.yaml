@@ -1,0 +1,7 @@
+output_dir: ../../doc/spec
+component_name: groupy
+package_config_by_name:
+  groupy:
+    output_dir: .
+    scenario_paths:
+      - scenarios/**/scenario.py

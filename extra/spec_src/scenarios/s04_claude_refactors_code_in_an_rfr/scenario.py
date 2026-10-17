@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,11 +7,11 @@ scenario = sunya.add_scenario(f"s04_claude_refactors_code_in_an_rfr")
 
 
 def run_scenario():
-    r.claude = m.External.Actors.Claude
-    r.rfr_policy = m.ClaudeRequests.Policies.RfrPolicy
-    r.rfr = m.ClaudeRequests.Models.Rfr
-    r.run_callback_action = m.ClaudeRequests.Actions.RunCallback
-    r.commit_refactoring_action = m.Functions.Actions.CommitRefactoring
+    r.claude = c.External.Actors.Claude
+    r.rfr_policy = c.ClaudeRequests.Policies.RfrPolicy
+    r.rfr = c.ClaudeRequests.Models.Rfr
+    r.run_callback_action = c.ClaudeRequests.Actions.RunCallback
+    r.commit_refactoring_action = c.Functions.Actions.CommitRefactoring
 
     with goal().refactor(r.target_code).with_an(r.rfr):
 

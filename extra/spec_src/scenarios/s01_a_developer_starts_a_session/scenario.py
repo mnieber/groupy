@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,14 +7,14 @@ scenario = sunya.add_scenario(f"s01_a_developer_starts_a_session")
 
 
 def run_scenario():
-    r.developer = m.External.Actors.Developer
-    r.groupy_cli = m.Runtime.Entrypoints.Groupy
-    r.init_session_action = m.Sessions.Actions.InitSession
-    r.session = m.Sessions.Models.Session
-    r.config = m.Sessions.Models.Config
-    r.create_package_node_file_action = m.Nodes.Actions.CreatePackageNodeFile
-    r.create_module_node_file_action = m.Nodes.Actions.CreateModuleNodeFile
-    r.create_group_file_action = m.Groups.Actions.CreateGroupFile
+    r.developer = c.External.Actors.Developer
+    r.groupy_cli = c.Runtime.Entrypoints.Groupy
+    r.init_session_action = c.Sessions.Actions.InitSession
+    r.session = c.Sessions.Models.Session
+    r.config = c.Sessions.Models.Config
+    r.create_package_node_file_action = c.Nodes.Actions.CreatePackageNodeFile
+    r.create_module_node_file_action = c.Nodes.Actions.CreateModuleNodeFile
+    r.create_group_file_action = c.Groups.Actions.CreateGroupFile
 
     with goal().start_a(r.session).for_the(r.target_code):
 

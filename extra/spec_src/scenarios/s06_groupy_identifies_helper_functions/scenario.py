@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,18 +7,18 @@ scenario = sunya.add_scenario(f"s06_groupy_identifies_helper_functions")
 
 
 def run_scenario():
-    r.claude = m.External.Actors.Claude
-    r.stage_action = m.Functions.Actions.IdentifyHelperFunctions
-    r.build_call_graph_action = m.CallGraph.Actions.BuildCallGraph
-    r.call_graph = m.CallGraph.Models.CallGraph
-    r.get_call_graph_view_rule = m.CallGraph.Rules.GetCallGraphView
-    r.mark_helper_candidates_action = m.Functions.Actions.MarkHelperCandidates
-    r.move_function_to_parent_action = m.Functions.Actions.MoveFunctionToParent
-    r.rename_helper_functions_action = m.Functions.Actions.RenameHelperFunctions
-    r.refactoring_policy = m.Renamings.Policies.RefactoringPolicy
-    r.get_callers_rule = m.CallGraph.Rules.GetCallers
-    r.get_callees_rule = m.CallGraph.Rules.GetCallees
-    r.get_source_rule = m.Functions.Rules.GetSource
+    r.claude = c.External.Actors.Claude
+    r.stage_action = c.Functions.Actions.IdentifyHelperFunctions
+    r.build_call_graph_action = c.CallGraph.Actions.BuildCallGraph
+    r.call_graph = c.CallGraph.Models.CallGraph
+    r.get_call_graph_view_rule = c.CallGraph.Rules.GetCallGraphView
+    r.mark_helper_candidates_action = c.Functions.Actions.MarkHelperCandidates
+    r.move_function_to_parent_action = c.Functions.Actions.MoveFunctionToParent
+    r.rename_helper_functions_action = c.Functions.Actions.RenameHelperFunctions
+    r.refactoring_policy = c.Renamings.Policies.RefactoringPolicy
+    r.get_callers_rule = c.CallGraph.Rules.GetCallers
+    r.get_callees_rule = c.CallGraph.Rules.GetCallees
+    r.get_source_rule = c.Functions.Rules.GetSource
 
     with goal().nest_the(r.helper_functions).under_their(r.parent_functions):
         with the(r.stage_action).processes_each(r.chunk):

@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,12 +7,12 @@ scenario = sunya.add_scenario(f"s08_groupy_proposes_renamings")
 
 
 def run_scenario():
-    r.claude = m.External.Actors.Claude
-    r.developer = m.External.Actors.Developer
-    r.stage_action = m.Renamings.Actions.ProposeRenamings
-    r.set_renaming_action = m.Renamings.Actions.SetRenaming
-    r.set_rename_to_action = m.Nodes.Actions.SetRenameTo
-    r.validate_renamings_rule = m.Renamings.Rules.ValidateRenamings
+    r.claude = c.External.Actors.Claude
+    r.developer = c.External.Actors.Developer
+    r.stage_action = c.Renamings.Actions.ProposeRenamings
+    r.set_renaming_action = c.Renamings.Actions.SetRenaming
+    r.set_rename_to_action = c.Nodes.Actions.SetRenameTo
+    r.validate_renamings_rule = c.Renamings.Rules.ValidateRenamings
 
     with goal().propose_the(r.renamings).that_unify_the(r.terminology):
         with the(r.stage_action).processes_each(r.chunk):

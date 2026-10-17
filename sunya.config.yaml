@@ -1,0 +1,3 @@
+configs:
+  - extra/spec_src/sunya.config.yaml
+output_dir: /opt/projects/groupy/browse

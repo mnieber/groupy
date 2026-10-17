@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,21 +7,21 @@ scenario = sunya.add_scenario(f"s07_groupy_analyzes_the_terminology")
 
 
 def run_scenario():
-    r.claude = m.External.Actors.Claude
-    r.developer = m.External.Actors.Developer
-    r.stage_action = m.Concepts.Actions.AnalyzeTerminology
-    r.glossary = m.Concepts.Models.Glossary
-    r.set_concept_action = m.Concepts.Actions.SetConcept
-    r.set_local_term_action = m.Concepts.Actions.SetLocalTerm
-    r.add_alias_action = m.Concepts.Actions.AddAlias
-    r.set_abbreviation_action = m.Concepts.Actions.SetAbbreviation
-    r.add_responsibility_action = m.Functions.Actions.AddResponsibility
-    r.add_step_action = m.Functions.Actions.AddStep
-    r.set_extract_method_priority_action = m.Functions.Actions.SetExtractMethodPriority
-    r.add_glossary_entry_action = m.Concepts.Actions.AddGlossaryEntry
-    r.add_glossary_alias_action = m.Concepts.Actions.AddGlossaryAlias
-    r.set_glossary_abbreviation_action = m.Concepts.Actions.SetGlossaryAbbreviation
-    r.merge_glossary_entries_action = m.Concepts.Actions.MergeGlossaryEntries
+    r.claude = c.External.Actors.Claude
+    r.developer = c.External.Actors.Developer
+    r.stage_action = c.Concepts.Actions.AnalyzeTerminology
+    r.glossary = c.Concepts.Models.Glossary
+    r.set_concept_action = c.Concepts.Actions.SetConcept
+    r.set_local_term_action = c.Concepts.Actions.SetLocalTerm
+    r.add_alias_action = c.Concepts.Actions.AddAlias
+    r.set_abbreviation_action = c.Concepts.Actions.SetAbbreviation
+    r.add_responsibility_action = c.Functions.Actions.AddResponsibility
+    r.add_step_action = c.Functions.Actions.AddStep
+    r.set_extract_method_priority_action = c.Functions.Actions.SetExtractMethodPriority
+    r.add_glossary_entry_action = c.Concepts.Actions.AddGlossaryEntry
+    r.add_glossary_alias_action = c.Concepts.Actions.AddGlossaryAlias
+    r.set_glossary_abbreviation_action = c.Concepts.Actions.SetGlossaryAbbreviation
+    r.merge_glossary_entries_action = c.Concepts.Actions.MergeGlossaryEntries
 
     with goal().analyze_the(r.terminology).of_the(r.target_code):
         with the(r.stage_action).processes_each(r.chunk):

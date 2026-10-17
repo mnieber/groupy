@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,12 +7,12 @@ scenario = sunya.add_scenario(f"s05_a_developer_syncs_the_node_files")
 
 
 def run_scenario():
-    r.developer = m.External.Actors.Developer
-    r.groupy_cli = m.Runtime.Entrypoints.Groupy
-    r.sync_node_files_action = m.Nodes.Actions.SyncNodeFiles
-    r.create_module_node_file_action = m.Nodes.Actions.CreateModuleNodeFile
-    r.create_package_node_file_action = m.Nodes.Actions.CreatePackageNodeFile
-    r.add_file_to_group_action = m.Groups.Actions.AddFileToGroup
+    r.developer = c.External.Actors.Developer
+    r.groupy_cli = c.Runtime.Entrypoints.Groupy
+    r.sync_node_files_action = c.Nodes.Actions.SyncNodeFiles
+    r.create_module_node_file_action = c.Nodes.Actions.CreateModuleNodeFile
+    r.create_package_node_file_action = c.Nodes.Actions.CreatePackageNodeFile
+    r.add_file_to_group_action = c.Groups.Actions.AddFileToGroup
 
     with goal().make_the(r.node_files).reflect_the(r.target_code).again():
 

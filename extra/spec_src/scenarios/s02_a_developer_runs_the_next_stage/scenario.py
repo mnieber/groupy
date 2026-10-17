@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,19 +7,19 @@ scenario = sunya.add_scenario(f"s02_a_developer_runs_the_next_stage")
 
 
 def run_scenario():
-    r.developer = m.External.Actors.Developer
-    r.claude = m.External.Actors.Claude
-    r.groupy_cli = m.Runtime.Entrypoints.Groupy
-    r.run_next_stage_action = m.Runtime.Actions.RunNextStage
-    r.session = m.Sessions.Models.Session
-    r.config = m.Sessions.Models.Config
-    r.get_chunks_rule = m.Groups.Rules.GetChunks
-    r.process_chunks_action = m.Sessions.Actions.ProcessChunks
-    r.create_rfa_policy_rule = m.ClaudeRequests.Rules.CreateRfaPolicy
-    r.rfa_policy = m.ClaudeRequests.Policies.RfaPolicy
-    r.rfa = m.ClaudeRequests.Models.Rfa
-    r.run_callback_action = m.ClaudeRequests.Actions.RunCallback
-    r.find_node_rule = m.Nodes.Rules.FindNode
+    r.developer = c.External.Actors.Developer
+    r.claude = c.External.Actors.Claude
+    r.groupy_cli = c.Runtime.Entrypoints.Groupy
+    r.run_next_stage_action = c.Runtime.Actions.RunNextStage
+    r.session = c.Sessions.Models.Session
+    r.config = c.Sessions.Models.Config
+    r.get_chunks_rule = c.Groups.Rules.GetChunks
+    r.process_chunks_action = c.Sessions.Actions.ProcessChunks
+    r.create_rfa_policy_rule = c.ClaudeRequests.Rules.CreateRfaPolicy
+    r.rfa_policy = c.ClaudeRequests.Policies.RfaPolicy
+    r.rfa = c.ClaudeRequests.Models.Rfa
+    r.run_callback_action = c.ClaudeRequests.Actions.RunCallback
+    r.find_node_rule = c.Nodes.Rules.FindNode
 
     with goal().run_the(r.next_stage).of_the(r.session):
 

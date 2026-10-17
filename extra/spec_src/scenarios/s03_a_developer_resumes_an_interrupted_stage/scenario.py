@@ -1,5 +1,5 @@
 import sunya
-from sunya import M as m
+from sunya import C as c
 from sunya import R as r
 from sunya import goal, it, the
 
@@ -7,11 +7,11 @@ scenario = sunya.add_scenario(f"s03_a_developer_resumes_an_interrupted_stage")
 
 
 def run_scenario():
-    r.developer = m.External.Actors.Developer
-    r.groupy_cli = m.Runtime.Entrypoints.Groupy
-    r.run_next_stage_action = m.Runtime.Actions.RunNextStage
-    r.process_chunks_action = m.Sessions.Actions.ProcessChunks
-    r.session = m.Sessions.Models.Session
+    r.developer = c.External.Actors.Developer
+    r.groupy_cli = c.Runtime.Entrypoints.Groupy
+    r.run_next_stage_action = c.Runtime.Actions.RunNextStage
+    r.process_chunks_action = c.Sessions.Actions.ProcessChunks
+    r.session = c.Sessions.Models.Session
 
     with goal().finish_a(r.stage).that_was_interrupted_by_an(r.error):
 
