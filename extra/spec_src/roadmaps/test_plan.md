@@ -56,6 +56,11 @@ Feature packages:
 14. `extract-methods` (batch 11, in `tests/extract_methods_tests/`): the candidates, the `extract_method` callback
     with its RFR (`FakeRfrPolicy`), the node of the extracted function (renamed when nested), the follow-up RFA for
     unfinished candidates, and a failed RFR.
+15. `propose-move-steps-to-caller` and `apply-move-steps-to-caller` (batch 12, in
+    `tests/propose_move_steps_to_caller_tests/`, `tests/apply_move_steps_to_caller_tests/` and
+    `tests/node_edits_tests/`): the candidates and the proposals in `steps_to_move_to_caller`, the RFR per chunk
+    that moves the steps and commits with `commit_refactoring`, the follow-up RFR for unapplied moves, and the
+    rejection of uncommitted changes, code that does not parse and refactoring callbacks in an RFR.
 
 ## Test infrastructure for Claude requests
 
@@ -98,35 +103,22 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `propose-move-steps-to-caller` (MS-7, in `tests/propose_move_steps_to_caller_tests/`): an RFA per chunk with
-   candidates (`move_step_candidates`, `module_sources`, `caller_sources`); the callbacks record the steps to move
-   (`add_step_to_move_to_caller`) and the source is unchanged; the candidates exclude functions without callers,
-   with an uncertain caller or with a module-level caller, and `caller_sources` includes callers in other chunks and
-   (dedented) methods. The node edits of `steps_to_move_to_caller` (adding, withdrawing, following `update_step` and
-   `remove_step`, and the validations) are tested in `tests/node_edits_tests/`.
-   - Exercises: `functions/actions/propose_move_steps_to_caller.py` (the stage),
-     `functions/rules/get_move_step_candidates.py`, `functions/actions/add_step_to_move_to_caller.py`,
-     `functions/actions/remove_step_to_move_to_caller.py`, the `steps_to_move_to_caller` field of `FunctionNode`,
-     and the changes of `update_step` and `remove_step`.
-2. `apply-move-steps-to-caller` (MS-7, in `tests/apply_move_steps_to_caller_tests/`): an RFR per chunk with steps
-   to move (`steps_to_move_to_caller`, `module_sources`, `caller_sources`); the scripted RFR edits the source and the steps
-   (via callbacks) and commits with `commit_refactoring`; a follow-up RFR for unapplied moves and
-   `UnappliedStepMovesError`; uncommitted changes after the RFR, code that does not parse, and a refactoring
-   callback in an RFR are rejected, and the working tree is restored.
-   - Exercises: `functions/actions/apply_move_steps_to_caller.py` (the stage, with `UncommittedRefactoringError`
-     and `UnappliedStepMovesError`), `functions/actions/commit_refactoring.py` (with
-     `RefactoringDoesNotParseError`), `claude_requests/actions/run_callback.py` (`in_rfr`, with
-     `CallbackNotAllowedError`).
-3. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
-   `code_unit_type` and `move_to_file` for top-level nodes and for methods that delegate; the validations (missing
-   `code_unit_type`, location rule per code unit type, one public code unit per file, a method that cannot
-   delegate, a target package with the name of an existing module, dependency direction without the delegation
-   calls).
+1. `propose-module-layout` and `propose-code-restructure` (MS-8, in `tests/propose_module_layout_tests/` and
+   `tests/propose_code_restructure_tests/`):
+   1. propose-module-layout: a single RFA (`propose-module-layout/all`, recorded as a finished chunk) with the
+      glossary and the module summaries; `proposed_modules` in the root package node file.
+   2. propose-code-restructure: an RFA per chunk (`module_sources`, `proposed_modules`, `call_graph_view`,
+      `glossary`); `code_unit_type`, `move_to_file` and `rename_to` via the existing callbacks; helper functions
+      need no type; a follow-up RFA with `restructure_problems` and `CodeRestructureHasProblemsError` for the
+      validations (missing `code_unit_type`, location rule per code unit type, one public code unit per file, also
+      across chunks, with the allowed exceptions, methods that cannot delegate, a target package with the name of
+      a module that stays); the printed dependency violations (delegating methods judged by their own type).
    - Exercises: `restructure/actions/propose_module_layout.py`, `nodes/actions/set_proposed_module.py`,
-     `nodes/actions/remove_proposed_module.py`, `restructure/actions/propose_code_restructure.py`,
-     `restructure/rules/validate_code_restructure.py`, `restructure/rules/get_expected_location.py`,
-     `restructure/rules/find_dependency_violations.py`, `restructure/rules/can_delegate_method.py`.
-4. `apply-code-restructure` (MS-9): the proposal is validated again before any change, and dependency violations are
+     `nodes/actions/remove_proposed_module.py`, `restructure/actions/propose_code_restructure.py` (with
+     `CodeRestructureHasProblemsError`), `restructure/rules/validate_code_restructure.py`,
+     `restructure/rules/get_expected_location.py`, `restructure/rules/find_dependency_violations.py`,
+     `restructure/rules/can_delegate_method.py`.
+2. `apply-code-restructure` (MS-9): the proposal is validated again before any change, and dependency violations are
    only reported; per module, the module is renamed, methods delegate to new functions in their target files (with
    a local import in the delegating method), and the code units are moved (with their helper functions or
    methods) with the refactoring policy, including the imports and call sites; the node files (also the function

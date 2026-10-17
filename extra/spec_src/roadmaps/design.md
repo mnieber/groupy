@@ -622,19 +622,32 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
 2. Breaker asks Claude to propose the module layout of the application package.
    1. Claude receives the glossary and, for each module node file, the module concepts and the names and
       responsibilities of the top-level functions and classes.
+      1. Breaker makes a single RFA for the whole code-base, with the id `propose-module-layout/all`. It is recorded
+         as a finished chunk (`finish all`), so that a resumed stage does not repeat it.
+      2. The RFA context contains `glossary` (the text of the glossary file) and `module_summaries`: per module
+         node file, its `concepts` and its `code_units`, which map the name of each top-level function and class
+         onto its first responsibility (or `None`). Module-level variables and helper function nodes are left out.
    2. Claude runs an action to record the list of proposed modules in the root package node file (in the
       `PackageNode.proposed_modules: Dict[str, str]` field), mapping each module name onto a one-line description.
+      1. A module name is the path of a (feature) package, e.g. `myapp/books` or `myapp/utils`.
+      2. The actions are `set_proposed_module(name, description)` and `remove_proposed_module(name)`.
    3. The developer reviews (and possibly edits) the proposed module layout.
 3. Breaker commits the results and updates `next_stage` to `propose-code-restructure`.
 4. The developer runs `breaker next`.
 5. Breaker asks Claude to propose a structuring for each module node file, using the proposed module layout.
-   1. For every top-level function, class and module-level variable, Claude sets the `code_unit_type` field
+   1. Breaker makes an RFA per chunk, whose context contains `module_sources`, `proposed_modules`,
+      `call_graph_view` (with the callers and callees, so that Claude can follow the dependency direction) and
+      `glossary`. Claude uses the callbacks `set_code_unit_type`, `set_move_to_file` and `set_rename_to`.
+   2. For every top-level function, class and module-level variable, Claude sets the `code_unit_type` field
       and the `move_to_file` field.
       1. Claude leaves `move_to_file` empty when the target is the current file. Since an empty field is left
          out of the node file, Breaker uses `code_unit_type` to check that every node was considered.
-   2. Claude sets `ModuleNode.rename_to` when the module will continue to exist (typically it is renamed after
+      2. Helper function nodes need no `code_unit_type`, because they move with their parent.
+      3. The target file of a node is its `move_to_file`, or else its module (with the module's `rename_to`, if
+         any).
+   3. Claude sets `ModuleNode.rename_to` when the module will continue to exist (typically it is renamed after
       the main function in that file), or to null when no rename is needed.
-   3. Claude may also set the `code_unit_type` (`action`, `rule` or `util`) and the `move_to_file` of a method node,
+   4. Claude may also set the `code_unit_type` (`action`, `rule` or `util`) and the `move_to_file` of a method node,
       to propose that the method delegates to a new function in that file (see "Functions and methods").
       1. The new function is named after the target file (e.g. `save_book` for
          `myapp/books/actions/save_book.py`), or after the `rename_to` of the method node when the target is a util
@@ -702,22 +715,44 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
                Claude), it receives the function as an argument.
       2. Imports between modules must not create circular imports at runtime.
          1. Type references to models in other modules use a `typing.TYPE_CHECKING` guard.
-7. Breaker validates the proposal.
-   1. It checks that every top-level node has a `code_unit_type`.
-   2. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
-   3. It checks that no target file receives more than one public code unit (except for util group files,
+7. Breaker validates the proposal after the RFA of each chunk.
+   1. It validates all node files, and keeps the problems of the nodes of the chunk (so that a clash with a node of
+      an earlier chunk is reported for the node of this chunk). Each problem is a line
+      `<module>:<location>: <description>`, e.g.:
+      1. `myapp/reports/report.py:count_reports: has no code_unit_type`
+      2. `myapp/reports/report.py:Report: a model goes to <package>/models/report.py, not
+         myapp/reports/rules/report.py`
+      3. `myapp/reports/report.py:create_book: myapp/books/actions/create_book.py already receives
+         myapp/books.py:create_book`
+      4. `myapp/reports/report.py:Report.__str__: a dunder method cannot delegate` (and likewise `a property`,
+         `an override of Base.describe` and `a method that uses super()`)
+      5. `myapp/reports/report.py:list_kinds: the target package myapp/reports/enums clashes with the module
+         myapp/reports/enums.py`
+   2. It checks that every top-level node has a `code_unit_type`.
+   3. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
+   4. It checks that no target file receives more than one public code unit (except for util group files,
       enums, schemas, settings, constants and the exception/form classes that go with an action). Each policy
       implementation is a code unit of its own.
-   4. It checks that a method with a `move_to_file` can delegate: its `code_unit_type` is `action`, `rule` or
+   5. It checks that a method with a `move_to_file` can delegate: its `code_unit_type` is `action`, `rule` or
       `util`, and it is not a dunder method, a property, a `classmethod` or `staticmethod`, an override of a method
       of a base class in the target code, or a method that uses `super()` or name-mangled attributes
       (`__name`). Overrides of methods of external base classes (e.g. `save` in a Django model) cannot be detected,
       so they are Claude's (and the developer's) judgement.
-   5. It checks that no target package has the same name as an existing module that stays (e.g.
+   6. It checks that no target package has the same name as an existing module that stays (e.g.
       `myapp/books/actions/create_book.py` while `myapp/books.py` is not renamed), because Python cannot import
       both.
-   6. It uses the call graph to report dependencies that violate the dependency direction. The call of a delegating
-      method to its new function is not reported, because the delegation is a deliberate, temporary state.
+   7. When there are problems, Breaker makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context lists
+      them (`restructure_problems`, sorted). If problems remain after the follow-up RFA, Breaker raises
+      `CodeRestructureHasProblemsError`, which lists them. This interrupts the stage, and the chunk is not finished.
+   8. After the last chunk, it uses the call graph to report dependencies that violate the dependency direction.
+      They do not block the stage, because the developer may accept them during the review.
+      1. The code unit type of a node is its `code_unit_type`. A helper function has the type of its parent, and a
+         method has the type of its class, unless the method delegates (then it has its own `code_unit_type`, so
+         that its calls are judged as calls of the new function).
+      2. Breaker prints `The proposed code structure has dependency violations:`, followed by a line per
+         violation, sorted, e.g. `myapp/reports/report.py:get_overdue_reports (rule) calls
+         myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
+         `The proposed code structure follows the dependency direction.`
 8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
 
 ## MS-9: Breaker restructures the code
