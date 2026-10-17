@@ -89,33 +89,8 @@ An example node file is given in `./module_node_example.md`.
 Moving a step changes the behaviour for every caller, so the developer reviews the proposed moves before they are
 applied. The stage is therefore split in two: `propose-move-steps-to-caller` and `apply-move-steps-to-caller`.
 
-1. The developer runs `groupy next`.
-2. Groupy asks Claude to identify steps in a function F that should be done by the caller of F, before it calls F.
-   1. Typically, such a step has already been extracted into a separate function in the extract-methods stage,
-      so that moving the step means moving a single function call.
-   2. Groupy passes the callers of F (from the call graph) to Claude.
-   3. A step is only moved when F has a single caller, or when all callers of F should clearly perform the step.
-      Otherwise, moving the step would duplicate code.
-   4. The candidates are the function nodes (also method nodes and helper function nodes) that have at least one
-      caller, where all callers are functions or methods with certain edges (not module-level code).
-   5. Groupy makes an RFA per chunk that has candidates. A chunk without candidates is finished without an RFA. The
-      RFA context contains `move_step_candidates` (the locations `<module>:<location>`, sorted), `module_sources`,
-      and `caller_sources`: the source of each caller of a candidate (also in other modules), by its location.
-      1. The source of a caller that is a method is dedented, and its location is its qualified name (e.g.
-         `myapp/stats.py:Sample.summarize`).
-   6. Claude records each step that should move in `FunctionNode.steps_to_move_to_caller`, with the actions
-      `add_step_to_move_to_caller(module_name, location, step)` and
-      `remove_step_to_move_to_caller(module_name, location, step)`.
-      1. The step must be one of the `steps` of the function, and it is listed once.
-      2. The action does not check that the function is a candidate: the candidates guide Claude, the developer
-         reviews the proposals, and the apply stage can withdraw a proposal that it cannot do.
-      3. `update_step` also updates the step in `steps_to_move_to_caller`, and `remove_step` also removes it from
-         `steps_to_move_to_caller`.
-   7. The source does not change. There is no check that Claude considered every candidate: moving steps is
-      optional.
-3. Groupy commits the results and updates `next_stage` to `apply-move-steps-to-caller`.
-4. The developer reviews the proposed moves (and possibly edits them), and runs `groupy next`.
-5. Claude moves the steps to the caller(s) of F, and updates the analysis of F and of its callers.
+1. The developer reviews the proposed moves (and possibly edits them), and runs `groupy next`.
+2. Claude moves the steps to the caller(s) of F, and updates the analysis of F and of its callers.
    1. Since this is a refactoring of the source, the stage makes an RFR (not an RFA) per chunk that has steps to
       move, with the id `apply-move-steps-to-caller/<chunk-id>`. A chunk without steps to move is finished without
       an RFR.
@@ -130,7 +105,7 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
       are still in `steps_to_move_to_caller`, whose context lists them. If steps are still not moved after the follow-up RFR,
       Groupy raises `UnappliedStepMovesError`, which lists them. This interrupts the stage, and the chunk is not
       finished.
-6. Groupy commits the results and updates `next_stage` to `propose-module-layout`.
+3. Groupy commits the results and updates `next_stage` to `propose-module-layout`.
 
 ## MS-8: Groupy proposes to restructure the code
 

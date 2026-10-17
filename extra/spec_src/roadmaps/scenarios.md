@@ -72,7 +72,7 @@ then you can do so.
     that adds a new top-level function; Groupy verifies it, adds a node for it, and Claude updates the analysis
     (nesting the new function if it is a helper). Groupy retries unfinished candidates.
 
-11. `s11_groupy_proposes_to_move_steps_to_the_caller`
+11. `s11_groupy_proposes_to_move_steps_to_the_caller` (written)
     Per chunk, Claude proposes steps of a function that its callers should perform instead (using the callers'
     sources). The source does not change; the developer reviews the proposals.
 
