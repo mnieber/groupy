@@ -84,7 +84,7 @@ then you can do so.
     In a single RFA for the whole code-base, Claude receives condensed module summaries and the glossary, and
     proposes the feature packages of the application in the root package node file. The developer reviews them.
 
-14. `s14_groupy_proposes_the_code_restructure`
+14. `s14_groupy_proposes_the_code_restructure` (written)
     Per chunk, Claude assigns a code unit type and target file to every top-level node (and optionally lets methods
     delegate to new functions), following the target code structure (actions, rules, utils, models, ...). Groupy
     validates the proposal, asks Claude once to fix problems, and reports dependency violations.

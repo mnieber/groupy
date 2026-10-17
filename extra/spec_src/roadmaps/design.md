@@ -5,18 +5,6 @@
 A call to `groupy group` recreates the group file, using the grouping strategy and the sizes in the config file, and
 commits it. The developer uses it after changing the config file.
 
-## Functions and methods
-
-1. Some methods must stay methods, because Python or a framework calls them:
-   1. dunder methods (e.g. `__str__`, `__eq__`) and properties.
-   2. overrides of methods of a base class (e.g. `save` in a Django model).
-   3. methods that have several implementations across subclasses.
-2. In the code restructure, every other method may delegate to an action, rule or util that takes the instance as
-   its first argument (see MS-8 and MS-9).
-   1. The method continues to exist, and its body becomes a call of the new function. Therefore, the call sites of
-      the method (which may be uncertain in the call graph) don't change.
-   2. The developer can later drop the method by inlining it, if they wish.
-
 ## Chunking the work
 
 See ./chunking.md.
@@ -84,130 +72,18 @@ An example node file is given in `./module_node_example.md`.
 
 # Milestones
 
-## MS-8: Groupy proposes to restructure the code
-
-The proposal of the module layout is described in the scenario `s13_groupy_proposes_the_module_layout`.
-
-1. The developer runs `groupy next`.
-2. Groupy asks Claude to propose a structuring for each module node file, using the proposed module layout.
-   1. Groupy makes an RFA per chunk, whose context contains `module_sources`, `proposed_modules`,
-      `call_graph_view` (with the callers and callees, so that Claude can follow the dependency direction) and
-      `glossary`. Claude uses the callbacks `set_code_unit_type`, `set_move_to_file` and `set_rename_to`.
-   2. For every top-level function, class and module-level variable, Claude sets the `code_unit_type` field
-      and the `move_to_file` field.
-      1. Claude leaves `move_to_file` empty when the target is the current file. Since an empty field is left
-         out of the node file, Groupy uses `code_unit_type` to check that every node was considered.
-      2. Helper function nodes need no `code_unit_type`, because they move with their parent.
-      3. The target file of a node is its `move_to_file`, or else its module (with the module's `rename_to`, if
-         any).
-   3. Claude sets `ModuleNode.rename_to` when the module will continue to exist (typically it is renamed after
-      the main function in that file), or to null when no rename is needed.
-   4. Claude may also set the `code_unit_type` (`action`, `rule` or `util`) and the `move_to_file` of a method node,
-      to propose that the method delegates to a new function in that file (see "Functions and methods").
-      1. The new function is named after the target file (e.g. `save_book` for
-         `myapp/books/actions/save_book.py`), or after the `rename_to` of the method node when the target is a util
-         group file.
-      2. A method without these fields stays as it is. Claude does not set them for the methods that must stay
-         methods (see "Functions and methods").
-3. The target code structure follows the following guidelines (the feature packages are described in the
-   scenario `s13_groupy_proposes_the_module_layout`):
-   1. Code units
-      1. A function that changes the application state (e.g. it writes to a database, a file or a network
-         service, or it mutates its arguments) is an action.
-         1. It goes to `<module>/actions/<action_name>.py`.
-      2. A function that retrieves or computes information subject to business logic, without changing the
-         application state, is a rule.
-         1. It goes to `<module>/rules/<rule_name>.py`.
-      3. A function that is free from business logic (a generic helper) is a util.
-         1. It goes to `<module>/utils/<util_name>.py`.
-         2. A group of many small, closely related utils (e.g. small math helpers) may share a single group file.
-      4. A dataclass that represents a domain entity is a model.
-         1. It goes to `<module>/models/<model_name>.py`.
-         2. It uses the `dataclass` decorator from the `dataclassy` package.
-      5. Pydantic classes that describe the structure of a JSON blob are schemas.
-         1. They go into a schema file that is located close to the code that uses it.
-      6. Enums go to `<module>/enums.py`. All enums of a module live in this single file.
-      7. A module-level variable whose value configures the application (e.g. a timeout, a URL, a limit or a
-         value that is read from an environment variable) is a setting.
-         1. Settings (including all reads of environment variables) go to the single file
-            `<app_package>/settings.py`.
-      8. Any other module-level variable is a constant.
-         1. It goes to the target file of the code unit that uses it.
-         2. When several code units in different target files use it, it goes to the target file of one of them,
-            and the other files import it from there.
-            1. Preferably, this is the file of the lowest code unit in the dependency direction (see
-               "Dependencies"), so that the imports follow that direction.
-            2. If this creates a circular import, then the developer fixes it later (Groupy does not try to
-               prevent it).
-      9. Application entrypoints go to `<app_package>/runtime/entrypoints/<name>.py`.
-         1. Entrypoints are usually registered in the `[project.scripts]` section of `pyproject.toml`, but this is outside of scope for Groupy.
-      10. An exception class is defined in the action file that raises it.
-          1. Only very generic exceptions that are shared by many actions go to `<module>/utils/exceptions.py`.
-      11. A class that defines the interface to an external service (e.g. Claude, Jira or a payment provider) is a
-          policy.
-          1. The abstract policy goes to `<module>/policies/<policy_name>.py` (e.g. `rfa_policy.py`), and each
-             implementation goes to its own file in the same directory (e.g. `claude_rfa_policy.py`).
-          2. Fake implementations for tests live with the tests (e.g. in `fake_policies.py`).
-   2. Files
-      1. Each action, rule, util and model gets its own file (except for util group files).
-      2. The file is named after the code unit it contains, in snake_case
-         (e.g. `CreateChapterForm` and `create_chapter` live in `chapters/actions/create_chapter.py`).
-      3. Helper functions stay in the file of their parent function and start with an underscore.
-         1. A helper that is used by several public functions is promoted to a rule or util.
-   3. Dependencies
-      1. Dependencies point in one direction: entrypoints → actions → rules → utils.
-         1. A rule never calls an action, and a util never calls a rule or an action.
-         2. Models, schemas and enums may be used by all code units.
-         3. A policy is passed as an argument to the action that uses it, so that a test can pass a fake policy.
-            1. A policy does not import actions or rules. When it needs to call back (e.g. to run a callback of
-               Claude), it receives the function as an argument.
-      2. Imports between modules must not create circular imports at runtime.
-         1. Type references to models in other modules use a `typing.TYPE_CHECKING` guard.
-4. Groupy validates the proposal after the RFA of each chunk.
-   1. It validates all node files, and keeps the problems of the nodes of the chunk (so that a clash with a node of
-      an earlier chunk is reported for the node of this chunk). Each problem is a line
-      `<module>:<location>: <description>`, e.g.: 1. `myapp/reports/report.py:count_reports: has no code_unit_type` 2. `myapp/reports/report.py:Report: a model goes to <package>/models/report.py, not
-myapp/reports/rules/report.py` 3. `myapp/reports/report.py:create_book: myapp/books/actions/create_book.py already receives
-myapp/books.py:create_book` 4. `myapp/reports/report.py:Report.__str__: a dunder method cannot delegate` (and likewise `a property`,
-      `an override of Base.describe` and `a method that uses super()`) 5. `myapp/reports/report.py:list_kinds: the target package myapp/reports/enums clashes with the module
-myapp/reports/enums.py`
-   2. It checks that every top-level node has a `code_unit_type`.
-   3. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
-   4. It checks that no target file receives more than one public code unit (except for util group files,
-      enums, schemas, settings, constants and the exception/form classes that go with an action). Each policy
-      implementation is a code unit of its own.
-   5. It checks that a method with a `move_to_file` can delegate: its `code_unit_type` is `action`, `rule` or
-      `util`, and it is not a dunder method, a property, a `classmethod` or `staticmethod`, an override of a method
-      of a base class in the target code, or a method that uses `super()` or name-mangled attributes
-      (`__name`). Overrides of methods of external base classes (e.g. `save` in a Django model) cannot be detected,
-      so they are Claude's (and the developer's) judgement.
-   6. It checks that no target package has the same name as an existing module that stays (e.g.
-      `myapp/books/actions/create_book.py` while `myapp/books.py` is not renamed), because Python cannot import
-      both.
-   7. When there are problems, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context lists
-      them (`restructure_problems`, sorted). If problems remain after the follow-up RFA, Groupy raises
-      `CodeRestructureHasProblemsError`, which lists them. This interrupts the stage, and the chunk is not finished.
-   8. After the last chunk, it uses the call graph to report dependencies that violate the dependency direction.
-      They do not block the stage, because the developer may accept them during the review. 1. The code unit type of a node is its `code_unit_type`. A helper function has the type of its parent, and a
-      method has the type of its class, unless the method delegates (then it has its own `code_unit_type`, so
-      that its calls are judged as calls of the new function). 2. Groupy prints `The proposed code structure has dependency violations:`, followed by a line per
-      violation, sorted, e.g. `myapp/reports/report.py:get_overdue_reports (rule) calls
-myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
-      `The proposed code structure follows the dependency direction.`
-5. Groupy commits the results and updates `next_stage` to `apply-code-restructure`.
-
 ## MS-9: Groupy restructures the code
 
 1. The developer reviews the proposed code restructure (the `code_unit_type`, `move_to_file` and
    `ModuleNode.rename_to` fields), possibly editing it, and runs `groupy next`.
-2. Groupy first validates the proposal again (as in MS-8), because the developer may have edited it. It does this
+2. Groupy first validates the proposal again (as in propose-code-restructure), because the developer may have edited it. It does this
    before it changes anything, and also when the stage is resumed (the restructured modules have no proposal left,
    so they pass).
-   1. The problems of MS-8 (a missing `code_unit_type`, a `move_to_file` that does not match the location rule of
+   1. The problems of propose-code-restructure (a missing `code_unit_type`, a `move_to_file` that does not match the location rule of
       its `code_unit_type`, a target file that receives more than one public code unit, a method that cannot
       delegate, and a target package with the name of an existing module) raise `CodeRestructureHasProblemsError`,
       which lists them.
-   2. Dependencies that violate the dependency direction are only reported (printed, as in MS-8), because the
+   2. Dependencies that violate the dependency direction are only reported (printed, as in propose-code-restructure), because the
       developer may have accepted them during the review.
 3. Groupy applies the restructure with the refactoring policy, so that the imports and call sites in the
    code-base are updated (rope's "move module" and "move global" refactorings). This stage makes no Claude requests.
@@ -246,8 +122,8 @@ myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
       package, without `__init__.py`, if rope supports that). The new `__init__.py` is a module like any other: it
       gets a module node file, it is listed in the `module_names` of its package node file, and it goes into the
       group of the module whose code unit caused the new package.
-   4. ❔ A target package with the same name as an existing module that stays is rejected by the validation (see
-      MS-8), and the developer resolves it by choosing another name. A later version may resolve such clashes
+   4. ❔ A target package with the same name as an existing module that stays is rejected by the validation (as in
+      propose-code-restructure), and the developer resolves it by choosing another name. A later version may resolve such clashes
       itself.
 
 4. Groupy updates the node files along with the source.
@@ -312,7 +188,7 @@ benefits from seeing the entire code-base (e.g. so that the glossary and the mod
       every module. The filter does not change the groups or the chunks, so that chunk ids do not depend on the
       filter.
    2. The analysis stages ignore the filter: the nesting of helper functions (identify-helper-functions), analyze-terminology
-      and propose-module-layout (MS-8, which receives the summaries of all modules).
+      and propose-module-layout (which receives the summaries of all modules).
    3. The call graph and the context of the Claude requests (e.g. `caller_sources`) cover the entire target dir.
 3. The proposals and refactorings only start from the nodes in modules that match the filter.
    1. identify-helper-functions only renames the helper functions in matching modules.
@@ -320,7 +196,7 @@ benefits from seeing the entire code-base (e.g. so that the glossary and the mod
       rejects (as a conflict) a renaming that is proposed for a node in a module that does not match.
    3. extract-methods, propose-move-steps-to-caller and propose-code-restructure only take candidates from matching
       modules. As before, a chunk without candidates is finished without an RFA.
-   4. The validation of the code restructure (MS-8 and MS-9) only checks the nodes in matching modules, so that a
+   4. The validation of the code restructure (in propose-code-restructure and apply-code-restructure) only checks the nodes in matching modules, so that a
       module that does not match does not need a `code_unit_type`.
    5. The apply stages apply the proposals that exist. Since proposals only exist for matching modules, they need
       no extra check, but Groupy reports a proposal in a module that does not match (e.g. one that the developer
