@@ -91,6 +91,8 @@ The target structure follows these guidelines:</br>
 | exception | an exception class | the action file that raises it (generic ones in `<package>/utils/exceptions.py`) |
 | policy | the interface to an external service (e.g. Claude or a payment provider) | `<package>/policies/<name>.py`, with each implementation in its own file next to it |
 
+A class that fits none of these types gets the type `other`.
+
 - Each action, rule, util and model gets a file of its own, named after it in snake_case (e.g. `CreateChapterForm`
   and `create_chapter` live in `chapters/actions/create_chapter.py`). Helper functions stay in the file of their
   parent.

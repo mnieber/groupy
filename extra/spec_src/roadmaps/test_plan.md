@@ -37,8 +37,3 @@ Feature packages:
 4. `groupy group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
    and commits it.
    - Exercises: `runtime/entrypoints/groupy.py`, `groups/actions/create_group_file.py`.
-
-## Open points in the design
-
-1. Should `done` be followed by a new round (e.g. `groupy group` and `analyze-terminology` on the
-   restructured code)?
