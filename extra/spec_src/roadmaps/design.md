@@ -84,40 +84,6 @@ An example node file is given in `./module_node_example.md`.
 
 # Milestones
 
-## MS-6: Groupy extract methods
-
-1. The developer runs `groupy next`.
-2. Groupy creates a list of functions to refactor based on the `FunctionNode.extract_method_priority` field.
-   1. The candidates are the function nodes (also method nodes and helper function nodes) with the priority `high`
-      or `medium`.
-3. It divides this list into chunks and asks Claude to apply "extract method" to each function that requires it.
-   1. Groupy makes an RFA per module chunk that has candidates. A chunk without candidates is finished without an
-      RFA.
-   2. The RFA context contains `extract_method_candidates` (the locations `<module>:<location>`, with the `high`
-      candidates first, then in order of location) and `module_sources`.
-   3. Claude calls the callback `extract_method(module_name, location, new_name, description)`.
-      1. Groupy makes an RFR with the id `extract_method/<module>:<location>/<new_name>`, whose context contains
-         the `module_name`, `location`, `new_name` and `description`. In the RFR, Claude adds the top-level function
-         `new_name` to the module (also when it extracts from a method) and calls it from the parent.
-      2. After the RFR, Groupy checks that the module has a new top-level function `new_name`, and that the parent
-         still exists. If not, it restores the working tree to the last commit and raises
-         `ExtractMethodFailedError`.
-      3. Otherwise, the extract-method action creates a node for the extracted function in `function_nodes` (in
-         source order), and Groupy commits with the message `extract-methods: extract_method`.
-   4. In the same RFA, Claude fills in the analysis of the extracted function (e.g. concepts, responsibilities and
-      steps) and updates the analysis of the parent function.
-      1. When the extracted function is a helper function of the parent, Claude nests it with
-         `move_function_to_parent`. After the RFA, Groupy renames the helper functions of the chunk so that they
-         start with an underscore (as in identify-helper-functions), and commits with the message
-         `extract-methods: rename_helper_functions` (only when it renamed something).
-   5. Claude sets the `extract_method_priority` of a candidate to `n/a` when it is done with it (also when it
-      decides not to extract anything).
-      1. After the RFA of a chunk, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) for the candidates
-         that still have the priority `high` or `medium`, whose context lists them (`unfinished_candidates`).
-      2. If candidates are still unfinished after the follow-up RFA, Groupy raises `UnfinishedCandidatesError`,
-         which lists them. This interrupts the stage, and the chunk is not finished.
-4. Groupy commits the results and updates `next_stage` to `propose-move-steps-to-caller`.
-
 ## MS-7: Groupy moves steps to the caller
 
 Moving a step changes the behaviour for every caller, so the developer reviews the proposed moves before they are

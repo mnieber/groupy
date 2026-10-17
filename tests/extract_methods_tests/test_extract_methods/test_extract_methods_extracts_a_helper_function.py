@@ -1,4 +1,4 @@
-from breaker.functions.actions.set_extract_method_priority import (
+from groupy.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
 from groupy_next_tests.groupy_next_test_env import callback, file_write
@@ -45,7 +45,7 @@ def send_report(user):
     return create_report(user)
 """
 
-# The text of reports.py after Breaker renamed the helper function.
+# The text of reports.py after Groupy renamed the helper function.
 RENAMED_REPORTS_PY = """\
 def create_report(user):
     lines = _format_stats(user.stats)
@@ -137,13 +137,13 @@ def test_extract_methods_extracts_a_helper_function(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have made an RFA for group-1 only, run the callbacks
+    # Groupy should have made an RFA for group-1 only, run the callbacks
     # (where extract_method made the RFR), renamed the new helper function,
     # and finished both chunks and the stage.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfa_ids() == [RFA_ID]
         assert env.rfr_ids() == [RFR_ID]

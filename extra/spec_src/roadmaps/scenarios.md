@@ -67,7 +67,7 @@ then you can do so.
    policy (including call sites in other modules), ordering chains so that they work, and updates the node files.
    No Claude requests.
 
-10. `s10_groupy_extracts_methods`
+10. `s10_groupy_extracts_methods` (written)
     Per chunk, Claude handles the high and medium priority candidates. Each `extract_method` callback makes an RFR
     that adds a new top-level function; Groupy verifies it, adds a node for it, and Claude updates the analysis
     (nesting the new function if it is a helper). Groupy retries unfinished candidates.
