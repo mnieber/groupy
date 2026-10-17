@@ -66,16 +66,18 @@ class FakeRfrPolicy(RfrPolicy):
 
 class FakeRefactoringPolicy(RopeRefactoringPolicy):
     """Refactors with rope, like the real policy, but raises an error for the
-    renames that the test lets fail. It records the renames that it
+    refactorings that the test lets fail. It records the refactorings that it
     receives."""
 
     def __init__(self):
         super().__init__()
-        # The (module_name, name) pairs of the renames that fail.
-        self.failing_renames: T.Set[T.Tuple[str, str]] = set()
-        # The (module_name, scope_location, name, new_name) tuples of the
-        # renames, in the order in which they were made.
-        self.renames: T.List[T.Tuple[str, str, str, str]] = []
+        # The (module_name, name) pairs of the refactorings that fail, where
+        # name is the symbol that is renamed, moved or delegated, or @module
+        # for move_module.
+        self.failing_refactorings: T.Set[T.Tuple[str, str]] = set()
+        # The (method, module_name, name) tuples of the refactorings, in the
+        # order in which they were made.
+        self.calls: T.List[T.Tuple[str, str, str]] = []
 
     def rename_symbol(
         self,
@@ -85,10 +87,38 @@ class FakeRefactoringPolicy(RopeRefactoringPolicy):
         name: str,
         new_name: str,
     ) -> None:
-        self.renames.append((module_name, scope_location, name, new_name))
-        if (module_name, name) in self.failing_renames:
-            raise FakeRefactoringError(f"Cannot rename {name} in {module_name}")
+        self._record("rename_symbol", module_name, name)
         super().rename_symbol(source_root, module_name, scope_location, name, new_name)
+
+    def move_module(
+        self, source_root: Path, module_name: str, new_module_name: str
+    ) -> None:
+        self._record("move_module", module_name, "@module")
+        super().move_module(source_root, module_name, new_module_name)
+
+    def move_symbol(
+        self, source_root: Path, module_name: str, name: str, target_module_name: str
+    ) -> None:
+        self._record("move_symbol", module_name, name)
+        super().move_symbol(source_root, module_name, name, target_module_name)
+
+    def delegate_method(
+        self,
+        source_root: Path,
+        module_name: str,
+        class_name: str,
+        method_name: str,
+        function_name: str,
+    ) -> None:
+        self._record("delegate_method", module_name, f"{class_name}.{method_name}")
+        super().delegate_method(
+            source_root, module_name, class_name, method_name, function_name
+        )
+
+    def _record(self, method: str, module_name: str, name: str) -> None:
+        self.calls.append((method, module_name, name))
+        if (module_name, name) in self.failing_refactorings:
+            raise FakeRefactoringError(f"Cannot {method} {name} in {module_name}")
 
 
 _fake_rfa_policy = FakeRfaPolicy()

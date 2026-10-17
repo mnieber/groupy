@@ -1,13 +1,11 @@
 import typing as T
-from dataclasses import dataclass
 
-import pytest
 from breaker.claude_requests.models.callback import Callback
 from breaker.functions.actions.move_function_to_parent import (
     move_function_to_parent,
 )
 from breaker.nodes.actions.set_proposed_module import set_proposed_module
-from breaker_next_tests.breaker_next_test_env import Context as BreakerNextContext
+from breaker_next_tests.breaker_next_test_env import Context
 from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
 from breaker_next_tests.breaker_next_test_env import callback
 
@@ -82,24 +80,12 @@ CHAPTERS_CALLBACKS = [
 ]
 
 
-@dataclass
-class Context(BreakerNextContext):
-    """The pytest fixtures that the tests need. capsys captures what Breaker
-    prints."""
-
-    capsys: pytest.CaptureFixture = None
-
-
 class TestEnv(BreakerNextTestEnv):
     """A TestEnv for the propose-code-restructure stage. The target code (in
     the src dir) has the modules of the base env plus the modules that the
     test adds in myapp/reports. With the package grouping strategy, books.py
     is in group-1, the modules of myapp/chapters are in group-2, and the
     modules of myapp/reports are in group-3."""
-
-    def __init__(self, context: Context):
-        self.output_lines: T.List[str] = []
-        super().__init__(context)
 
     # Actions
 
@@ -128,13 +114,6 @@ class TestEnv(BreakerNextTestEnv):
         proposal."""
         self.script_rfa(BOOKS_RFA_ID, *BOOKS_CALLBACKS)
         self.script_rfa(CHAPTERS_RFA_ID, *CHAPTERS_CALLBACKS)
-
-    def run_breaker_next(self) -> None:
-        """Runs breaker next and stores the lines that it prints in
-        env.output_lines."""
-        self.context.capsys.readouterr()
-        self.run_breaker("next")
-        self.output_lines = self.context.capsys.readouterr().out.splitlines()
 
 
 def commit_messages(callbacks: T.List[Callback]) -> T.List[str]:

@@ -61,6 +61,10 @@ Feature packages:
     `tests/node_edits_tests/`): the candidates and the proposals in `steps_to_move_to_caller`, the RFR per chunk
     that moves the steps and commits with `commit_refactoring`, the follow-up RFR for unapplied moves, and the
     rejection of uncommitted changes, code that does not parse and refactoring callbacks in an RFR.
+16. `propose-module-layout` and `propose-code-restructure` (batch 13, in `tests/propose_module_layout_tests/` and
+    `tests/propose_code_restructure_tests/`): the layout RFA and `proposed_modules`, the restructure RFA per chunk,
+    the validations with the follow-up RFA and `CodeRestructureHasProblemsError`, and the printed dependency
+    violations.
 
 ## Test infrastructure for Claude requests
 
@@ -80,8 +84,9 @@ Feature packages:
    2. `FakeRfrPolicy` maps each RFR id onto a list of scripted steps: file writes (`file_write`, the new text of a
       module) and callbacks (run in RFR mode, so that they don't commit).
    3. `FakeGroupingPolicy` (for smart grouping with Haiku) maps each batch id onto a scripted answer.
-   4. `FakeRefactoringPolicy` subclasses `RopeRefactoringPolicy`: it refactors with rope, records the renames and
-      raises `FakeRefactoringError` for the renames that a test lets fail.
+   4. `FakeRefactoringPolicy` subclasses `RopeRefactoringPolicy`: it refactors with rope, records the refactorings
+      (`calls`) and raises `FakeRefactoringError` for the refactorings that a test lets fail
+      (`failing_refactorings`, by module and name, with `@module` for `move_module`).
    5. Every fake records the requests that it receives (id, prompt and context), so that tests can assert on the
       context that Breaker pre-computed (e.g. the call-graph view).
    6. A request without a script raises an error, so that unexpected requests fail the test.
@@ -103,28 +108,15 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `propose-module-layout` and `propose-code-restructure` (MS-8, in `tests/propose_module_layout_tests/` and
-   `tests/propose_code_restructure_tests/`):
-   1. propose-module-layout: a single RFA (`propose-module-layout/all`, recorded as a finished chunk) with the
-      glossary and the module summaries; `proposed_modules` in the root package node file.
-   2. propose-code-restructure: an RFA per chunk (`module_sources`, `proposed_modules`, `call_graph_view`,
-      `glossary`); `code_unit_type`, `move_to_file` and `rename_to` via the existing callbacks; helper functions
-      need no type; a follow-up RFA with `restructure_problems` and `CodeRestructureHasProblemsError` for the
-      validations (missing `code_unit_type`, location rule per code unit type, one public code unit per file, also
-      across chunks, with the allowed exceptions, methods that cannot delegate, a target package with the name of
-      a module that stays); the printed dependency violations (delegating methods judged by their own type).
-   - Exercises: `restructure/actions/propose_module_layout.py`, `nodes/actions/set_proposed_module.py`,
-     `nodes/actions/remove_proposed_module.py`, `restructure/actions/propose_code_restructure.py` (with
-     `CodeRestructureHasProblemsError`), `restructure/rules/validate_code_restructure.py`,
-     `restructure/rules/get_expected_location.py`, `restructure/rules/find_dependency_violations.py`,
-     `restructure/rules/can_delegate_method.py`.
-2. `apply-code-restructure` (MS-9): the proposal is validated again before any change, and dependency violations are
-   only reported; per module, the module is renamed, methods delegate to new functions in their target files (with
-   a local import in the delegating method), and the code units are moved (with their helper functions or
-   methods) with the refactoring policy, including the imports and call sites; the node files (also the function
-   node of a delegating method, and the reduced method node), package node files and group file follow; emptied
-   modules are deleted; a commit per module; resuming after a failed refactoring; `next_stage` becomes `done`, and
-   `breaker next` then reports that the refactoring is done.
+1. `apply-code-restructure` (MS-9, in `tests/apply_code_restructure_tests/`): the proposal is validated again
+   before any change, and dependency violations are only reported; per module, the module is renamed, methods
+   delegate to new functions in their target files (with a local import in the delegating method), and the code
+   units are moved (with their helper functions or methods) with the refactoring policy, including the imports;
+   new packages get an `__init__.py`; the node files (also the function node of a delegating method, and the
+   reduced method node), package node files and group file follow; emptied modules are deleted; a commit per
+   module; resuming after a failed refactoring; `next_stage` becomes `done`, and `breaker next` then reports that
+   the refactoring is done. The tests check the source structurally (AST-based: top-level names, imports, and the
+   exact source of the delegating method and the new function), so that they don't depend on rope's formatting.
    - Exercises: `restructure/actions/apply_code_restructure.py` (the stage), `move_module`, `move_symbol` and
      `delegate_method` of `renamings/policies/refactoring_policy.py`, `restructure/rules/validate_code_restructure.py` (with
      `CodeRestructureHasProblemsError`), `nodes/actions/move_node_to_module.py`,

@@ -56,7 +56,7 @@ def test_apply_renamings_resumes_after_a_failed_rename(context: Context):
             set_renaming, STATS, "is_outlier_point", "limit", "threshold"
         ),
         env.commit_all("review the renamings"),
-        env.fail_rename(STATS, "limit"),
+        env.fail_refactoring(STATS, "limit"),
         env.remember_git_head(),
     ):
         pass
@@ -86,8 +86,8 @@ def test_apply_renamings_resumes_after_a_failed_rename(context: Context):
     # Breaker should only rename the symbols of stats.py (headings.py has no
     # renamings left), and then finish the chunk and the stage.
     if env.step(
-        env.clear_failing_renames(),
-        env.clear_renames(),
+        env.clear_failing_refactorings(),
+        env.clear_refactoring_calls(),
         env.remember_git_head(),
         env.run_breaker("next"),
         env.load_session(),

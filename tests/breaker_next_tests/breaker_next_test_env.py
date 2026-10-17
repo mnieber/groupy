@@ -1,6 +1,9 @@
 import re
 import typing as T
+from dataclasses import dataclass
 from pathlib import Path
+
+import pytest
 
 from breaker.call_graph.models.call_graph_view import FunctionView
 from breaker.claude_requests.models.callback import Callback
@@ -26,7 +29,7 @@ from breaker_next_tests.fake_policies import (
     get_fake_rfr_policy,
     reset_fake_policies,
 )
-from sessions_tests.breaker_test_env import Context
+from sessions_tests.breaker_test_env import Context as BreakerContext
 from sessions_tests.breaker_test_env import TestEnv as BreakerTestEnv
 
 __all__ = ["Context", "TestEnv"]
@@ -38,6 +41,14 @@ FAKE_REFACTORING_POLICY = "breaker_next_tests.fake_policies:get_fake_refactoring
 # The fake stage replaces the first real stage, so that the tests of the stage
 # runner don't depend on what the real stages do.
 FAKE_STAGE = Stages.IDENTIFY_HELPER_FUNCTIONS
+
+
+@dataclass
+class Context(BreakerContext):
+    """The pytest fixtures that the tests need. capsys captures what Breaker
+    prints (it is only needed by tests that look at the output)."""
+
+    capsys: pytest.CaptureFixture = None
 
 
 def run_fake_stage() -> None:
@@ -68,6 +79,7 @@ class TestEnv(BreakerTestEnv):
         reset_fake_policies()
         self.source_root = context.repo_dir / "src"
         self.module_node: ModuleNode = None
+        self.output_lines: T.List[str] = []
         super().__init__(context)
 
     # Actions
@@ -91,6 +103,13 @@ class TestEnv(BreakerTestEnv):
         self.commit_all("add breaker config")
         self.run_breaker("init", "--target-dir=src")
 
+    def run_breaker_next(self) -> None:
+        """Runs breaker next and stores the lines that it prints in
+        env.output_lines (this needs context.capsys)."""
+        self.context.capsys.readouterr()
+        self.run_breaker("next")
+        self.output_lines = self.context.capsys.readouterr().out.splitlines()
+
     def install_fake_stage(self) -> None:
         self.context.monkeypatch.setitem(STAGE_ACTIONS, FAKE_STAGE, run_fake_stage)
 
@@ -103,16 +122,16 @@ class TestEnv(BreakerTestEnv):
     def script_rfr(self, rfr_id: str, *steps: T.Union[FileWrite, Callback]) -> None:
         self.rfr_policy().scripts[rfr_id] = list(steps)
 
-    def fail_rename(self, module_name: str, name: str) -> None:
-        """Lets the fake refactoring policy raise an error when it renames the
-        symbol name in the module."""
-        self.refactoring_policy().failing_renames.add((module_name, name))
+    def fail_refactoring(self, module_name: str, name: str) -> None:
+        """Lets the fake refactoring policy raise an error when it refactors
+        the symbol name (or @module, for move_module) in the module."""
+        self.refactoring_policy().failing_refactorings.add((module_name, name))
 
-    def clear_failing_renames(self) -> None:
-        self.refactoring_policy().failing_renames.clear()
+    def clear_failing_refactorings(self) -> None:
+        self.refactoring_policy().failing_refactorings.clear()
 
-    def clear_renames(self) -> None:
-        self.refactoring_policy().renames.clear()
+    def clear_refactoring_calls(self) -> None:
+        self.refactoring_policy().calls.clear()
 
     def edit_node_file(
         self, action: T.Callable, module_name: str, location: str, *args
@@ -161,13 +180,18 @@ class TestEnv(BreakerTestEnv):
     def refactoring_policy(self) -> FakeRefactoringPolicy:
         return get_fake_refactoring_policy()
 
-    def renamed_names(self) -> T.List[T.Tuple[str, str]]:
-        """Returns the (module_name, name) pairs of the renames of the fake
-        refactoring policy, in the order in which they were made."""
+    def refactoring_calls(self, method: str) -> T.List[T.Tuple[str, str]]:
+        """Returns the (module_name, name) pairs of the calls of the method
+        (e.g. move_symbol) of the fake refactoring policy, in the order in
+        which they were made."""
         return [
             (module_name, name)
-            for module_name, _, name, _ in self.refactoring_policy().renames
+            for called_method, module_name, name in self.refactoring_policy().calls
+            if called_method == method
         ]
+
+    def renamed_names(self) -> T.List[T.Tuple[str, str]]:
+        return self.refactoring_calls("rename_symbol")
 
     def rfa_ids(self) -> T.List[str]:
         return [rfa.id for rfa in self.rfa_policy().requests]

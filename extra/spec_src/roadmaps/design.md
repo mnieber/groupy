@@ -83,8 +83,8 @@ The config file (`.breaker/config.yaml`) contains the choices that the developer
       the new name clashes with an existing name, before it changes any file.
    2. The policy is passed to the actions that refactor (e.g. `rename_helper_functions` and `apply_renamings`), so
       that the engine can be replaced (e.g. by libcst, or by an RFR when rope cannot do a refactoring).
-2. Tests use `FakeRefactoringPolicy`, which subclasses `RopeRefactoringPolicy`, records the renames, and raises an
-   error for the renames that the test lets fail.
+2. Tests use `FakeRefactoringPolicy`, which subclasses `RopeRefactoringPolicy`, records the refactorings (the
+   method, the module and the name), and raises an error for the refactorings that the test lets fail.
 
 ## Breaker sync
 
@@ -760,13 +760,14 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
 1. The developer reviews the proposed code restructure (the `code_unit_type`, `move_to_file` and
    `ModuleNode.rename_to` fields), possibly editing it, and runs `breaker next`.
 2. Breaker first validates the proposal again (as in MS-8), because the developer may have edited it. It does this
-   before it changes anything, and also when the stage is resumed.
+   before it changes anything, and also when the stage is resumed (the restructured modules have no proposal left,
+   so they pass).
    1. The problems of MS-8 (a missing `code_unit_type`, a `move_to_file` that does not match the location rule of
       its `code_unit_type`, a target file that receives more than one public code unit, a method that cannot
       delegate, and a target package with the name of an existing module) raise `CodeRestructureHasProblemsError`,
       which lists them.
-   2. Dependencies that violate the dependency direction are only reported (printed), because the developer may
-      have accepted them during the review.
+   2. Dependencies that violate the dependency direction are only reported (printed, as in MS-8), because the
+      developer may have accepted them during the review.
 3. Breaker applies the restructure with the refactoring policy, so that the imports and call sites in the
    code-base are updated (rope's "move module" and "move global" refactorings). This stage makes no Claude requests.
    1. The refactoring policy gets three more methods:
@@ -785,7 +786,13 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
          method.
          1. Rope adds a module-level import of the new function to the module of the class. Since the new function
             typically imports the class (e.g. a model), Breaker replaces this import by a local import inside the
-            delegating method, to avoid a circular import.
+            delegating method, to avoid a circular import. The delegating method then reads, e.g.:
+
+            ```python
+            def render(self):
+                from myapp.reports.rules.render_report import render_report
+                return render_report(self)
+            ```
       3. Then it moves each top-level node with a `move_to_file` to that file (with `move_symbol`), in source order.
          1. The helper functions of a function move together with it, because they stay in the file of their
             parent function. A helper function node is moved after its parent, in the order of the node file.
@@ -793,7 +800,9 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
       4. It deletes a module that no longer contains any code (except an `__init__.py`), together with its node
          file.
    3. A target package that does not exist yet is created with an empty `__init__.py` (❔ or as a namespace
-      package, without `__init__.py`, if rope supports that).
+      package, without `__init__.py`, if rope supports that). The new `__init__.py` is a module like any other: it
+      gets a module node file, it is listed in the `module_names` of its package node file, and it goes into the
+      group of the module whose code unit caused the new package.
    4. ❔ A target package with the same name as an existing module that stays is rejected by the validation (see
       MS-8), and the developer resolves it by choosing another name. A later version may resolve such clashes
       itself.
