@@ -1,11 +1,11 @@
-from breaker.functions.actions.add_step import add_step
-from breaker.functions.actions.add_step_to_move_to_caller import (
+from groupy.functions.actions.add_step import add_step
+from groupy.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
-from breaker.functions.actions.apply_move_steps_to_caller import (
+from groupy.functions.actions.apply_move_steps_to_caller import (
     UncommittedRefactoringError,
 )
-from breaker_next_tests.breaker_next_test_env import callback, file_write
+from groupy_next_tests.groupy_next_test_env import callback, file_write
 from apply_move_steps_to_caller_tests.apply_move_steps_to_caller_test_env import (
     Context,
     TestEnv,
@@ -75,13 +75,13 @@ def test_apply_move_steps_to_caller_rejects_uncommitted_changes(context: Context
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # After the RFR, Breaker should find the uncommitted changes, discard
+    # After the RFR, Groupy should find the uncommitted changes, discard
     # them (also the edit of the node file), and raise an error, which
     # interrupts the stage.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
         env.load_module_node(REPORTS),
     ):

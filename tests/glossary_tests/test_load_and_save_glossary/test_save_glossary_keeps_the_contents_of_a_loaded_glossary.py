@@ -1,6 +1,6 @@
 from glossary_tests.glossary_test_env import Context, TestEnv
 
-# A glossary in the format that Breaker writes: the entries are sorted by name,
+# A glossary in the format that Groupy writes: the entries are sorted by name,
 # and fields that have their default value are left out.
 GLOSSARY_YAML = """\
 - name: report
@@ -51,9 +51,9 @@ def test_save_glossary_keeps_the_contents_of_a_loaded_glossary(context: Context)
     #
     # The file should have the same contents as the original file.
     if env.step(
-        env.save_glossary("copy.breaker.yaml"),
+        env.save_glossary("copy.groupy.yaml"),
     ):
-        assert env.read_file("copy.breaker.yaml") == GLOSSARY_YAML
+        assert env.read_file("copy.groupy.yaml") == GLOSSARY_YAML
 
 
 class Env(TestEnv):

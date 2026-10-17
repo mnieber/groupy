@@ -1,5 +1,5 @@
-from breaker.call_graph.enums import CallScopes
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy.call_graph.enums import CallScopes
+from groupy_next_tests.groupy_next_test_env import callback
 from identify_helper_functions_tests.identify_helper_functions_test_env import (
     RFA_ID,
     Context,
@@ -94,13 +94,13 @@ def test_identify_helper_functions_nests_and_renames_helpers(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have marked the helper candidates, run the callbacks,
+    # Groupy should have marked the helper candidates, run the callbacks,
     # renamed the helper functions and finished the chunk and the stage,
     # committing after each step.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.commit_messages_since_remembered_head() == [
             "identify-helper-functions: mark_helper_candidates",

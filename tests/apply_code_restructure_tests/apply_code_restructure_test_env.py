@@ -2,16 +2,16 @@ import ast
 import textwrap
 import typing as T
 
-from breaker.functions.actions.move_function_to_parent import (
+from groupy.functions.actions.move_function_to_parent import (
     move_function_to_parent,
 )
-from breaker.nodes.actions.set_code_unit_type import set_code_unit_type
-from breaker.nodes.actions.set_move_to_file import set_move_to_file
-from breaker.nodes.actions.set_rename_to import set_rename_to
-from breaker.nodes.models.package_node import PackageNode
-from breaker.nodes.rules.load_package_node import load_package_node
-from breaker_next_tests.breaker_next_test_env import Context
-from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
+from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
+from groupy.nodes.actions.set_move_to_file import set_move_to_file
+from groupy.nodes.actions.set_rename_to import set_rename_to
+from groupy.nodes.models.package_node import PackageNode
+from groupy.nodes.rules.load_package_node import load_package_node
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 
 __all__ = ["Context", "TestEnv"]
 
@@ -25,7 +25,7 @@ BOOK = "myapp/books/models/book.py"
 NEW_CREATE_CHAPTER = "myapp/chapters/actions/create_chapter.py"
 
 
-class TestEnv(BreakerNextTestEnv):
+class TestEnv(GroupyNextTestEnv):
     """A TestEnv for the apply-code-restructure stage. The target code (in the
     src dir) has the modules of the base env plus the modules that the test
     adds in myapp/reports. With the package grouping strategy, books.py is in
@@ -74,7 +74,7 @@ class TestEnv(BreakerNextTestEnv):
 
     def load_package_node(self, package_name: str) -> None:
         self.package_node = load_package_node(
-            self.source_root / package_name / "package-node.breaker.yaml"
+            self.source_root / package_name / "package-node.groupy.yaml"
         )
 
     # Queries (for use in asserts)

@@ -1,6 +1,6 @@
 from apply_renamings_tests.apply_renamings_test_env import Context, TestEnv
-from breaker.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
-from breaker.renamings.actions.set_renaming import set_renaming
+from groupy.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
+from groupy.renamings.actions.set_renaming import set_renaming
 
 HEADINGS = "myapp/headings.py"
 
@@ -35,13 +35,13 @@ def test_apply_renamings_rechecks_conflicts(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should check all renamings before it applies any of them, and
+    # Groupy should check all renamings before it applies any of them, and
     # raise an error that lists the conflict. No renaming should have been
     # applied, also not the one in books.py (which comes first).
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, ProposedRenamingHasConflictError)

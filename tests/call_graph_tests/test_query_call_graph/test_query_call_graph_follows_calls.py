@@ -1,9 +1,9 @@
 import typing as T
 
-from breaker.call_graph.models.call_edge import CallEdge
-from breaker.call_graph.rules.get_callees import get_callees
-from breaker.call_graph.rules.get_callers import get_callers
-from breaker.functions.rules.get_source import get_source
+from groupy.call_graph.models.call_edge import CallEdge
+from groupy.call_graph.rules.get_callees import get_callees
+from groupy.call_graph.rules.get_callers import get_callers
+from groupy.functions.rules.get_source import get_source
 from call_graph_tests.call_graph_test_env import Context, TestEnv
 
 

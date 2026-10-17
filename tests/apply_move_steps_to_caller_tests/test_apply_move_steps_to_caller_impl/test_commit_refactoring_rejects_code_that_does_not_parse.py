@@ -1,11 +1,11 @@
-from breaker.functions.actions.commit_refactoring import (
+from groupy.functions.actions.commit_refactoring import (
     RefactoringDoesNotParseError,
 )
-from breaker.functions.actions.add_step import add_step
-from breaker.functions.actions.add_step_to_move_to_caller import (
+from groupy.functions.actions.add_step import add_step
+from groupy.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
-from breaker_next_tests.breaker_next_test_env import callback, file_write
+from groupy_next_tests.groupy_next_test_env import callback, file_write
 from apply_move_steps_to_caller_tests.apply_move_steps_to_caller_test_env import (
     Context,
     TestEnv,
@@ -112,13 +112,13 @@ def test_commit_refactoring_rejects_code_that_does_not_parse(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # The first move should be committed. For the second move, Breaker should
+    # The first move should be committed. For the second move, Groupy should
     # raise an error that names the module, and discard the changes, which
     # interrupts the stage.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, RefactoringDoesNotParseError)

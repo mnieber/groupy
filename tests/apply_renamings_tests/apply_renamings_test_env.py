@@ -1,14 +1,14 @@
 import typing as T
 
-from breaker_next_tests.breaker_next_test_env import Context
-from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 
 __all__ = ["Context", "TestEnv"]
 
 STAGE = "apply-renamings"
 
 
-class TestEnv(BreakerNextTestEnv):
+class TestEnv(GroupyNextTestEnv):
     """A TestEnv for the apply-renamings stage. The target code (in the src
     dir) has the modules of the base env plus the modules that the test adds.
     With the simple grouping strategy and large sizes, all modules are in the

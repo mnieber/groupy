@@ -1,6 +1,6 @@
 from apply_renamings_tests.apply_renamings_test_env import Context, TestEnv
-from breaker.renamings.actions.set_renaming import set_renaming
-from breaker_next_tests.fake_policies import FakeRefactoringError
+from groupy.renamings.actions.set_renaming import set_renaming
+from groupy_next_tests.fake_policies import FakeRefactoringError
 
 HEADINGS = "myapp/headings.py"
 STATS = "myapp/stats.py"
@@ -61,14 +61,14 @@ def test_apply_renamings_resumes_after_a_failed_rename(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
     # The failed rename should interrupt the stage. The renamings of
-    # headings.py should have been committed. Breaker should have discarded
+    # headings.py should have been committed. Groupy should have discarded
     # the uncommitted changes of stats.py, so that the working tree is clean
     # and stats.py still has all its renamings.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, FakeRefactoringError)
@@ -81,15 +81,15 @@ def test_apply_renamings_resumes_after_a_failed_rename(context: Context):
         assert env.session.next_stage == "apply-renamings"
         assert env.session.finished_chunks == []
 
-    # The rename no longer fails, and we run breaker next again.
+    # The rename no longer fails, and we run groupy next again.
     #
-    # Breaker should only rename the symbols of stats.py (headings.py has no
+    # Groupy should only rename the symbols of stats.py (headings.py has no
     # renamings left), and then finish the chunk and the stage.
     if env.step(
         env.clear_failing_refactorings(),
         env.clear_refactoring_calls(),
         env.remember_git_head(),
-        env.run_breaker("next"),
+        env.run_groupy("next"),
         env.load_session(),
     ):
         assert {module_name for module_name, _ in env.renamed_names()} == {STATS}

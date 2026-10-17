@@ -1,12 +1,12 @@
-from breaker.functions.actions.add_responsibility import add_responsibility
-from breaker.functions.actions.add_step import add_step
-from breaker.functions.actions.remove_responsibility import remove_responsibility
-from breaker.functions.actions.remove_step import remove_step
-from breaker.functions.actions.set_extract_method_priority import (
+from groupy.functions.actions.add_responsibility import add_responsibility
+from groupy.functions.actions.add_step import add_step
+from groupy.functions.actions.remove_responsibility import remove_responsibility
+from groupy.functions.actions.remove_step import remove_step
+from groupy.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from breaker.functions.actions.update_responsibility import update_responsibility
-from breaker.functions.actions.update_step import update_step
+from groupy.functions.actions.update_responsibility import update_responsibility
+from groupy.functions.actions.update_step import update_step
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 

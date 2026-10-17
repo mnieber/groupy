@@ -2,11 +2,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.nodes.actions.create_package_node_file import (
+from groupy.nodes.actions.create_package_node_file import (
     create_package_node_file,
 )
-from breaker.nodes.models.package_node import PackageNode
-from breaker.nodes.rules.load_package_node import load_package_node
+from groupy.nodes.models.package_node import PackageNode
+from groupy.nodes.rules.load_package_node import load_package_node
 
 
 @dataclass
@@ -51,7 +51,7 @@ class TestEnv:
     ) -> None:
         """Loads the node file of the package into the env attribute
         store_as."""
-        node_file_path = self.source_root / package_name / "package-node.breaker.yaml"
+        node_file_path = self.source_root / package_name / "package-node.groupy.yaml"
         setattr(self, store_as, load_package_node(node_file_path))
 
     # Queries (for use in asserts)

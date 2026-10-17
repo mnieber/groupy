@@ -1,13 +1,13 @@
 import typing as T
 
-from breaker.claude_requests.models.callback import Callback
-from breaker.functions.actions.move_function_to_parent import (
+from groupy.claude_requests.models.callback import Callback
+from groupy.functions.actions.move_function_to_parent import (
     move_function_to_parent,
 )
-from breaker.nodes.actions.set_proposed_module import set_proposed_module
-from breaker_next_tests.breaker_next_test_env import Context
-from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy.nodes.actions.set_proposed_module import set_proposed_module
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
+from groupy_next_tests.groupy_next_test_env import callback
 
 __all__ = ["Context", "TestEnv"]
 
@@ -80,7 +80,7 @@ CHAPTERS_CALLBACKS = [
 ]
 
 
-class TestEnv(BreakerNextTestEnv):
+class TestEnv(GroupyNextTestEnv):
     """A TestEnv for the propose-code-restructure stage. The target code (in
     the src dir) has the modules of the base env plus the modules that the
     test adds in myapp/reports. With the package grouping strategy, books.py
@@ -117,6 +117,6 @@ class TestEnv(BreakerNextTestEnv):
 
 
 def commit_messages(callbacks: T.List[Callback]) -> T.List[str]:
-    """Returns the messages of the commits that Breaker makes after running
+    """Returns the messages of the commits that Groupy makes after running
     the callbacks."""
     return [f"{STAGE}: {callback.name}" for callback in callbacks]

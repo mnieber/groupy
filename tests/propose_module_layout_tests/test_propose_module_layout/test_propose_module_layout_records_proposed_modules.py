@@ -1,6 +1,6 @@
-from breaker.concepts.actions.set_concept import set_concept
-from breaker.functions.actions.add_responsibility import add_responsibility
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy.concepts.actions.set_concept import set_concept
+from groupy.functions.actions.add_responsibility import add_responsibility
+from groupy_next_tests.groupy_next_test_env import callback
 from propose_module_layout_tests.propose_module_layout_test_env import (
     Context,
     TestEnv,
@@ -42,7 +42,7 @@ def test_propose_module_layout_records_proposed_modules(context: Context):
     # one of them again.
     if env.step(
         env.create_session_at_propose_module_layout(),
-        env.write_file("src/glossary.breaker.yaml", GLOSSARY_YAML),
+        env.write_file("src/glossary.groupy.yaml", GLOSSARY_YAML),
         env.edit_node_file(set_concept, BOOKS, "@module", "book", "a written work"),
         env.edit_node_file(add_responsibility, BOOKS, "create_book", "Creates a book"),
         env.edit_node_file(
@@ -54,13 +54,13 @@ def test_propose_module_layout_records_proposed_modules(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have made a single RFA for the whole code-base (which is
+    # Groupy should have made a single RFA for the whole code-base (which is
     # recorded as a finished chunk), committed after each callback, and
     # finished the stage.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfa_ids() == [RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

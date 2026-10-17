@@ -1,16 +1,16 @@
 import typing as T
 
-from breaker.nodes.models.package_node import PackageNode
-from breaker.nodes.rules.load_package_node import load_package_node
-from breaker_next_tests.breaker_next_test_env import Context
-from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
+from groupy.nodes.models.package_node import PackageNode
+from groupy.nodes.rules.load_package_node import load_package_node
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 
 __all__ = ["Context", "TestEnv"]
 
 STAGE = "propose-module-layout"
 
 
-class TestEnv(BreakerNextTestEnv):
+class TestEnv(GroupyNextTestEnv):
     """A TestEnv for the propose-module-layout stage. The target code (in the
     src dir) has the modules of the base env plus the modules that the test
     adds."""
@@ -38,5 +38,5 @@ class TestEnv(BreakerNextTestEnv):
         """Loads the package node file of the target dir into
         env.package_node."""
         self.package_node = load_package_node(
-            self.source_root / "package-node.breaker.yaml"
+            self.source_root / "package-node.groupy.yaml"
         )

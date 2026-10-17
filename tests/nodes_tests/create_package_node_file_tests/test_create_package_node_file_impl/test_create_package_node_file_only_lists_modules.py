@@ -14,7 +14,7 @@ def test_create_package_node_file_only_lists_modules(context: Context):
     if env.step(
         env.write_file("myapp/__init__.py", "VERSION = '1.0'\n"),
         env.write_file("myapp/books.py", "MAX_CHAPTERS = 10\n"),
-        env.write_file("myapp/books.py.breaker.yaml", "module_node: {}\n"),
+        env.write_file("myapp/books.py.groupy.yaml", "module_node: {}\n"),
         env.write_file("myapp/__pycache__/books.cpython-310.pyc"),
         env.write_file("myapp/chapters/__init__.py"),
         env.write_file("myapp/chapters/create_chapter.py"),

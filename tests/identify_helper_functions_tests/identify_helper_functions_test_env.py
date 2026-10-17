@@ -1,25 +1,25 @@
 import typing as T
 
-from breaker.call_graph.actions.build_call_graph import build_call_graph
-from breaker.call_graph.models.call_graph import CallGraph
-from breaker.call_graph.rules.load_call_graph import load_call_graph
-from breaker.functions.actions.mark_helper_candidates import mark_helper_candidates
-from breaker.functions.actions.move_function_to_parent import (
+from groupy.call_graph.actions.build_call_graph import build_call_graph
+from groupy.call_graph.models.call_graph import CallGraph
+from groupy.call_graph.rules.load_call_graph import load_call_graph
+from groupy.functions.actions.mark_helper_candidates import mark_helper_candidates
+from groupy.functions.actions.move_function_to_parent import (
     move_function_to_parent,
 )
-from breaker.functions.actions.rename_helper_functions import (
+from groupy.functions.actions.rename_helper_functions import (
     rename_helper_functions,
 )
-from breaker.nodes.models.module_node import ModuleNode
-from breaker_next_tests.breaker_next_test_env import Context
-from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
+from groupy.nodes.models.module_node import ModuleNode
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 
 __all__ = ["Context", "TestEnv"]
 
 RFA_ID = "identify-helper-functions/group-1/chunk-1"
 
 
-class TestEnv(BreakerNextTestEnv):
+class TestEnv(GroupyNextTestEnv):
     """A TestEnv for the identify-helper-functions stage. The target code
     (in the src dir) has the modules of the base env plus the modules that
     the test adds. With the simple grouping strategy and large sizes, all
@@ -43,7 +43,7 @@ class TestEnv(BreakerNextTestEnv):
 
     def build_call_graph(self) -> None:
         """Builds the call graph of the target code into env.call_graph."""
-        call_graph_path = self.repo_dir / ".breaker" / "call-graph.yaml"
+        call_graph_path = self.repo_dir / ".groupy" / "call-graph.yaml"
         build_call_graph(self.source_root, call_graph_path)
         self.call_graph = load_call_graph(call_graph_path)
 

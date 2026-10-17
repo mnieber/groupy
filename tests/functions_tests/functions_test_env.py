@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.functions.actions.move_function_to_parent import (
+from groupy.functions.actions.move_function_to_parent import (
     move_function_to_parent,
 )
-from breaker.nodes.actions.create_module_node_file import create_module_node_file
-from breaker.nodes.models.module_node import ModuleNode
-from breaker.nodes.rules.load_module_node import load_module_node
+from groupy.nodes.actions.create_module_node_file import create_module_node_file
+from groupy.nodes.models.module_node import ModuleNode
+from groupy.nodes.rules.load_module_node import load_module_node
 
 
 @dataclass
@@ -73,11 +73,11 @@ class TestEnv:
     def load_module_node(self, module_name: str) -> None:
         """Loads the node file of the module into env.module_node."""
         self.module_node = load_module_node(
-            self.source_root / f"{module_name}.breaker.yaml"
+            self.source_root / f"{module_name}.groupy.yaml"
         )
 
     def remember_node_file(self, module_name: str) -> None:
-        self.remembered_node_file_text = self.read_file(f"{module_name}.breaker.yaml")
+        self.remembered_node_file_text = self.read_file(f"{module_name}.groupy.yaml")
 
     # Queries (for use in asserts)
 

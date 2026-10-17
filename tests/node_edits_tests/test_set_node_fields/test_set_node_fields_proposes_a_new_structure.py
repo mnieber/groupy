@@ -1,6 +1,6 @@
-from breaker.nodes.actions.set_code_unit_type import set_code_unit_type
-from breaker.nodes.actions.set_move_to_file import set_move_to_file
-from breaker.nodes.actions.set_rename_to import set_rename_to
+from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
+from groupy.nodes.actions.set_move_to_file import set_move_to_file
+from groupy.nodes.actions.set_rename_to import set_rename_to
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 

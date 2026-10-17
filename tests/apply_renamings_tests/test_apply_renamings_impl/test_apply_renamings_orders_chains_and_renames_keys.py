@@ -1,7 +1,7 @@
 from apply_renamings_tests.apply_renamings_test_env import Context, TestEnv
-from breaker.concepts.actions.set_concept import set_concept
-from breaker.concepts.actions.set_local_term import set_local_term
-from breaker.renamings.actions.set_renaming import set_renaming
+from groupy.concepts.actions.set_concept import set_concept
+from groupy.concepts.actions.set_local_term import set_local_term
+from groupy.renamings.actions.set_renaming import set_renaming
 
 HEADINGS = "myapp/headings.py"
 
@@ -52,13 +52,13 @@ def test_apply_renamings_orders_chains_and_renames_keys(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have applied the chain in an order that works (body
+    # Groupy should have applied the chain in an order that works (body
     # first, title last). chapter_heading is not a symbol, so it should not
     # have been renamed in the source.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.read_module(HEADINGS) == RENAMED_HEADINGS_PY
         assert env.renamed_names() == [

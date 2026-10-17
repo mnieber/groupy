@@ -1,7 +1,7 @@
-from breaker.functions.actions.set_extract_method_priority import (
+from groupy.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from breaker_next_tests.breaker_next_test_env import callback, file_write
+from groupy_next_tests.groupy_next_test_env import callback, file_write
 from extract_methods_tests.extract_methods_test_env import (
     Context,
     TestEnv,
@@ -110,13 +110,13 @@ def test_extract_methods_retries_unfinished_candidates(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # After the RFA of the chunk, Breaker should have made a follow-up RFA for
+    # After the RFA of the chunk, Groupy should have made a follow-up RFA for
     # clean_text, and then finished the chunk and the stage. No helper was
     # nested, so there is no rename_helper_functions commit.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfa_ids() == [RFA_ID, RETRY_RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

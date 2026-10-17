@@ -1,9 +1,9 @@
-from breaker.claude_requests.actions.run_callback import CallbackNotAllowedError
-from breaker.functions.actions.add_step import add_step
-from breaker.functions.actions.add_step_to_move_to_caller import (
+from groupy.claude_requests.actions.run_callback import CallbackNotAllowedError
+from groupy.functions.actions.add_step import add_step
+from groupy.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy_next_tests.groupy_next_test_env import callback
 from apply_move_steps_to_caller_tests.apply_move_steps_to_caller_test_env import (
     Context,
     TestEnv,
@@ -62,13 +62,13 @@ def test_apply_move_steps_to_caller_rejects_a_refactoring_callback(context: Cont
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
     # In an RFR, only the node file edits and commit_refactoring are allowed,
-    # so Breaker should raise an error that names the callback, which
+    # so Groupy should raise an error that names the callback, which
     # interrupts the stage.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, CallbackNotAllowedError)

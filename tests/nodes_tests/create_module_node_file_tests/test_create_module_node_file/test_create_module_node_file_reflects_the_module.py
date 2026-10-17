@@ -60,7 +60,7 @@ def test_create_module_node_file_reflects_the_module(context: Context):
     if env.step(
         env.write_module("myapp/books.py", BOOKS_PY),
     ):
-        assert not env.file_exists("myapp/books.py.breaker.yaml")
+        assert not env.file_exists("myapp/books.py.groupy.yaml")
 
     # We create the module node file for myapp/books.py.
     #
@@ -70,7 +70,7 @@ def test_create_module_node_file_reflects_the_module(context: Context):
         env.create_module_node_file("myapp/books.py"),
         env.load_module_node("myapp/books.py"),
     ):
-        assert env.file_exists("myapp/books.py.breaker.yaml")
+        assert env.file_exists("myapp/books.py.groupy.yaml")
         assert env.module_node.name == "myapp/books.py"
         assert env.module_node.line_count == len(BOOKS_PY.splitlines())
 
@@ -130,7 +130,7 @@ def test_create_module_node_file_reflects_the_module(context: Context):
         assert function_node.move_to_file is None
         assert function_node.code_unit_type is None
         # Helper candidates are marked in the identify-helper-functions stage,
-        # when Breaker has computed the call graph.
+        # when Groupy has computed the call graph.
         assert function_node.is_helper_candidate is False
         assert function_node.concepts == {}
         assert function_node.local_terms == {}

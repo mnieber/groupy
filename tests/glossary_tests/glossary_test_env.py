@@ -3,18 +3,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.concepts.actions.add_glossary_alias import add_glossary_alias
-from breaker.concepts.actions.add_glossary_entry import add_glossary_entry
-from breaker.concepts.actions.merge_glossary_entries import merge_glossary_entries
-from breaker.concepts.actions.save_glossary import save_glossary
-from breaker.concepts.actions.set_glossary_abbreviation import (
+from groupy.concepts.actions.add_glossary_alias import add_glossary_alias
+from groupy.concepts.actions.add_glossary_entry import add_glossary_entry
+from groupy.concepts.actions.merge_glossary_entries import merge_glossary_entries
+from groupy.concepts.actions.save_glossary import save_glossary
+from groupy.concepts.actions.set_glossary_abbreviation import (
     set_glossary_abbreviation,
 )
-from breaker.concepts.actions.set_glossary_description import (
+from groupy.concepts.actions.set_glossary_description import (
     set_glossary_description,
 )
-from breaker.concepts.models.glossary import Glossary, GlossaryEntry
-from breaker.concepts.rules.load_glossary import load_glossary
+from groupy.concepts.models.glossary import Glossary, GlossaryEntry
+from groupy.concepts.rules.load_glossary import load_glossary
 
 
 @dataclass
@@ -27,7 +27,7 @@ class Context:
 
 
 class TestEnv:
-    """A TestEnv with a glossary file (glossary.breaker.yaml in the source
+    """A TestEnv with a glossary file (glossary.groupy.yaml in the source
     root). The edits of the env work on this file."""
 
     # Stops pytest from trying to collect this base class as a test class.
@@ -36,7 +36,7 @@ class TestEnv:
     def __init__(self, context: Context):
         self.context = context
         self.source_root = context.source_root
-        self.glossary_path = context.source_root / "glossary.breaker.yaml"
+        self.glossary_path = context.source_root / "glossary.groupy.yaml"
         self.glossary: Glossary = None
         self.remembered_glossary_text: str = None
         self.error: Exception = None
@@ -57,7 +57,7 @@ class TestEnv:
     def load_glossary(self) -> None:
         self.glossary = load_glossary(self.glossary_path)
 
-    def save_glossary(self, file_name: str = "glossary.breaker.yaml") -> None:
+    def save_glossary(self, file_name: str = "glossary.groupy.yaml") -> None:
         save_glossary(self.glossary, self.source_root / file_name)
 
     def add_glossary_entry(self, name: str, description: str) -> None:

@@ -4,7 +4,7 @@ from analyze_terminology_tests.analyze_terminology_test_env import (
     TestEnv,
     priority_callbacks,
 )
-from breaker_next_tests.fake_policies import UnscriptedRequestError
+from groupy_next_tests.fake_policies import UnscriptedRequestError
 
 BOOKS_RFA_ID = "analyze-terminology/group-1/chunk-1"
 CHAPTERS_RFA_ID = "analyze-terminology/group-2/chunk-1"
@@ -42,26 +42,26 @@ def test_analyze_terminology_resumes_at_the_consolidation(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
     # The consolidation RFA has no script, so the fake policy should raise an
     # error, which interrupts the stage. Both chunks should be finished.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, UnscriptedRequestError)
         assert env.session.next_stage == "analyze-terminology"
         assert env.session.finished_chunks == [BOOKS_RFA_ID, CHAPTERS_RFA_ID]
 
-    # We add a script for the consolidation RFA, and run breaker next again.
+    # We add a script for the consolidation RFA, and run groupy next again.
     #
     # It should only make the consolidation RFA, and then finish the stage.
     if env.step(
         env.script_rfa(CONSOLIDATION_RFA_ID),
         env.clear_rfa_requests(),
         env.remember_git_head(),
-        env.run_breaker("next"),
+        env.run_groupy("next"),
         env.load_session(),
     ):
         assert env.rfa_ids() == [CONSOLIDATION_RFA_ID]

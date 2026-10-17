@@ -1,6 +1,6 @@
-from breaker.nodes.actions.set_code_unit_type import set_code_unit_type
-from breaker.nodes.actions.set_move_to_file import set_move_to_file
-from breaker.nodes.utils.exceptions import FieldNotSupportedError, InvalidValueError
+from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
+from groupy.nodes.actions.set_move_to_file import set_move_to_file
+from groupy.nodes.utils.exceptions import FieldNotSupportedError, InvalidValueError
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 

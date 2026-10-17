@@ -1,6 +1,6 @@
 # Call graph
 
-Breaker maintains a single call graph for the entire target code. It passes a filtered view of this graph to Claude,
+Groupy maintains a single call graph for the entire target code. It passes a filtered view of this graph to Claude,
 and offers actions that allow Claude to query the graph for more information.
 
 ## Scope
@@ -24,36 +24,36 @@ and offers actions that allow Claude to query the graph for more information.
    1. the caller and the callee.
    2. the location of the call (file path and line number).
    3. whether the edge is certain or uncertain.
-      1. A call is uncertain when Breaker cannot determine which function is called (e.g. `obj.save()`, where the
+      1. A call is uncertain when Groupy cannot determine which function is called (e.g. `obj.save()`, where the
          type of `obj` is unknown and subclasses may override `save`).
       2. For an uncertain call, there is an uncertain edge to every method with that name in the target code.
-4. Breaker resolves calls as follows:
+3. Groupy resolves calls as follows:
    1. A call of a function that is defined or imported in the module (also via its module, e.g.
       `titles.capitalize()`, and also when the other module imports it in turn) is a certain edge to that function.
    2. A call of a class is a certain edge to its `__init__` method.
    3. A call of a method of `self` is a certain edge to the method of the class. If a subclass in the target code
       overrides the method, then the edges to the method and to its overrides are uncertain.
-3. The call graph is stored in `.breaker/call-graph.yaml`.
-   1. It is derived from the target code, so Breaker can rebuild it at any time. It is not committed.
+4. The call graph is stored in `.groupy/call-graph.yaml`.
+   1. It is derived from the target code, so Groupy can rebuild it at any time. It is not committed.
 
 ## Keeping the call graph up-to-date
 
 1. Actions and RFRs change the code (e.g. extract-method adds functions, apply-move-steps-to-caller changes callers).
    Since chunks are usually not independent, each chunk must see the changes made by the previous chunks.
-2. Before each chunk, Breaker rebuilds the call graph from scratch.
+2. Before each chunk, Groupy rebuilds the call graph from scratch.
    1. Parsing the target code takes seconds, which is small compared to the time of a Claude request.
-   2. If parsing turns out to be too slow, then Breaker can cache the parse result of each module (keyed on a
+   2. If parsing turns out to be too slow, then Groupy can cache the parse result of each module (keyed on a
       hash of its contents) inside the build. This does not change how the call graph is used.
 
 ## The view that is passed to Claude
 
-1. For each function in the chunk, Breaker passes its direct callers and callees (one level deep).
+1. For each function in the chunk, Groupy passes its direct callers and callees (one level deep).
    1. Each caller and callee is labelled as: same module, other module in the chunk, or outside the chunk.
    2. Uncertain edges are marked as such.
    3. Each caller and callee is listed once, also when it is called several times.
 2. Functions outside the chunk are given as their qualified name and a one-line responsibility (the first
    responsibility in their node file), without their source.
-3. When a function has more callers than a maximum, Breaker passes a summary instead of the list of callers
+3. When a function has more callers than a maximum, Groupy passes a summary instead of the list of callers
    (e.g. "called from 37 places in 12 modules", where a place is a call).
 4. Each RFA defines which view of the call graph it uses. For example:
    1. identify-helper-functions: callers only (mainly the number of callers, and whether they are in the same module).

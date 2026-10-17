@@ -1,13 +1,13 @@
 # Scope
 
-Breaker is a radical refactoring tool that takes a python code-base apart and rebuilds it.
+Groupy is a radical refactoring tool that takes a python code-base apart and rebuilds it.
 Since it is expected to break the code, the developer will need to help with
 fixing the errors and testing.
 
 # Glossary
 
-- action: an operation - offered by Breaker - that changes nodes files and/or target code
-- callback: a call from Claude to Breaker - using the Claude Agent API - requesting Breaker to run an action
+- action: an operation - offered by Groupy - that changes nodes files and/or target code
+- callback: a call from Claude to Groupy - using the Claude Agent API - requesting Groupy to run an action
 - chunk: a sub-set of node files in a group that is processed together
 - config file: a file with the choices that the developer makes for a session (e.g. the grouping strategy)
 - group: a group of semantically related node files
@@ -17,65 +17,65 @@ fixing the errors and testing.
 - request for actions (RFA): a request to Claude to analyze the node files and Python code and run actions
 - request for refactoring (RFR): a request to Claude to refactor the Python code directly, without calling actions
 - rope: a Python library that can perform refactorings
-- stage id: the id of the current stage in the refactoring. The user call `breaker next` to move to the next stage.
+- stage id: the id of the current stage in the refactoring. The user call `groupy next` to move to the next stage.
 - sub-session: a fresh Claude session that handles (part of) a chunk
 - target code: the Python code that we're refactoring
 
 # Rationale
 
-## Breaker and Claude collaborate on editing node files and source files
+## Groupy and Claude collaborate on editing node files and source files
 
-Typically the user will initiate a Breaker session and call `breaker next` to perform the next stage in the refactoring.
-Breaker will make RFAs. In response, Claude will issue callbacks to run Breaker actions.
+Typically the user will initiate a Groupy session and call `groupy next` to perform the next stage in the refactoring.
+Groupy will make RFAs. In response, Claude will issue callbacks to run Groupy actions.
 These actions may update node files, or refactor the code via rope, or trigger RFRs that cause Claude to refactor the Python code directly.
-Breaker commits the updated node files and source files after each action; it groups the commits by prefixing the commit message with the stage id.
+Groupy commits the updated node files and source files after each action; it groups the commits by prefixing the commit message with the stage id.
 
-## Breaker next
+## Groupy next
 
-A call to `breaker next` runs the stage in the `next_stage` field of the session file.
+A call to `groupy next` runs the stage in the `next_stage` field of the session file.
 
 1. It refuses to run when there is no session, when there is no group file (see ./chunking.md), or when the working
    tree is not clean.
 2. It runs the stage. Most stages make an RFA per chunk.
-   1. The callbacks of Claude run actions, and Breaker commits after each action, with the commit message
+   1. The callbacks of Claude run actions, and Groupy commits after each action, with the commit message
       `<stage-id>: <callback name>`.
-   2. After each chunk, Breaker records the chunk as finished in the session file (in the `finished_chunks` field,
+   2. After each chunk, Groupy records the chunk as finished in the session file (in the `finished_chunks` field,
       using the RFA id `<stage-id>/<chunk-id>`), and commits with the message `<stage-id>: finish <chunk-id>`.
-   3. When a stage is interrupted (e.g. by an error), the next call to `breaker next` runs the same stage again,
+   3. When a stage is interrupted (e.g. by an error), the next call to `groupy next` runs the same stage again,
       and skips the finished chunks.
-   4. When an action fails, Breaker restores the working tree to the last commit (undoing the partial changes of the
+   4. When an action fails, Groupy restores the working tree to the last commit (undoing the partial changes of the
       action, e.g. of rope or an RFR) and re-raises the error, which interrupts the stage. The actions that succeeded
-      stay committed, so the developer can inspect and repair the state, and run `breaker next` again. Each stage
+      stay committed, so the developer can inspect and repair the state, and run `groupy next` again. Each stage
       derives its remaining work from the node files (e.g. the renamings that are left, or the candidates that are
       not `n/a`), so that a resumed stage does not repeat finished work.
-3. After the stage, Breaker sets `next_stage` to the stage that follows it, clears `finished_chunks`, and commits
+3. After the stage, Groupy sets `next_stage` to the stage that follows it, clears `finished_chunks`, and commits
    with the message `<stage-id>: finish the stage`.
 
-## Breaker group
+## Groupy group
 
-A call to `breaker group` recreates the group file, using the grouping strategy and the sizes in the config file, and
+A call to `groupy group` recreates the group file, using the grouping strategy and the sizes in the config file, and
 commits it. The developer uses it after changing the config file.
 
 ## Config file
 
-The config file (`.breaker/config.yaml`) contains the choices that the developer makes for a session.
+The config file (`.groupy/config.yaml`) contains the choices that the developer makes for a session.
 
 1. `rfa_policy`, `rfr_policy`, `grouping_policy` and `refactoring_policy`: the import path (`<module>:<name>`) of a
-   callable that returns the policy that Breaker uses to make RFAs, RFRs and smart groups, and to refactor the code
+   callable that returns the policy that Groupy uses to make RFAs, RFRs and smart groups, and to refactor the code
    (see "Refactoring policy"). This is usually the policy class itself (e.g.
-   `breaker.claude_requests.policies.claude_rfa_policy:ClaudeRfaPolicy`), but tests use a function that returns a
+   `groupy.claude_requests.policies.claude_rfa_policy:ClaudeRfaPolicy`), but tests use a function that returns a
    fake policy.
-   1. Breaker creates a policy when it needs it, and does not keep it.
+   1. Groupy creates a policy when it needs it, and does not keep it.
 2. `grouping_strategy`: `simple`, `package` or `smart` (default: `package`).
 3. `max_group_lines` and `max_chunk_lines`: the maximum size of a group and of a chunk (in lines of code, default:
    2000 and 500).
 4. Fields that are missing in the config file get their default value.
 5. The config file is part of the session, so a change of the config file must be committed before
-   `breaker next` runs.
+   `groupy next` runs.
 
 ## Refactoring policy
 
-1. Breaker refactors the code (e.g. renaming a symbol, including its call sites) through a `RefactoringPolicy`
+1. Groupy refactors the code (e.g. renaming a symbol, including its call sites) through a `RefactoringPolicy`
    (`renamings/policies/refactoring_policy.py`). The default implementation, `RopeRefactoringPolicy`, uses rope.
    1. `rename_symbol(source_root, module_name, scope_location, name, new_name)` renames the symbol `name` in the
       scope (`@module` for module-level names, a class name for attributes and methods, or a function location for
@@ -86,26 +86,26 @@ The config file (`.breaker/config.yaml`) contains the choices that the developer
 2. Tests use `FakeRefactoringPolicy`, which subclasses `RopeRefactoringPolicy`, records the refactorings (the
    method, the module and the name), and raises an error for the refactorings that the test lets fail.
 
-## Breaker sync
+## Groupy sync
 
-A call to `breaker sync` updates the node files so that their structure reflects the structure of the source files
+A call to `groupy sync` updates the node files so that their structure reflects the structure of the source files
 again (e.g. after the developer changed the code by hand). The developer then reviews the changes, and updates the
-analysis (e.g. the concepts and steps) where needed, because Breaker does not re-evaluate it.
+analysis (e.g. the concepts and steps) where needed, because Groupy does not re-evaluate it.
 
 1. The structure consists of the names of the top-level functions, the classes and their methods, and the
    module-level variables.
    1. Helper function nodes count as top-level functions (also the helpers of methods), because helper functions
       are top-level functions in the Python code (see "Nested functions").
    2. Functions that are nested in the Python code have no node, so they are not compared.
-   3. Breaker does not detect changes inside a function body, so the analysis of a changed function may be stale
+   3. Groupy does not detect changes inside a function body, so the analysis of a changed function may be stale
       (MS-10 adds this).
-2. Breaker updates the node files:
+2. Groupy updates the node files:
    1. It adds a node for every name that is in the source but not in the node file. The new node is inserted in
       source order among its siblings.
    2. It removes the node of every name that is in the node file but not in the source.
       1. The helper function nodes of a removed node take its place (in the same list), so that they keep their
          own analysis. The analysis of the removed node itself is dropped.
-      2. A renamed function, class or variable is therefore a removed node and an added node: Breaker cannot tell a
+      2. A renamed function, class or variable is therefore a removed node and an added node: Groupy cannot tell a
          rename from a removal plus an addition. The analysis of the removed node is visible in the diff of the
          node file, so the developer can move it to the new node.
    3. It sets `line_count` of every module node file.
@@ -114,24 +114,24 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
       files accordingly.
    5. It updates the group file: a new module goes into the group of a module in the same dir, or else into a new
       group (with the next free group number). A deleted module is removed from its group.
-3. Breaker reports each change on a line:
+3. Groupy reports each change on a line:
    1. `<module>: added <location>` and `<module>: removed <location>`, where the location is the qualified name
       (e.g. `Book.save`). For a removed node with fields that do not have their default value (other than `name`),
       the line ends with `(it had <fields>)`, e.g. `(it had responsibilities, steps)`, as a hint to move them.
    2. `<module>: created the node file` and `<module>: deleted the node file`.
    3. The lines are sorted by module and location, and followed by the line
       `Please review the changes to the node files (e.g. with git diff), and move the analysis of renamed nodes.`
-      A change of `line_count` alone is not reported. Without changes, Breaker prints `The node files match the source.`
-4. `breaker sync` does not commit, and does not require a clean working tree. Since `breaker next` requires a clean
+      A change of `line_count` alone is not reported. Without changes, Groupy prints `The node files match the source.`
+4. `groupy sync` does not commit, and does not require a clean working tree. Since `groupy next` requires a clean
    working tree, the developer reviews and commits the changes before the next stage.
 
 ## Guidelines for the Claude requests
 
-1. Breaker pre-computes everything that can be computed deterministically and passes it to Claude as context.
+1. Groupy pre-computes everything that can be computed deterministically and passes it to Claude as context.
    1. E.g. the call graph (who calls which function, inside and outside the module), the source of the module,
       and the project glossary (in the analyze-terminology stage: the glossary so far).
-   2. Claude should spend its effort on judgement, not on facts that Breaker can compute.
-2. All edits to node files are done by Breaker, not by Claude directly.
+   2. Claude should spend its effort on judgement, not on facts that Groupy can compute.
+2. All edits to node files are done by Groupy, not by Claude directly.
    The edit location is passed in the callback as:
    - "@module": to indicate a change in the module node
    - \_get_api_url to indicate a change in the function node for that function
@@ -152,9 +152,9 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
    2. The callbacks in an RFR do not commit by themselves, because the source may be half-refactored while they
       run. Instead, `commit_refactoring(description)` checks that the changed Python files parse, and commits the
       source and the node files together with the message `<stage-id>: <description>`. If a file does not parse,
-      Breaker restores the working tree to the last commit and raises `RefactoringDoesNotParseError`.
+      Groupy restores the working tree to the last commit and raises `RefactoringDoesNotParseError`.
    3. An RFR that is made by a stage (rather than by a callback) must commit its work with `commit_refactoring`
-      (typically once per refactoring). When there are uncommitted changes after the RFR, Breaker restores the
+      (typically once per refactoring). When there are uncommitted changes after the RFR, Groupy restores the
       working tree and raises `UncommittedRefactoringError`.
    4. An RFR that is made by a callback (e.g. `extract_method`) does not call `commit_refactoring`: the callback
       verifies the result and commits.
@@ -164,7 +164,7 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
 1. Class methods are processed in the same way as standalone functions.
    1. A method is considered to be a function that is called in a special way (with a `self` argument).
    2. This applies to all analysis stages (e.g. helper functions, terminology, renamings and extract-method).
-2. In the call graph, calls to methods are marked as uncertain when Breaker cannot determine which method is called.
+2. In the call graph, calls to methods are marked as uncertain when Groupy cannot determine which method is called.
    1. E.g. `obj.save()` cannot be resolved without knowing the type of `obj`, and subclasses may override `save`.
    2. Claude takes this uncertainty into account when it uses the call graph (e.g. to decide whether a function
       is a helper function).
@@ -194,7 +194,7 @@ See ./chunking.md.
 
 ## Call graph
 
-Breaker maintains a single call graph for the target code (ignoring test code), and passes a filtered view of it
+Groupy maintains a single call graph for the target code (ignoring test code), and passes a filtered view of it
 to Claude. See ./call-graph.md.
 
 ## Example
@@ -252,17 +252,17 @@ An example node file is given in `./module_node_example.md`.
       the target dir).
 6. The `concepts` and `local_terms` fields map each concept or local term onto a short description.
    1. The description is empty if it is already given elsewhere (e.g. in `ModuleNode.concepts`).
-   2. Breaker writes an empty description as `null`, but accepts both `null` and `""`.
+   2. Groupy writes an empty description as `null`, but accepts both `null` and `""`.
 7. All paths in node files use the same notation: a file path relative to the source root
    (e.g. `myapp/reports/rules/create_user_stats_report.py`).
-8. Breaker leaves out the fields that have their default value (`null`, `{}`, `[]` or `false`) when it writes a
+8. Groupy leaves out the fields that have their default value (`null`, `{}`, `[]` or `false`) when it writes a
    node file, and it reads a missing field as its default value.
    1. Therefore, a missing field and a field with the default value mean the same thing.
    2. The fields are written in the order of the schema, so that loading and saving a node file keeps its contents.
 
 ## Glossary file
 
-1. The project glossary (`glossary.breaker.yaml` in the root of the target dir) is a list of entries. Each entry
+1. The project glossary (`glossary.groupy.yaml` in the root of the target dir) is a list of entries. Each entry
    describes one concept, with the fields:
    1. `name: str`: the name of the concept.
    2. `description: str`: a one-line description.
@@ -271,13 +271,13 @@ An example node file is given in `./module_node_example.md`.
 2. When a name is used for several meanings in the code-base, the glossary has an entry per meaning (with the same
    name), each with its own aliases and abbreviation.
 3. As for node files, fields that have their default value are left out.
-4. Breaker saves the entries sorted by name. The sort is stable, so entries with the same name keep their order.
+4. Groupy saves the entries sorted by name. The sort is stable, so entries with the same name keep their order.
 5. Callbacks identify an entry by its name.
    1. When several entries have that name, the callback also passes `meaning_nr`: the (1-based) position of the
       entry among the entries with that name. Without it, the callback is rejected as ambiguous.
 6. The glossary is a guide for choosing names. The concepts in the node files do not need to have an entry in the
    glossary, and the glossary does not record where its concepts are used.
-7. Breaker offers these actions on the glossary (they are also available as callbacks):
+7. Groupy offers these actions on the glossary (they are also available as callbacks):
    1. `add_glossary_entry(name, description)`: adds a new entry, also when there already is an entry with that name
       (a second meaning).
    2. `set_glossary_description(name, description)`.
@@ -304,37 +304,37 @@ An example node file is given in `./module_node_example.md`.
 
 # Milestones
 
-## MS-1: A developer initiates a breaker session
+## MS-1: A developer initiates a groupy session
 
-1. The developer runs `breaker init --target-dir=<target-dir> --branch-name=<branch-name>`
-2. Breaker will create a new branch with --branch-name
-3. Breaker will create a .breaker/session.yaml file in the repository root.
+1. The developer runs `groupy init --target-dir=<target-dir> --branch-name=<branch-name>`
+2. Groupy will create a new branch with --branch-name
+3. Groupy will create a .groupy/session.yaml file in the repository root.
    1. This session file contains a `next_stage` field that identifies the next stage of the refactoring
    2. It also contains the `target_dir` field that identifies the target code.
-   3. When the repository does not contain a config file (see "Config file"), Breaker creates it with all fields set
+   3. When the repository does not contain a config file (see "Config file"), Groupy creates it with all fields set
       to their default value. Otherwise, it keeps the existing config file.
-4. Breaker will create node files that form a source map
-   1. Per package it will create a package node file (called `package-node.breaker.yaml`) in the package root.
+4. Groupy will create node files that form a source map
+   1. Per package it will create a package node file (called `package-node.groupy.yaml`) in the package root.
       1. A package is the target dir (the root package), or a dir below it that contains Python modules, directly
          or in a sub-dir.
       2. A dir does not need an `__init__.py` to be a package (i.e. namespace packages are packages).
-   2. Per python module it will create a module node file (e.g. `books.py.breaker.yaml` for `books.py`)
+   2. Per python module it will create a module node file (e.g. `books.py.groupy.yaml` for `books.py`)
       1. Initially, each module node file just reflects the current contents of the module.
-      2. Specifically, Breaker sets the initial contents of the `function_nodes`, `class_nodes` and
+      2. Specifically, Groupy sets the initial contents of the `function_nodes`, `class_nodes` and
          `variable_nodes` fields.
       3. Every top-level function gets a node in `function_nodes`, and every method gets a node in the `method_nodes`
          of its class; the `helper_function_nodes` fields are still empty.
       4. Functions that are nested in the Python code get no node (see "Nested functions").
       5. An `__init__.py` is just another module, so it also gets a module node file.
-5. Breaker creates the group file (see ./chunking.md), using the grouping strategy and the sizes in the config file.
+5. Groupy creates the group file (see ./chunking.md), using the grouping strategy and the sizes in the config file.
    1. The developer can inspect (and edit) the group file before running the first stage.
-6. Breaker creates a first commit with the session file, the config file, the group file and the new node files.
+6. Groupy creates a first commit with the session file, the config file, the group file and the new node files.
    1. It will set `next_stage` to `identify-helper-functions`.
 
-## MS-2: Breaker identifies helper functions
+## MS-2: Groupy identifies helper functions
 
-1. The user calls `breaker next` to start the next stage.
-2. The stage processes the chunks one by one. For each chunk, Breaker computes the call graph and marks the helper
+1. The user calls `groupy next` to start the next stage.
+2. The stage processes the chunks one by one. For each chunk, Groupy computes the call graph and marks the helper
    candidates in the node files of the chunk (setting `is_helper_candidate`), and commits with the message
    `identify-helper-functions: mark_helper_candidates`.
    1. A function or method is a helper candidate when it has exactly one caller, and this caller is a function or
@@ -342,7 +342,7 @@ An example node file is given in `./module_node_example.md`.
    2. Therefore, a function is not a helper candidate when it has no callers, when it is called from module-level
       code, from another module or by several functions, or when one of its calls is uncertain.
    3. Dunder methods (e.g. `__init__`) are never helper candidates, because Python calls them.
-3. Breaker will ask Claude to examine the FunctionNodes in the module node file.
+3. Groupy will ask Claude to examine the FunctionNodes in the module node file.
    1. The RFA context contains the call graph view of the chunk (see ./call-graph.md), with the callers of each
       function.
    1. Claude decides which functions are helper functions and uses the move_function_to_parent action to nest them under their parent function.
@@ -355,7 +355,7 @@ An example node file is given in `./module_node_example.md`.
          method (which signifies that the method is treated as a helper function of its new parent).
    1. A function that is called by several functions in the module is not nested. It stays a top-level function
       (it later will typically become a rule or util).
-4. After the RFA of a chunk, Breaker renames the helper functions in the chunk so that they start with an underscore
+4. After the RFA of a chunk, Groupy renames the helper functions in the chunk so that they start with an underscore
    (in the node file and in the source, using the refactoring policy), and commits with the message
    `identify-helper-functions: rename_helper_functions`. Then it finishes the chunk.
    1. This applies to all helper function nodes, also to helpers of helpers and to helpers of methods. A helper
@@ -363,15 +363,15 @@ An example node file is given in `./module_node_example.md`.
    2. Rope also renames the call sites (and imports) in other modules.
    3. Renaming the helpers per chunk keeps the node files, the source and the call graph consistent for the next
       chunk.
-   4. When the new name clashes with an existing name in the module, Breaker raises an error (before it changes any
-      file), which interrupts the stage. The developer resolves the clash and runs `breaker next` again.
-5. Breaker commits the results and updates `next_stage` to `analyze-terminology`.
+   4. When the new name clashes with an existing name in the module, Groupy raises an error (before it changes any
+      file), which interrupts the stage. The developer resolves the clash and runs `groupy next` again.
+5. Groupy commits the results and updates `next_stage` to `analyze-terminology`.
 
-## MS-3: Breaker analyzes the terminology
+## MS-3: Groupy analyzes the terminology
 
-1. The developer runs `breaker next`
-2. Breaker will pass each node file to Claude and ask it to update it (by running actions)
-   1. Breaker makes an RFA per chunk. The RFA context contains:
+1. The developer runs `groupy next`
+2. Groupy will pass each node file to Claude and ask it to update it (by running actions)
+   1. Groupy makes an RFA per chunk. The RFA context contains:
       1. `module_sources`: the source of each module of the chunk (by module name).
       2. `call_graph_view`: the call graph view of the chunk, with the callers and the callees.
       3. `glossary`: the text of the glossary file so far (empty when there is no glossary file yet).
@@ -426,16 +426,16 @@ An example node file is given in `./module_node_example.md`.
             code-base.
             1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative
                abbreviations.
-   5. After the RFA of a chunk, Breaker checks that Claude analyzed every function node (also method nodes and
+   5. After the RFA of a chunk, Groupy checks that Claude analyzed every function node (also method nodes and
       helper function nodes) and class node of the chunk, i.e. that its `extract_method_priority` is set.
-      1. If some nodes are not analyzed, Breaker makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose
+      1. If some nodes are not analyzed, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose
          context lists their locations (`unanalyzed_nodes`, sorted, e.g. `myapp/books.py:Book.__init__`).
-      2. If nodes are still not analyzed after the follow-up RFA, Breaker raises an error that lists them. This
+      2. If nodes are still not analyzed after the follow-up RFA, Groupy raises an error that lists them. This
          interrupts the stage, and the chunk is not finished.
-3. After the last chunk, Breaker asks Claude to consolidate the glossary (in a single session that receives the
+3. After the last chunk, Groupy asks Claude to consolidate the glossary (in a single session that receives the
    entire glossary).
    1. The consolidation RFA has the id `analyze-terminology/consolidate-glossary`, and its context contains the
-      `glossary`. It is treated as a final chunk: Breaker records it in `finished_chunks` and commits with the message
+      `glossary`. It is treated as a final chunk: Groupy records it in `finished_chunks` and commits with the message
       `analyze-terminology: finish consolidate-glossary`, so that a stage that is interrupted during the
       consolidation only reruns the consolidation.
    2. Early chunks may have added entries that turn out to have the same meaning. Claude merges them into one entry,
@@ -445,13 +445,13 @@ An example node file is given in `./module_node_example.md`.
 4. The developer reviews the glossary and cleans it up.
    1. In particular, the developer gives entries with the same name distinct names (e.g. `report` for the user
       statistics, and `error_report`, with the alias `report`, for the error reports).
-5. Breaker commits the results and updates `next_stage` to `propose-renamings`.
+5. Groupy commits the results and updates `next_stage` to `propose-renamings`.
 
-## MS-4: Breaker proposes renamings that unify the terminology
+## MS-4: Groupy proposes renamings that unify the terminology
 
-1. The developer runs `breaker next`.
-2. Breaker asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field, using the glossary.
-   1. Breaker makes an RFA per chunk. The RFA context contains `module_sources` (the source of each module of the
+1. The developer runs `groupy next`.
+2. Groupy asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field, using the glossary.
+   1. Groupy makes an RFA per chunk. The RFA context contains `module_sources` (the source of each module of the
       chunk) and `glossary` (the text of the glossary file). Claude reads the concepts and aliases from the node
       files.
    2. Renamings are used to get rid of aliases. They apply to:
@@ -482,8 +482,8 @@ An example node file is given in `./module_node_example.md`.
          libraries are not renamed.
          1. ❔how will we ensure this?
          2. Maybe scramble the third party names to protect them from being renamed, and afterwards undo the scrambling?
-         3. The scrambled name should contain a special token that allows Breaker/Claude to skip that name.
-3. Breaker validates the proposed renamings after the RFA of each chunk.
+         3. The scrambled name should contain a special token that allows Groupy/Claude to skip that name.
+3. Groupy validates the proposed renamings after the RFA of each chunk.
    1. It reports a conflict when a new name clashes with an existing name in the same scope, that is not itself
       renamed. The scopes are:
       1. A function: its local symbols (variables and parameters) and the keys of its `renamings`.
@@ -499,90 +499,90 @@ An example node file is given in `./module_node_example.md`.
       1. `myapp/reports.py:create_report: title -> text clashes with the existing name text`
       2. `myapp/reports.py:create_report: report -> person and user -> person have the same new name`
       3. `myapp/reports.py:create_report: text -> title and title -> text form a cycle`
-   5. When there are conflicts, Breaker makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context
-      lists them (`renaming_conflicts`, sorted). If conflicts remain after the follow-up RFA, Breaker raises an error
+   5. When there are conflicts, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context
+      lists them (`renaming_conflicts`, sorted). If conflicts remain after the follow-up RFA, Groupy raises an error
       that lists them. This interrupts the stage, and the chunk is not finished.
-4. Breaker commits the results and updates `next_stage` to `apply-renamings`.
+4. Groupy commits the results and updates `next_stage` to `apply-renamings`.
 
-## MS-5: Breaker applies the unified terminology
+## MS-5: Groupy applies the unified terminology
 
 1. The developer reviews all node files, possibly making edits to the proposed renamings and terminology.
-2. When they are done, they run `breaker next`.
-   1. Breaker first checks all renamings for conflicts (see MS-4), before it changes anything. When there are
+2. When they are done, they run `groupy next`.
+   1. Groupy first checks all renamings for conflicts (see MS-4), before it changes anything. When there are
       conflicts, it raises the same error as propose-renamings, which lists them. Since a module whose renamings
       are applied has no renamings left, the check also works when the stage is resumed.
-   2. Breaker will then apply the renamings (using `rename_symbol` of the refactoring policy), including in all call
+   2. Groupy will then apply the renamings (using `rename_symbol` of the refactoring policy), including in all call
       sites in the code-base.
       1. This stage makes no Claude requests. It processes the chunks with `process_chunks`, and the modules of a
          chunk in sorted order.
-      2. Per module, Breaker applies all renamings of the module node file (the `renamings` of the module, its
+      2. Per module, Groupy applies all renamings of the module node file (the `renamings` of the module, its
          classes and its functions, and the `rename_to` of its functions, methods and classes), updates the node
          file, and commits with the message `apply-renamings: apply the renamings of <module>`. A module without
          renamings gets no commit.
-      3. Within a scope, Breaker orders the renames so that a chain works (e.g. for `title -> text` and
+      3. Within a scope, Groupy orders the renames so that a chain works (e.g. for `title -> text` and
          `text -> body`, it renames `text` first).
       4. A renaming whose old name is not a symbol in the source scope (e.g. a concept such as `outlier_point`)
          only renames the keys in the node file.
-      5. When a rename fails, Breaker discards the uncommitted changes (it restores the working tree to the last
+      5. When a rename fails, Groupy discards the uncommitted changes (it restores the working tree to the last
          commit, which also undoes the renames of the module that already succeeded), and re-raises the error. The
-         module keeps its renamings, so the next `breaker next` resumes at that module.
-   3. Breaker updates each node whose renamings it applied:
+         module keeps its renamings, so the next `groupy next` resumes at that module.
+   3. Groupy updates each node whose renamings it applied:
       1. `name` becomes `rename_to`, and `rename_to` is cleared.
       2. The keys of `concepts`, `local_terms` and `abbreviations` are renamed by the `renamings` of the node, all at
          once (so `text -> body` and `body -> content` turn the keys `text` and `body` into `body` and `content`).
          When a key that is not renamed already has the new name, it keeps its own description.
       3. `renamings` and `aliases` are cleared, because the aliases are gone.
-3. Breaker commits the results and updates `next_stage` to `extract-methods`.
+3. Groupy commits the results and updates `next_stage` to `extract-methods`.
 
-## MS-6: Breaker extract methods
+## MS-6: Groupy extract methods
 
-1. The developer runs `breaker next`.
-2. Breaker creates a list of functions to refactor based on the `FunctionNode.extract_method_priority` field.
+1. The developer runs `groupy next`.
+2. Groupy creates a list of functions to refactor based on the `FunctionNode.extract_method_priority` field.
    1. The candidates are the function nodes (also method nodes and helper function nodes) with the priority `high`
       or `medium`.
 3. It divides this list into chunks and asks Claude to apply "extract method" to each function that requires it.
-   1. Breaker makes an RFA per module chunk that has candidates. A chunk without candidates is finished without an
+   1. Groupy makes an RFA per module chunk that has candidates. A chunk without candidates is finished without an
       RFA.
    2. The RFA context contains `extract_method_candidates` (the locations `<module>:<location>`, with the `high`
       candidates first, then in order of location) and `module_sources`.
    3. Claude calls the callback `extract_method(module_name, location, new_name, description)`.
-      1. Breaker makes an RFR with the id `extract_method/<module>:<location>/<new_name>`, whose context contains
+      1. Groupy makes an RFR with the id `extract_method/<module>:<location>/<new_name>`, whose context contains
          the `module_name`, `location`, `new_name` and `description`. In the RFR, Claude adds the top-level function
          `new_name` to the module (also when it extracts from a method) and calls it from the parent.
-      2. After the RFR, Breaker checks that the module has a new top-level function `new_name`, and that the parent
+      2. After the RFR, Groupy checks that the module has a new top-level function `new_name`, and that the parent
          still exists. If not, it restores the working tree to the last commit and raises
          `ExtractMethodFailedError`.
       3. Otherwise, the extract-method action creates a node for the extracted function in `function_nodes` (in
-         source order), and Breaker commits with the message `extract-methods: extract_method`.
+         source order), and Groupy commits with the message `extract-methods: extract_method`.
    4. In the same RFA, Claude fills in the analysis of the extracted function (e.g. concepts, responsibilities and
       steps) and updates the analysis of the parent function.
       1. When the extracted function is a helper function of the parent, Claude nests it with
-         `move_function_to_parent`. After the RFA, Breaker renames the helper functions of the chunk so that they
+         `move_function_to_parent`. After the RFA, Groupy renames the helper functions of the chunk so that they
          start with an underscore (as in MS-2), and commits with the message
          `extract-methods: rename_helper_functions` (only when it renamed something).
    5. Claude sets the `extract_method_priority` of a candidate to `n/a` when it is done with it (also when it
       decides not to extract anything).
-      1. After the RFA of a chunk, Breaker makes one follow-up RFA (with the id `<rfa-id>/retry-1`) for the candidates
+      1. After the RFA of a chunk, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) for the candidates
          that still have the priority `high` or `medium`, whose context lists them (`unfinished_candidates`).
-      2. If candidates are still unfinished after the follow-up RFA, Breaker raises `UnfinishedCandidatesError`,
+      2. If candidates are still unfinished after the follow-up RFA, Groupy raises `UnfinishedCandidatesError`,
          which lists them. This interrupts the stage, and the chunk is not finished.
-4. Breaker commits the results and updates `next_stage` to `propose-move-steps-to-caller`.
+4. Groupy commits the results and updates `next_stage` to `propose-move-steps-to-caller`.
 
-## MS-7: Breaker moves steps to the caller
+## MS-7: Groupy moves steps to the caller
 
 Moving a step changes the behaviour for every caller, so the developer reviews the proposed moves before they are
 applied. The stage is therefore split in two: `propose-move-steps-to-caller` and `apply-move-steps-to-caller`.
 
-1. The developer runs `breaker next`.
-2. Breaker asks Claude to identify steps in a function F that should be done by the caller of F, before it calls F.
+1. The developer runs `groupy next`.
+2. Groupy asks Claude to identify steps in a function F that should be done by the caller of F, before it calls F.
    1. Typically, such a step has already been extracted into a separate function in the extract-methods stage,
       so that moving the step means moving a single function call.
-   2. Breaker passes the callers of F (from the call graph) to Claude.
+   2. Groupy passes the callers of F (from the call graph) to Claude.
    3. A step is only moved when F has a single caller, or when all callers of F should clearly perform the step.
       Otherwise, moving the step would duplicate code.
    4. The candidates are the function nodes (also method nodes and helper function nodes) that have at least one
       caller, where all callers are functions or methods with certain edges (not module-level code).
-   5. Breaker makes an RFA per chunk that has candidates. A chunk without candidates is finished without an RFA. The
+   5. Groupy makes an RFA per chunk that has candidates. A chunk without candidates is finished without an RFA. The
       RFA context contains `move_step_candidates` (the locations `<module>:<location>`, sorted), `module_sources`,
       and `caller_sources`: the source of each caller of a candidate (also in other modules), by its location.
       1. The source of a caller that is a method is dedented, and its location is its qualified name (e.g.
@@ -597,8 +597,8 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
          `steps_to_move_to_caller`.
    7. The source does not change. There is no check that Claude considered every candidate: moving steps is
       optional.
-3. Breaker commits the results and updates `next_stage` to `apply-move-steps-to-caller`.
-4. The developer reviews the proposed moves (and possibly edits them), and runs `breaker next`.
+3. Groupy commits the results and updates `next_stage` to `apply-move-steps-to-caller`.
+4. The developer reviews the proposed moves (and possibly edits them), and runs `groupy next`.
 5. Claude moves the steps to the caller(s) of F, and updates the analysis of F and of its callers.
    1. Since this is a refactoring of the source, the stage makes an RFR (not an RFA) per chunk that has steps to
       move, with the id `apply-move-steps-to-caller/<chunk-id>`. A chunk without steps to move is finished without
@@ -610,19 +610,19 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
       `commit_refactoring` after each move (see "Guidelines for the Claude requests"). Removing the step from F
       (with `remove_step`) also removes it from `steps_to_move_to_caller`. When Claude decides that a step cannot be moved,
       it withdraws the proposal with `remove_step_to_move_to_caller`.
-   4. After the RFR of a chunk, Breaker makes one follow-up RFR (with the id `<rfr-id>/retry-1`) for the steps that
+   4. After the RFR of a chunk, Groupy makes one follow-up RFR (with the id `<rfr-id>/retry-1`) for the steps that
       are still in `steps_to_move_to_caller`, whose context lists them. If steps are still not moved after the follow-up RFR,
-      Breaker raises `UnappliedStepMovesError`, which lists them. This interrupts the stage, and the chunk is not
+      Groupy raises `UnappliedStepMovesError`, which lists them. This interrupts the stage, and the chunk is not
       finished.
-6. Breaker commits the results and updates `next_stage` to `propose-module-layout`.
+6. Groupy commits the results and updates `next_stage` to `propose-module-layout`.
 
-## MS-8: Breaker proposes to restructure the code
+## MS-8: Groupy proposes to restructure the code
 
-1. The developer runs `breaker next`.
-2. Breaker asks Claude to propose the module layout of the application package.
+1. The developer runs `groupy next`.
+2. Groupy asks Claude to propose the module layout of the application package.
    1. Claude receives the glossary and, for each module node file, the module concepts and the names and
       responsibilities of the top-level functions and classes.
-      1. Breaker makes a single RFA for the whole code-base, with the id `propose-module-layout/all`. It is recorded
+      1. Groupy makes a single RFA for the whole code-base, with the id `propose-module-layout/all`. It is recorded
          as a finished chunk (`finish all`), so that a resumed stage does not repeat it.
       2. The RFA context contains `glossary` (the text of the glossary file) and `module_summaries`: per module
          node file, its `concepts` and its `code_units`, which map the name of each top-level function and class
@@ -632,16 +632,16 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
       1. A module name is the path of a (feature) package, e.g. `myapp/books` or `myapp/utils`.
       2. The actions are `set_proposed_module(name, description)` and `remove_proposed_module(name)`.
    3. The developer reviews (and possibly edits) the proposed module layout.
-3. Breaker commits the results and updates `next_stage` to `propose-code-restructure`.
-4. The developer runs `breaker next`.
-5. Breaker asks Claude to propose a structuring for each module node file, using the proposed module layout.
-   1. Breaker makes an RFA per chunk, whose context contains `module_sources`, `proposed_modules`,
+3. Groupy commits the results and updates `next_stage` to `propose-code-restructure`.
+4. The developer runs `groupy next`.
+5. Groupy asks Claude to propose a structuring for each module node file, using the proposed module layout.
+   1. Groupy makes an RFA per chunk, whose context contains `module_sources`, `proposed_modules`,
       `call_graph_view` (with the callers and callees, so that Claude can follow the dependency direction) and
       `glossary`. Claude uses the callbacks `set_code_unit_type`, `set_move_to_file` and `set_rename_to`.
    2. For every top-level function, class and module-level variable, Claude sets the `code_unit_type` field
       and the `move_to_file` field.
       1. Claude leaves `move_to_file` empty when the target is the current file. Since an empty field is left
-         out of the node file, Breaker uses `code_unit_type` to check that every node was considered.
+         out of the node file, Groupy uses `code_unit_type` to check that every node was considered.
       2. Helper function nodes need no `code_unit_type`, because they move with their parent.
       3. The target file of a node is its `move_to_file`, or else its module (with the module's `rename_to`, if
          any).
@@ -689,10 +689,10 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
             and the other files import it from there.
             1. Preferably, this is the file of the lowest code unit in the dependency direction (see
                "Dependencies"), so that the imports follow that direction.
-            2. If this creates a circular import, then the developer fixes it later (Breaker does not try to
+            2. If this creates a circular import, then the developer fixes it later (Groupy does not try to
                prevent it).
       9. Application entrypoints go to `<app_package>/runtime/entrypoints/<name>.py`.
-         1. Entrypoints are usually registered in the `[project.scripts]` section of `pyproject.toml`, but this is outside of scope for Breaker.
+         1. Entrypoints are usually registered in the `[project.scripts]` section of `pyproject.toml`, but this is outside of scope for Groupy.
       10. An exception class is defined in the action file that raises it.
           1. Only very generic exceptions that are shared by many actions go to `<module>/utils/exceptions.py`.
       11. A class that defines the interface to an external service (e.g. Claude, Jira or a payment provider) is a
@@ -715,19 +715,14 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
                Claude), it receives the function as an argument.
       2. Imports between modules must not create circular imports at runtime.
          1. Type references to models in other modules use a `typing.TYPE_CHECKING` guard.
-7. Breaker validates the proposal after the RFA of each chunk.
+7. Groupy validates the proposal after the RFA of each chunk.
    1. It validates all node files, and keeps the problems of the nodes of the chunk (so that a clash with a node of
       an earlier chunk is reported for the node of this chunk). Each problem is a line
-      `<module>:<location>: <description>`, e.g.:
-      1. `myapp/reports/report.py:count_reports: has no code_unit_type`
-      2. `myapp/reports/report.py:Report: a model goes to <package>/models/report.py, not
-         myapp/reports/rules/report.py`
-      3. `myapp/reports/report.py:create_book: myapp/books/actions/create_book.py already receives
-         myapp/books.py:create_book`
-      4. `myapp/reports/report.py:Report.__str__: a dunder method cannot delegate` (and likewise `a property`,
-         `an override of Base.describe` and `a method that uses super()`)
-      5. `myapp/reports/report.py:list_kinds: the target package myapp/reports/enums clashes with the module
-         myapp/reports/enums.py`
+      `<module>:<location>: <description>`, e.g.: 1. `myapp/reports/report.py:count_reports: has no code_unit_type` 2. `myapp/reports/report.py:Report: a model goes to <package>/models/report.py, not
+myapp/reports/rules/report.py` 3. `myapp/reports/report.py:create_book: myapp/books/actions/create_book.py already receives
+myapp/books.py:create_book` 4. `myapp/reports/report.py:Report.__str__: a dunder method cannot delegate` (and likewise `a property`,
+      `an override of Base.describe` and `a method that uses super()`) 5. `myapp/reports/report.py:list_kinds: the target package myapp/reports/enums clashes with the module
+myapp/reports/enums.py`
    2. It checks that every top-level node has a `code_unit_type`.
    3. It checks that each `move_to_file` path matches the location rule of its `code_unit_type`.
    4. It checks that no target file receives more than one public code unit (except for util group files,
@@ -741,25 +736,23 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
    6. It checks that no target package has the same name as an existing module that stays (e.g.
       `myapp/books/actions/create_book.py` while `myapp/books.py` is not renamed), because Python cannot import
       both.
-   7. When there are problems, Breaker makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context lists
-      them (`restructure_problems`, sorted). If problems remain after the follow-up RFA, Breaker raises
+   7. When there are problems, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context lists
+      them (`restructure_problems`, sorted). If problems remain after the follow-up RFA, Groupy raises
       `CodeRestructureHasProblemsError`, which lists them. This interrupts the stage, and the chunk is not finished.
    8. After the last chunk, it uses the call graph to report dependencies that violate the dependency direction.
-      They do not block the stage, because the developer may accept them during the review.
-      1. The code unit type of a node is its `code_unit_type`. A helper function has the type of its parent, and a
-         method has the type of its class, unless the method delegates (then it has its own `code_unit_type`, so
-         that its calls are judged as calls of the new function).
-      2. Breaker prints `The proposed code structure has dependency violations:`, followed by a line per
-         violation, sorted, e.g. `myapp/reports/report.py:get_overdue_reports (rule) calls
-         myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
-         `The proposed code structure follows the dependency direction.`
-8. Breaker commits the results and updates `next_stage` to `apply-code-restructure`.
+      They do not block the stage, because the developer may accept them during the review. 1. The code unit type of a node is its `code_unit_type`. A helper function has the type of its parent, and a
+      method has the type of its class, unless the method delegates (then it has its own `code_unit_type`, so
+      that its calls are judged as calls of the new function). 2. Groupy prints `The proposed code structure has dependency violations:`, followed by a line per
+      violation, sorted, e.g. `myapp/reports/report.py:get_overdue_reports (rule) calls
+myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
+      `The proposed code structure follows the dependency direction.`
+8. Groupy commits the results and updates `next_stage` to `apply-code-restructure`.
 
-## MS-9: Breaker restructures the code
+## MS-9: Groupy restructures the code
 
 1. The developer reviews the proposed code restructure (the `code_unit_type`, `move_to_file` and
-   `ModuleNode.rename_to` fields), possibly editing it, and runs `breaker next`.
-2. Breaker first validates the proposal again (as in MS-8), because the developer may have edited it. It does this
+   `ModuleNode.rename_to` fields), possibly editing it, and runs `groupy next`.
+2. Groupy first validates the proposal again (as in MS-8), because the developer may have edited it. It does this
    before it changes anything, and also when the stage is resumed (the restructured modules have no proposal left,
    so they pass).
    1. The problems of MS-8 (a missing `code_unit_type`, a `move_to_file` that does not match the location rule of
@@ -768,7 +761,7 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
       which lists them.
    2. Dependencies that violate the dependency direction are only reported (printed, as in MS-8), because the
       developer may have accepted them during the review.
-3. Breaker applies the restructure with the refactoring policy, so that the imports and call sites in the
+3. Groupy applies the restructure with the refactoring policy, so that the imports and call sites in the
    code-base are updated (rope's "move module" and "move global" refactorings). This stage makes no Claude requests.
    1. The refactoring policy gets three more methods:
       1. `move_module(source_root, module_name, new_module_name)`: moves (renames) a module.
@@ -778,14 +771,14 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
          function `function_name` to the module, with the body of the method, where `self` is replaced by a
          parameter named after the class in snake_case (e.g. `book`). The body of the method becomes
          `return <function_name>(self, <arguments>)`.
-   2. Breaker processes the chunks with `process_chunks`, and the modules of a chunk in sorted order. Per module:
+   2. Groupy processes the chunks with `process_chunks`, and the modules of a chunk in sorted order. Per module:
       1. It first renames the module to its `rename_to` (with `move_module`), so that the code units that stay in
          the module end up in their final file.
       2. Then it lets each method with a `move_to_file` delegate to a new function (with `delegate_method`), and
          moves that function to the `move_to_file` (with `move_symbol`), together with the helper functions of the
          method.
          1. Rope adds a module-level import of the new function to the module of the class. Since the new function
-            typically imports the class (e.g. a model), Breaker replaces this import by a local import inside the
+            typically imports the class (e.g. a model), Groupy replaces this import by a local import inside the
             delegating method, to avoid a circular import. The delegating method then reads, e.g.:
 
             ```python
@@ -793,12 +786,14 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
                 from myapp.reports.rules.render_report import render_report
                 return render_report(self)
             ```
+
       3. Then it moves each top-level node with a `move_to_file` to that file (with `move_symbol`), in source order.
          1. The helper functions of a function move together with it, because they stay in the file of their
             parent function. A helper function node is moved after its parent, in the order of the node file.
          2. A class moves with its methods (including the delegating methods).
       4. It deletes a module that no longer contains any code (except an `__init__.py`), together with its node
          file.
+
    3. A target package that does not exist yet is created with an empty `__init__.py` (❔ or as a namespace
       package, without `__init__.py`, if rope supports that). The new `__init__.py` is a module like any other: it
       gets a module node file, it is listed in the `module_names` of its package node file, and it goes into the
@@ -806,47 +801,48 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
    4. ❔ A target package with the same name as an existing module that stays is rejected by the validation (see
       MS-8), and the developer resolves it by choosing another name. A later version may resolve such clashes
       itself.
-4. Breaker updates the node files along with the source.
+
+4. Groupy updates the node files along with the source.
    1. A renamed module keeps its node file, which is renamed with it. Its `name` becomes the new path, and
       `rename_to` is cleared.
    2. A moved node (with its helper function nodes or method nodes) is removed from the node file of the source
-      module and added to the node file of the target module (which Breaker creates when it does not exist), in
+      module and added to the node file of the target module (which Groupy creates when it does not exist), in
       source order. It keeps its analysis, and its `move_to_file` is cleared. Its `code_unit_type` is kept.
-   3. For a delegating method, Breaker adds a function node for the new function to the node file of the target
+   3. For a delegating method, Groupy adds a function node for the new function to the node file of the target
       module, with the analysis of the method node (e.g. its concepts, responsibilities, steps and helper function
       nodes) and its `code_unit_type`. The method node stays in its class, with `Delegates to <function_name>` as its
       only responsibility, and without the other analysis, `code_unit_type` and `move_to_file`.
-   4. Breaker updates the `module_names` of the package node files and creates the package node file of a new
-      package (as in "Breaker sync").
-   5. Breaker updates the group file: a module that is renamed keeps its group, and a new target module goes into
+   4. Groupy updates the `module_names` of the package node files and creates the package node file of a new
+      package (as in "Groupy sync").
+   5. Groupy updates the group file: a module that is renamed keeps its group, and a new target module goes into
       the group of the module that its first code unit came from (see ./chunking.md, "Smart grouping", 4.1 and 4.2).
-5. Breaker commits per module, with the message `apply-code-restructure: restructure <module>`, where `<module>` is
+5. Groupy commits per module, with the message `apply-code-restructure: restructure <module>`, where `<module>` is
    the path of the module before the restructure. A module without `rename_to`, without delegating methods and
    without nodes to move gets no commit.
-   1. A failed refactoring interrupts the stage and restores the working tree (see "Breaker next"). Since the
+   1. A failed refactoring interrupts the stage and restores the working tree (see "Groupy next"). Since the
       `rename_to` and `move_to_file` fields of the committed modules are cleared, a resumed stage continues with the
       remaining modules.
-6. Breaker does not try to fix circular imports or failing tests that the restructure causes. After the stage, the
+6. Groupy does not try to fix circular imports or failing tests that the restructure causes. After the stage, the
    developer runs the tests and fixes the remaining problems (e.g. by moving a constant, or by adding a
    `typing.TYPE_CHECKING` guard).
-7. Breaker commits the results and updates `next_stage` to `done`.
-   1. `breaker next` with `next_stage` set to `done` prints `The refactoring is done.` and does nothing.
-   2. ❔ A later version may start a new round (e.g. by running `breaker group` and `analyze-terminology` again on
+7. Groupy commits the results and updates `next_stage` to `done`.
+   1. `groupy next` with `next_stage` set to `done` prints `The refactoring is done.` and does nothing.
+   2. ❔ A later version may start a new round (e.g. by running `groupy group` and `analyze-terminology` again on
       the restructured code).
 
-## MS-10: Breaker sync detects changed and renamed functions
+## MS-10: Groupy sync detects changed and renamed functions
 
 1. Every `FunctionNode` gets a `body_hash: str | None` field: the first 12 hex characters of the md5 hash of the
    `ast.dump()` of the function's decorators, arguments and body (but not its name).
    1. Since the hash is computed from the AST, formatting and comments don't change it (docstrings do).
-   2. Breaker sets the hash when it creates a node (e.g. in `breaker init` and `breaker sync`).
-2. Whenever Breaker commits, it first refreshes the `body_hash` of the functions in the modules that changed, so
-   that its own changes of the code (e.g. by rope or by an RFR) are not reported by `breaker sync`.
-   1. Alternatively, we require the user to run `breaker hash` before they edit the source code manually.
-3. `breaker sync` uses the hash:
+   2. Groupy sets the hash when it creates a node (e.g. in `groupy init` and `groupy sync`).
+2. Whenever Groupy commits, it first refreshes the `body_hash` of the functions in the modules that changed, so
+   that its own changes of the code (e.g. by rope or by an RFR) are not reported by `groupy sync`.
+   1. Alternatively, we require the user to run `groupy hash` before they edit the source code manually.
+3. `groupy sync` uses the hash:
    1. It reports a function whose hash differs from the source as `<module>: changed <location>`, and updates the
       hash. It does not change the analysis: the developer reviews whether it is still correct.
-   2. When a removed node and an added node in the same module (with the same parent) have the same hash, Breaker
+   2. When a removed node and an added node in the same module (with the same parent) have the same hash, Groupy
       treats them as a rename: it renames the node, so that it keeps its analysis, and reports
       `<module>: renamed <old location> to <new location>`.
    3. A rename combined with a change of the body is still reported as a removed and an added node.

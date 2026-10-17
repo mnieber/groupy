@@ -1,5 +1,5 @@
-from breaker.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
+from groupy_next_tests.groupy_next_test_env import callback
 from propose_renamings_tests.propose_renamings_test_env import (
     RETRY_RFA_ID,
     RFA_ID,
@@ -72,14 +72,14 @@ def test_propose_renamings_rejects_conflicting_renamings(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should raise an error that lists the clashes, which interrupts
+    # Groupy should raise an error that lists the clashes, which interrupts
     # the stage. A swap is a clash, because the renamings have no order in
     # which they can be applied. The chunk should not be finished, but the
     # callbacks should have been committed.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, ProposedRenamingHasConflictError)

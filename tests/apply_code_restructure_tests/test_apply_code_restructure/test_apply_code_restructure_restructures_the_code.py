@@ -7,10 +7,10 @@ from apply_code_restructure_tests.apply_code_restructure_test_env import (
     Context,
     TestEnv,
 )
-from breaker.functions.actions.add_responsibility import add_responsibility
-from breaker.nodes.actions.set_code_unit_type import set_code_unit_type
-from breaker.nodes.actions.set_move_to_file import set_move_to_file
-from breaker.nodes.actions.set_rename_to import set_rename_to
+from groupy.functions.actions.add_responsibility import add_responsibility
+from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
+from groupy.nodes.actions.set_move_to_file import set_move_to_file
+from groupy.nodes.actions.set_rename_to import set_rename_to
 
 REPORT = "myapp/reports/report.py"
 CREATE_REPORT = "myapp/reports/actions/create_report.py"
@@ -62,13 +62,13 @@ def test_apply_code_restructure_restructures_the_code(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have validated the proposal (which follows the
+    # Groupy should have validated the proposal (which follows the
     # dependency direction), restructured the modules one by one, and
     # finished the chunks and the stage.
     if env.step(
-        env.run_breaker_next(),
+        env.run_groupy_next(),
     ):
         assert env.commit_messages_since_remembered_head() == [
             "apply-code-restructure: restructure myapp/books.py",
@@ -134,7 +134,7 @@ def test_apply_code_restructure_restructures_the_code(context: Context):
     if env.step(
         env.load_module_node(CREATE_BOOK),
     ):
-        assert not env.file_exists(f"src/{BOOKS}.breaker.yaml")
+        assert not env.file_exists(f"src/{BOOKS}.groupy.yaml")
         assert env.module_node.name == CREATE_BOOK
         assert env.module_node.rename_to is None
         assert env.names(env.module_node.function_nodes) == ["create_book"]
@@ -186,14 +186,14 @@ def test_apply_code_restructure_restructures_the_code(context: Context):
         assert env.group_of(NEW_CREATE_CHAPTER) == 2
         assert env.group_of(RENDER_REPORT) == 3
 
-    # We look at the session, and run breaker next again.
+    # We look at the session, and run groupy next again.
     #
-    # The next stage should be done, so breaker next should only report
+    # The next stage should be done, so groupy next should only report
     # that the refactoring is done.
     if env.step(
         env.load_session(),
         env.remember_git_head(),
-        env.run_breaker_next(),
+        env.run_groupy_next(),
     ):
         assert env.session.next_stage == "done"
         assert env.output_lines == ["The refactoring is done."]

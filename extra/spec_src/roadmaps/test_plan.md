@@ -4,13 +4,13 @@ This plan lists the tests that we still need to write, in the order in which we 
 the workflow-test style (a workflow test per main scenario in `test_<feature>/`, impl tests for edge cases in
 `test_<feature>_impl/`). Each test package has its own `conftest.py` and Env.
 
-The "Exercises" lists name the code units that the tests import or run, as paths relative to `src/breaker/`.
+The "Exercises" lists name the code units that the tests import or run, as paths relative to `src/groupy/`.
 Together they describe the code structure that the tests imply. Code units that only appear indirectly (e.g. a rule
 that is only called by an action under test) are listed where they are first needed.
 
 Feature packages:
 
-- `sessions`: the session file, `breaker init`, commits, the stages (`Stages`) and the finished chunks.
+- `sessions`: the session file, `groupy init`, commits, the stages (`Stages`) and the finished chunks.
 - `nodes`: node files (create, load, save, find, sync) and edits of fields that every kind of node has.
 - `functions`: edits and refactorings of function nodes and functions (helpers, steps, extract method).
 - `concepts`: terminology fields of nodes and the glossary.
@@ -19,12 +19,12 @@ Feature packages:
 - `claude_requests`: RFAs, RFRs, callbacks and incremental accumulation.
 - `groups`: grouping and chunking.
 - `restructure`: the module layout and the code restructure.
-- `runtime`: the CLI entrypoint and `run_next_stage` (which dispatches `breaker next` to the stage actions).
+- `runtime`: the CLI entrypoint and `run_next_stage` (which dispatches `groupy next` to the stage actions).
 - `utils`: generic helpers (e.g. git).
 
 ## Done
 
-1. `breaker init` (MS-1): session file, branch, node files, clean working tree, existing session, namespace packages.
+1. `groupy init` (MS-1): session file, branch, node files, clean working tree, existing session, namespace packages.
 2. Node files.
 3. `move_function_to_parent`.
 4. Node file edits (batch 1, in `tests/node_edits_tests/`): finding edit locations, and setting the scalar, dict and
@@ -33,12 +33,12 @@ Feature packages:
    a chunk, and the query callbacks.
 6. Groups and chunks (batch 3, in `tests/groups_tests/`): the `simple` and `package` grouping strategies, and
    splitting a group into chunks with per-group chunk ids.
-7. `breaker next` and the stage runner (batch 4, in `tests/breaker_next_tests/` and `tests/sessions_tests/`): the
-   config file, the group file in `breaker init`, the preconditions of `breaker next`, running a (fake) stage with
+7. `groupy next` and the stage runner (batch 4, in `tests/breaker_next_tests/` and `tests/sessions_tests/`): the
+   config file, the group file in `groupy init`, the preconditions of `groupy next`, running a (fake) stage with
    commits per action, and resuming an interrupted stage.
 8. Glossary (batch 5, in `tests/glossary_tests/`): loading and saving the glossary, and the glossary edits (also for
    names with several meanings).
-9. `breaker sync` (batch 6, in `tests/breaker_sync_tests/`): updating the node files, the package node files and the
+9. `groupy sync` (batch 6, in `tests/breaker_sync_tests/`): updating the node files, the package node files and the
    group file after the source changed, the report of the changes, and keeping the helpers of a removed node.
 10. `identify-helper-functions` (batch 7, in `tests/identify_helper_functions_tests/`): marking the helper
     candidates per chunk, nesting the helpers via callbacks, renaming them with rope (also the call sites in other
@@ -78,7 +78,7 @@ Feature packages:
       an interrupted stage).
 2. The tests use fake policies (in a `fake_policies.py` next to the tests). The config file of a test refers to a
    function in that module that returns the fake policy (e.g. `get_fake_rfa_policy`), and the test scripts the fake
-   before it runs `breaker next`. A fake is only added once a test needs it.
+   before it runs `groupy next`. A fake is only added once a test needs it.
    1. `FakeRfaPolicy` maps each RFA id onto a list of scripted callbacks (an action name plus its arguments). It runs
       these callbacks through the same callback dispatcher that the real policy uses.
    2. `FakeRfrPolicy` maps each RFR id onto a list of scripted steps: file writes (`file_write`, the new text of a
@@ -88,7 +88,7 @@ Feature packages:
       (`calls`) and raises `FakeRefactoringError` for the refactorings that a test lets fail
       (`failing_refactorings`, by module and name, with `@module` for `move_module`).
    5. Every fake records the requests that it receives (id, prompt and context), so that tests can assert on the
-      context that Breaker pre-computed (e.g. the call-graph view).
+      context that Groupy pre-computed (e.g. the call-graph view).
    6. A request without a script raises an error, so that unexpected requests fail the test.
 3. Tests use the `simple` grouping strategy with a large group and chunk size (set in the config file), so that the
    chunk ids are predictable, except in the tests of the grouping strategies themselves.
@@ -101,7 +101,7 @@ Feature packages:
 
 ## 9. The stages
 
-One workflow test per stage, plus impl tests for its validations. Each workflow test runs `breaker next` with
+One workflow test per stage, plus impl tests for its validations. Each workflow test runs `groupy next` with
 scripted callbacks and checks the node files, the source, the commits and `next_stage`. Every stage is an action
 that `runtime/actions/run_next_stage.py` calls.
 
@@ -114,7 +114,7 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
    units are moved (with their helper functions or methods) with the refactoring policy, including the imports;
    new packages get an `__init__.py`; the node files (also the function node of a delegating method, and the
    reduced method node), package node files and group file follow; emptied modules are deleted; a commit per
-   module; resuming after a failed refactoring; `next_stage` becomes `done`, and `breaker next` then reports that
+   module; resuming after a failed refactoring; `next_stage` becomes `done`, and `groupy next` then reports that
    the refactoring is done. The tests check the source structurally (AST-based: top-level names, imports, and the
    exact source of the delegating method and the new function), so that they don't depend on rope's formatting.
    - Exercises: `restructure/actions/apply_code_restructure.py` (the stage), `move_module`, `move_symbol` and
@@ -125,7 +125,7 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
 ## 10. Smart grouping and the group file
 
 1. Smart grouping with `FakeGroupingPolicy`: the index file, the group description file and the group file;
-   Breaker rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
+   Groupy rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
    - Exercises: `groups/actions/create_index_file.py`, `groups/actions/create_smart_groups.py`,
      `groups/rules/load_group_file.py` (malformed lines), `groups/rules/validate_group_descriptions.py`.
 2. Incremental accumulation as a generic mechanism: batches of K items, validation of the state file after each
@@ -133,15 +133,15 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
    - Exercises: `claude_requests/actions/run_incremental_accumulation.py`.
 3. The group file is updated when an action renames a file or splits off a new file.
    - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py` (first needed
-     by `breaker sync`).
-4. `breaker group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
+     by `groupy sync`).
+4. `groupy group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
    and commits it.
-   - Exercises: `runtime/entrypoints/breaker.py`, `groups/actions/create_group_file.py`.
+   - Exercises: `runtime/entrypoints/groupy.py`, `groups/actions/create_group_file.py`.
 
 ## Open points in the design
 
 1. MS-9: should new target packages be namespace packages (without `__init__.py`), if rope supports that?
-2. MS-9: how should Breaker handle a target package with the same name as an existing module? For now, the
+2. MS-9: how should Groupy handle a target package with the same name as an existing module? For now, the
    validation (MS-8) reports it and the developer picks another name.
-3. MS-9: should `done` be followed by a new round (e.g. `breaker group` and `analyze-terminology` on the
+3. MS-9: should `done` be followed by a new round (e.g. `groupy group` and `analyze-terminology` on the
    restructured code)?

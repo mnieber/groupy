@@ -1,4 +1,4 @@
-from breaker.call_graph.enums import CallScopes
+from groupy.call_graph.enums import CallScopes
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     BOOKS,
     BOOKS_CALLBACKS,
@@ -11,7 +11,7 @@ from propose_code_restructure_tests.propose_code_restructure_test_env import (
     TestEnv,
     commit_messages,
 )
-from sessions_tests.breaker_test_env import BOOKS_PY
+from sessions_tests.groupy_test_env import BOOKS_PY
 
 
 def create_env(context: Context):
@@ -35,13 +35,13 @@ def test_propose_code_restructure_records_the_proposal(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have made an RFA per chunk, committed after each
+    # Groupy should have made an RFA per chunk, committed after each
     # callback, and finished the chunks and the stage. The proposal follows
-    # the dependency direction, so Breaker should say so.
+    # the dependency direction, so Groupy should say so.
     if env.step(
-        env.run_breaker_next(),
+        env.run_groupy_next(),
     ):
         assert env.rfa_ids() == [BOOKS_RFA_ID, CHAPTERS_RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

@@ -71,13 +71,13 @@ def test_propose_move_steps_to_caller_selects_candidates(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
     # The modules of myapp/chapters have no candidates (describe_chapter and
     # create_chapter have no callers), so group-2 should be finished without
     # an RFA.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfa_ids() == [RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

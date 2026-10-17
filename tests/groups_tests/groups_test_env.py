@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.groups.models.chunk import Chunk
-from breaker.groups.models.group import Group
-from breaker.groups.rules.create_package_groups import create_package_groups
-from breaker.groups.rules.create_simple_groups import create_simple_groups
-from breaker.groups.rules.split_group_into_chunks import split_group_into_chunks
-from breaker.nodes.actions.create_module_node_file import create_module_node_file
-from breaker.nodes.actions.create_package_node_file import create_package_node_file
+from groupy.groups.models.chunk import Chunk
+from groupy.groups.models.group import Group
+from groupy.groups.rules.create_package_groups import create_package_groups
+from groupy.groups.rules.create_simple_groups import create_simple_groups
+from groupy.groups.rules.split_group_into_chunks import split_group_into_chunks
+from groupy.nodes.actions.create_module_node_file import create_module_node_file
+from groupy.nodes.actions.create_package_node_file import create_package_node_file
 
 
 @dataclass

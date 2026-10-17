@@ -1,6 +1,6 @@
 import pytest
 
-from sessions_tests.breaker_test_env import Context
+from sessions_tests.groupy_test_env import Context
 
 
 @pytest.fixture

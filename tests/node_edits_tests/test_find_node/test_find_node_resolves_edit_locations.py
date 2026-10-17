@@ -1,10 +1,10 @@
-from breaker.functions.actions.move_function_to_parent import (
+from groupy.functions.actions.move_function_to_parent import (
     move_function_to_parent,
 )
-from breaker.nodes.models.class_node import ClassNode
-from breaker.nodes.models.function_node import FunctionNode
-from breaker.nodes.models.module_node import ModuleNode
-from breaker.nodes.models.variable_node import VariableNode
+from groupy.nodes.models.class_node import ClassNode
+from groupy.nodes.models.function_node import FunctionNode
+from groupy.nodes.models.module_node import ModuleNode
+from groupy.nodes.models.variable_node import VariableNode
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 

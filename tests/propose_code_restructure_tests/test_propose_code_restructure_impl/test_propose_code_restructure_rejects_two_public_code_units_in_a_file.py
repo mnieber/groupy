@@ -1,7 +1,7 @@
-from breaker.restructure.actions.propose_code_restructure import (
+from groupy.restructure.actions.propose_code_restructure import (
     CodeRestructureHasProblemsError,
 )
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy_next_tests.groupy_next_test_env import callback
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     BOOKS_RFA_ID,
     CHAPTERS_RFA_ID,
@@ -97,16 +97,16 @@ def test_propose_code_restructure_rejects_two_public_code_units_in_a_file(
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
     # The target file would receive two public code units (the action
-    # create_book of books.py and of report.py), so Breaker should raise an
+    # create_book of books.py and of report.py), so Groupy should raise an
     # error, which interrupts the stage. The problem is reported for the node
     # of group-3, although the other node is in group-1. The constant and
     # the exception class may go to the file of an action, so they are not a
     # problem.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, CodeRestructureHasProblemsError)

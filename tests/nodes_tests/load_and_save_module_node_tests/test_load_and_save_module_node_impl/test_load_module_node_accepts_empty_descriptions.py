@@ -1,6 +1,6 @@
 from load_and_save_module_node_tests.node_file_test_env import Context, TestEnv
 
-# A node file that is edited by hand: the developer used "" and {} where Breaker
+# A node file that is edited by hand: the developer used "" and {} where Groupy
 # would write null or leave the field out.
 BOOKS_NODE_YAML = """\
 module_node:
@@ -17,7 +17,7 @@ module_node:
       helper_function_nodes: []
 """
 
-# The same node file, in the format that Breaker writes.
+# The same node file, in the format that Groupy writes.
 BOOKS_NODE_YAML_AS_SAVED = """\
 module_node:
   name: myapp/books.py
@@ -42,7 +42,7 @@ def test_load_module_node_accepts_empty_descriptions(context: Context):
 
     # We have a hand-edited node file with empty descriptions.
     if env.step(
-        env.write_file("myapp/books.py.breaker.yaml", BOOKS_NODE_YAML),
+        env.write_file("myapp/books.py.groupy.yaml", BOOKS_NODE_YAML),
     ):
         pass
 
@@ -50,7 +50,7 @@ def test_load_module_node_accepts_empty_descriptions(context: Context):
     #
     # An empty description should be loaded as None.
     if env.step(
-        env.load_module_node("myapp/books.py.breaker.yaml"),
+        env.load_module_node("myapp/books.py.groupy.yaml"),
     ):
         assert env.module_node.concepts == {"book": None}
         assert env.module_node.function_nodes[0].concepts == {
@@ -60,14 +60,12 @@ def test_load_module_node_accepts_empty_descriptions(context: Context):
 
     # We save the module node to the same node file.
     #
-    # The node file should be in the format that Breaker writes: an empty
+    # The node file should be in the format that Groupy writes: an empty
     # description is written as null, and empty fields are left out.
     if env.step(
-        env.save_module_node("myapp/books.py.breaker.yaml"),
+        env.save_module_node("myapp/books.py.groupy.yaml"),
     ):
-        assert env.read_file("myapp/books.py.breaker.yaml") == (
-            BOOKS_NODE_YAML_AS_SAVED
-        )
+        assert env.read_file("myapp/books.py.groupy.yaml") == (BOOKS_NODE_YAML_AS_SAVED)
 
 
 class Env(TestEnv):

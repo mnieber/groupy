@@ -1,7 +1,7 @@
-from breaker.restructure.actions.propose_code_restructure import (
+from groupy.restructure.actions.propose_code_restructure import (
     CodeRestructureHasProblemsError,
 )
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy_next_tests.groupy_next_test_env import callback
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     REPORTS_RETRY_RFA_ID,
     REPORTS_RFA_ID,
@@ -116,12 +116,12 @@ def test_propose_code_restructure_rejects_methods_that_cannot_delegate(
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Only render can delegate, so Breaker should raise an error that lists
+    # Only render can delegate, so Groupy should raise an error that lists
     # the other four methods with the reason why they cannot delegate.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
     ):
         assert isinstance(env.error, CodeRestructureHasProblemsError)
         for problem in [

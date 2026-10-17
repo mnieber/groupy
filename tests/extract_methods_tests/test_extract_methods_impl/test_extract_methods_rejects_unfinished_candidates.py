@@ -1,5 +1,5 @@
-from breaker.functions.actions.extract_methods import UnfinishedCandidatesError
-from breaker.functions.actions.set_extract_method_priority import (
+from groupy.functions.actions.extract_methods import UnfinishedCandidatesError
+from groupy.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
 from extract_methods_tests.extract_methods_test_env import Context, TestEnv
@@ -38,12 +38,12 @@ def test_extract_methods_rejects_unfinished_candidates(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should raise an error that names the unfinished candidate,
+    # Groupy should raise an error that names the unfinished candidate,
     # which interrupts the stage. The chunk should not be finished.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, UnfinishedCandidatesError)

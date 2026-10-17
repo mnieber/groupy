@@ -2,14 +2,14 @@ from apply_move_steps_to_caller_tests.apply_move_steps_to_caller_test_env import
     Context,
     TestEnv,
 )
-from breaker.functions.actions.add_step import add_step
-from breaker.functions.actions.add_step_to_move_to_caller import (
+from groupy.functions.actions.add_step import add_step
+from groupy.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
-from breaker.functions.actions.apply_move_steps_to_caller import (
+from groupy.functions.actions.apply_move_steps_to_caller import (
     UnappliedStepMovesError,
 )
-from breaker_next_tests.breaker_next_test_env import callback, file_write
+from groupy_next_tests.groupy_next_test_env import callback, file_write
 
 REPORTS = "myapp/reports.py"
 
@@ -99,14 +99,14 @@ def test_apply_move_steps_to_caller_rejects_unapplied_moves(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # After the RFR, Breaker should have made a follow-up RFR for the step
+    # After the RFR, Groupy should have made a follow-up RFR for the step
     # that was not moved. Since the step is still not moved after the
-    # follow-up RFR, Breaker should raise an error that lists it, which
+    # follow-up RFR, Groupy should raise an error that lists it, which
     # interrupts the stage. The move of the check should stay committed.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert env.rfr_ids() == [RFR_ID, RETRY_RFR_ID]

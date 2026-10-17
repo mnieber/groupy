@@ -1,8 +1,8 @@
 import typing as T
 
-from breaker.claude_requests.models.callback import Callback
-from breaker_next_tests.breaker_next_test_env import Context
-from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
+from groupy.claude_requests.models.callback import Callback
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 
 __all__ = ["Context", "TestEnv"]
 
@@ -13,7 +13,7 @@ RFA_ID = "propose-renamings/group-1/chunk-1"
 RETRY_RFA_ID = "propose-renamings/group-1/chunk-1/retry-1"
 
 
-class TestEnv(BreakerNextTestEnv):
+class TestEnv(GroupyNextTestEnv):
     """A TestEnv for the propose-renamings stage. The target code (in the src
     dir) has the modules of the base env plus the modules that the test adds.
     With the simple grouping strategy and large sizes, all modules are in the
@@ -34,11 +34,11 @@ class TestEnv(BreakerNextTestEnv):
             max_chunk_lines=10000,
         )
         if glossary_text is not None:
-            self.write_file("src/glossary.breaker.yaml", glossary_text)
+            self.write_file("src/glossary.groupy.yaml", glossary_text)
         self.set_next_stage(STAGE)
 
 
 def commit_messages(callbacks: T.List[Callback]) -> T.List[str]:
-    """Returns the messages of the commits that Breaker makes after running
+    """Returns the messages of the commits that Groupy makes after running
     the callbacks."""
     return [f"{STAGE}: {callback.name}" for callback in callbacks]

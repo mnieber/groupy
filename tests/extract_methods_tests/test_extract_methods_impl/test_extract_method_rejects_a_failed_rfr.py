@@ -1,8 +1,8 @@
-from breaker.functions.actions.extract_method import ExtractMethodFailedError
-from breaker.functions.actions.set_extract_method_priority import (
+from groupy.functions.actions.extract_method import ExtractMethodFailedError
+from groupy.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from breaker_next_tests.breaker_next_test_env import callback, file_write
+from groupy_next_tests.groupy_next_test_env import callback, file_write
 from extract_methods_tests.extract_methods_test_env import Context, TestEnv
 
 TITLES = "myapp/titles.py"
@@ -57,13 +57,13 @@ def test_extract_method_rejects_a_failed_rfr(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should raise an error that names the missing function, which
+    # Groupy should raise an error that names the missing function, which
     # interrupts the stage. It should have discarded the changes of the RFR,
     # and not committed anything.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, ExtractMethodFailedError)

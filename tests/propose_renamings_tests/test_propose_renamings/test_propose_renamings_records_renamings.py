@@ -1,4 +1,4 @@
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy_next_tests.groupy_next_test_env import callback
 from propose_renamings_tests.propose_renamings_test_env import (
     RFA_ID,
     Context,
@@ -76,12 +76,12 @@ def test_propose_renamings_records_renamings(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have made the RFA of the chunk, committed after each
+    # Groupy should have made the RFA of the chunk, committed after each
     # callback, and finished the chunk and the stage.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfa_ids() == [RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

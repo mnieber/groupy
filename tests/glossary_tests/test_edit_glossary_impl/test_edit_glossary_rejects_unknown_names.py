@@ -1,4 +1,4 @@
-from breaker.nodes.utils.exceptions import EntryNotFoundError
+from groupy.nodes.utils.exceptions import EntryNotFoundError
 from glossary_tests.glossary_test_env import Context, TestEnv
 
 GLOSSARY_YAML = """\

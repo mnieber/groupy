@@ -1,12 +1,12 @@
 [project]
-name = "breaker"
+name = "groupy"
 description = "Python refactoring tool"
 version = "1.0.0"
 readme = "README.md"
 dependencies = []
 
 [project.scripts]
-breaker = "breaker.runtime.entrypoints.breaker:main"
+groupy = "groupy.runtime.entrypoints.groupy:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

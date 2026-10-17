@@ -1,7 +1,7 @@
 from breaker.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from breaker_next_tests.breaker_next_test_env import callback, file_write
+from groupy_next_tests.groupy_next_test_env import callback, file_write
 from extract_methods_tests.extract_methods_test_env import (
     Context,
     TestEnv,

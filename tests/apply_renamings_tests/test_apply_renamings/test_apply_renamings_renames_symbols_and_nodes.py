@@ -1,9 +1,9 @@
 from apply_renamings_tests.apply_renamings_test_env import Context, TestEnv
-from breaker.concepts.actions.add_alias import add_alias
-from breaker.concepts.actions.set_concept import set_concept
-from breaker.concepts.actions.set_local_term import set_local_term
-from breaker.nodes.actions.set_rename_to import set_rename_to
-from breaker.renamings.actions.set_renaming import set_renaming
+from groupy.concepts.actions.add_alias import add_alias
+from groupy.concepts.actions.set_concept import set_concept
+from groupy.concepts.actions.set_local_term import set_local_term
+from groupy.nodes.actions.set_rename_to import set_rename_to
+from groupy.renamings.actions.set_renaming import set_renaming
 
 STATS = "myapp/stats.py"
 REPORTS = "myapp/reports.py"
@@ -130,13 +130,13 @@ def test_apply_renamings_renames_symbols_and_nodes(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have applied the renamings of stats.py and committed
+    # Groupy should have applied the renamings of stats.py and committed
     # them, and finished the chunk and the stage. The other modules have no
     # renamings, so they get no commit of their own.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.commit_messages_since_remembered_head() == [
             "apply-renamings: apply the renamings of myapp/stats.py",

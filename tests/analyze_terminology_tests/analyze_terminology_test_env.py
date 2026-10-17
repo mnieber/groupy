@@ -1,12 +1,12 @@
 import typing as T
 
 import yaml
-from breaker.claude_requests.models.callback import Callback
-from breaker.concepts.models.glossary import Glossary
-from breaker.concepts.rules.load_glossary import load_glossary
-from breaker_next_tests.breaker_next_test_env import Context
-from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy.claude_requests.models.callback import Callback
+from groupy.concepts.models.glossary import Glossary
+from groupy.concepts.rules.load_glossary import load_glossary
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
+from groupy_next_tests.groupy_next_test_env import callback
 
 __all__ = ["Context", "TestEnv"]
 
@@ -21,7 +21,7 @@ def number_heading(heading, nr):
 """
 
 
-class TestEnv(BreakerNextTestEnv):
+class TestEnv(GroupyNextTestEnv):
     """A TestEnv for the analyze-terminology stage. The target code (in the
     src dir) has the modules of the base env plus myapp/chapters/
     chapter_titles.py. With the package grouping strategy, the chunk
@@ -48,7 +48,7 @@ class TestEnv(BreakerNextTestEnv):
         self.set_next_stage(STAGE)
 
     def load_glossary(self) -> None:
-        self.glossary = load_glossary(self.source_root / "glossary.breaker.yaml")
+        self.glossary = load_glossary(self.source_root / "glossary.groupy.yaml")
 
     # Queries (for use in asserts)
 
@@ -89,6 +89,6 @@ def priority_callbacks(module_name: str, *locations: str) -> T.List[Callback]:
 
 
 def commit_messages(callbacks: T.List[Callback]) -> T.List[str]:
-    """Returns the messages of the commits that Breaker makes after running
+    """Returns the messages of the commits that Groupy makes after running
     the callbacks."""
     return [f"{STAGE}: {callback.name}" for callback in callbacks]

@@ -28,7 +28,7 @@ def test_create_package_node_file_for_the_target_dir(context: Context):
         env.create_package_node_file("."),
         env.load_package_node("."),
     ):
-        assert env.file_exists("package-node.breaker.yaml")
+        assert env.file_exists("package-node.groupy.yaml")
         assert env.package_node.name == "."
         assert env.package_node.module_names == ["manage.py"]
 

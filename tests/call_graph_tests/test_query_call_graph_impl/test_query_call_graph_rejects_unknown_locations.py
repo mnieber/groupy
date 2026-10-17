@@ -1,6 +1,6 @@
-from breaker.call_graph.rules.get_callers import get_callers
-from breaker.functions.rules.get_source import get_source
-from breaker.nodes.utils.exceptions import NodeNotFoundError
+from groupy.call_graph.rules.get_callers import get_callers
+from groupy.functions.rules.get_source import get_source
+from groupy.nodes.utils.exceptions import NodeNotFoundError
 from call_graph_tests.call_graph_test_env import Context, TestEnv
 
 

@@ -44,13 +44,13 @@ def test_analyze_terminology_retries_unanalyzed_nodes(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # After the RFA of the chunk, Breaker should have made a follow-up RFA for
+    # After the RFA of the chunk, Groupy should have made a follow-up RFA for
     # the nodes without an extract_method_priority, and then finished the
     # chunk and the stage.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfa_ids() == [RFA_ID, RETRY_RFA_ID, CONSOLIDATION_RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

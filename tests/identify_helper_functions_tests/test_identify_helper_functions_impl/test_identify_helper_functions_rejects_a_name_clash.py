@@ -1,5 +1,5 @@
-from breaker.renamings.policies.refactoring_policy import RenameConflictError
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy.renamings.policies.refactoring_policy import RenameConflictError
+from groupy_next_tests.groupy_next_test_env import callback
 from identify_helper_functions_tests.identify_helper_functions_test_env import (
     RFA_ID,
     Context,
@@ -46,14 +46,14 @@ def test_identify_helper_functions_rejects_a_name_clash(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
     # Renaming format_title to _format_title would clash with the existing
-    # _format_title, so Breaker should raise an error, which interrupts the
+    # _format_title, so Groupy should raise an error, which interrupts the
     # stage. The rename should not have changed any file, and the chunk should
     # not be finished.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, RenameConflictError)

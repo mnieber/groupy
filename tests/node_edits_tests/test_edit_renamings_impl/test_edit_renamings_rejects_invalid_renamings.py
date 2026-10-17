@@ -1,10 +1,10 @@
-from breaker.nodes.utils.exceptions import (
+from groupy.nodes.utils.exceptions import (
     EntryNotFoundError,
     FieldNotSupportedError,
     InvalidValueError,
 )
-from breaker.renamings.actions.remove_renaming import remove_renaming
-from breaker.renamings.actions.set_renaming import set_renaming
+from groupy.renamings.actions.remove_renaming import remove_renaming
+from groupy.renamings.actions.set_renaming import set_renaming
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 

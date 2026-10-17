@@ -5,9 +5,9 @@ from analyze_terminology_tests.analyze_terminology_test_env import (
     commit_messages,
     priority_callbacks,
 )
-from breaker.call_graph.enums import CallScopes
-from breaker_next_tests.breaker_next_test_env import callback
-from sessions_tests.breaker_test_env import BOOKS_PY
+from groupy.call_graph.enums import CallScopes
+from groupy_next_tests.groupy_next_test_env import callback
+from sessions_tests.groupy_test_env import BOOKS_PY
 
 BOOKS_RFA_ID = "analyze-terminology/group-1/chunk-1"
 CHAPTERS_RFA_ID = "analyze-terminology/group-2/chunk-1"
@@ -130,13 +130,13 @@ def test_analyze_terminology_fills_the_analysis_and_the_glossary(context: Contex
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have made an RFA per chunk and then the consolidation
+    # Groupy should have made an RFA per chunk and then the consolidation
     # RFA, committing after each callback, after each chunk (also after the
     # consolidation) and after the stage.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfa_ids() == [BOOKS_RFA_ID, CHAPTERS_RFA_ID, CONSOLIDATION_RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

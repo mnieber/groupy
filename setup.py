@@ -5,7 +5,7 @@ from setuptools import setup
 
 def create_placeholder():
     this_directory = Path(__file__).parent
-    pkg_directory = this_directory / "src" / "breaker"
+    pkg_directory = this_directory / "src" / "groupy"
 
     if not pkg_directory.exists():
         pkg_directory.mkdir(parents=True)

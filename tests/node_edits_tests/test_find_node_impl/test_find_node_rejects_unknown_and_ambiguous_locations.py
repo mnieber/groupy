@@ -1,4 +1,4 @@
-from breaker.nodes.utils.exceptions import AmbiguousLocationError, NodeNotFoundError
+from groupy.nodes.utils.exceptions import AmbiguousLocationError, NodeNotFoundError
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 LIBRARY_PY = """\

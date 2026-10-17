@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.nodes.actions.create_module_node_file import (
+from groupy.nodes.actions.create_module_node_file import (
     create_module_node_file,
 )
-from breaker.nodes.models.module_node import ModuleNode
-from breaker.nodes.rules.load_module_node import load_module_node
+from groupy.nodes.models.module_node import ModuleNode
+from groupy.nodes.rules.load_module_node import load_module_node
 
 
 @dataclass
@@ -49,7 +49,7 @@ class TestEnv:
 
     def load_module_node(self, module_name: str, store_as: str = "module_node") -> None:
         """Loads the node file of the module into the env attribute store_as."""
-        node_file_path = self.source_root / f"{module_name}.breaker.yaml"
+        node_file_path = self.source_root / f"{module_name}.groupy.yaml"
         setattr(self, store_as, load_module_node(node_file_path))
 
     # Queries (for use in asserts)

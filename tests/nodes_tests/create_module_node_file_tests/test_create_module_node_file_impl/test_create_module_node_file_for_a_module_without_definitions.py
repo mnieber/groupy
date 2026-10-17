@@ -31,7 +31,7 @@ def test_create_module_node_file_for_a_module_without_definitions(context: Conte
         env.create_module_node_file("myapp/empty.py"),
         env.load_module_node("myapp/empty.py"),
     ):
-        assert env.file_exists("myapp/empty.py.breaker.yaml")
+        assert env.file_exists("myapp/empty.py.groupy.yaml")
         assert env.module_node.line_count == 0
         assert env.module_node.function_nodes == []
         assert env.module_node.class_nodes == []

@@ -20,8 +20,8 @@ def test_create_package_node_file_reflects_the_package(context: Context):
         env.write_file("myapp/chapters/__init__.py"),
         env.write_file("myapp/chapters/create_chapter.py", "TITLE = 'Intro'\n"),
     ):
-        assert not env.file_exists("myapp/package-node.breaker.yaml")
-        assert not env.file_exists("myapp/chapters/package-node.breaker.yaml")
+        assert not env.file_exists("myapp/package-node.groupy.yaml")
+        assert not env.file_exists("myapp/chapters/package-node.groupy.yaml")
 
     # We create the package node file for myapp.
     #
@@ -31,7 +31,7 @@ def test_create_package_node_file_reflects_the_package(context: Context):
         env.create_package_node_file("myapp"),
         env.load_package_node("myapp"),
     ):
-        assert env.file_exists("myapp/package-node.breaker.yaml")
+        assert env.file_exists("myapp/package-node.groupy.yaml")
         assert env.package_node.name == "myapp"
         # Like all paths in node files, the module names are relative to the
         # source root. They are sorted, so that the node file is stable.
@@ -50,7 +50,7 @@ def test_create_package_node_file_reflects_the_package(context: Context):
         env.create_package_node_file("myapp/chapters"),
         env.load_package_node("myapp/chapters"),
     ):
-        assert env.file_exists("myapp/chapters/package-node.breaker.yaml")
+        assert env.file_exists("myapp/chapters/package-node.groupy.yaml")
         assert env.package_node.name == "myapp/chapters"
         assert env.package_node.module_names == [
             "myapp/chapters/__init__.py",

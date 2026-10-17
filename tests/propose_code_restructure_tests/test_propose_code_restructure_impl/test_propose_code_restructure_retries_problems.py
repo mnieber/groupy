@@ -1,4 +1,4 @@
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy_next_tests.groupy_next_test_env import callback
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     BOOKS_CALLBACKS,
     CHAPTERS_CALLBACKS,
@@ -99,12 +99,12 @@ def test_propose_code_restructure_retries_problems(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # After the RFA of group-3, Breaker should have made a follow-up RFA for
+    # After the RFA of group-3, Groupy should have made a follow-up RFA for
     # the problems, and then finished the chunk and the stage.
     if env.step(
-        env.run_breaker_next(),
+        env.run_groupy_next(),
     ):
         assert env.rfa_ids()[2:] == [REPORTS_RFA_ID, REPORTS_RETRY_RFA_ID]
         assert env.commit_messages_since_remembered_head() == [

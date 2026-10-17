@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.call_graph.actions.build_call_graph import build_call_graph
-from breaker.call_graph.models.call_edge import CallEdge
-from breaker.call_graph.models.call_graph import CallGraph
-from breaker.call_graph.rules.load_call_graph import load_call_graph
+from groupy.call_graph.actions.build_call_graph import build_call_graph
+from groupy.call_graph.models.call_edge import CallEdge
+from groupy.call_graph.models.call_graph import CallGraph
+from groupy.call_graph.rules.load_call_graph import load_call_graph
 
 TITLES_PY = """\
 def format_title(title):
@@ -56,7 +56,7 @@ def publish(item):
 @dataclass
 class Context:
     """The pytest fixtures that call graph tests need. repo_dir holds the
-    target code (in src) and the .breaker dir."""
+    target code (in src) and the .groupy dir."""
 
     repo_dir: Path
     monkeypatch: pytest.MonkeyPatch
@@ -69,7 +69,7 @@ class TestEnv:
     def __init__(self, context: Context):
         self.context = context
         self.source_root = context.repo_dir / "src"
-        self.breaker_dir = context.repo_dir / ".breaker"
+        self.groupy_dir = context.repo_dir / ".groupy"
         self.call_graph: CallGraph = None
         self.error: Exception = None
         self.__post_init__()
@@ -98,13 +98,13 @@ class TestEnv:
         (self.source_root / module_name).unlink()
 
     def build_call_graph(self, file_name: str = "call-graph.yaml") -> None:
-        """Builds the call graph of the target code into .breaker/file_name."""
-        build_call_graph(self.source_root, self.breaker_dir / file_name)
+        """Builds the call graph of the target code into .groupy/file_name."""
+        build_call_graph(self.source_root, self.groupy_dir / file_name)
 
     def load_call_graph(
         self, file_name: str = "call-graph.yaml", store_as: str = "call_graph"
     ) -> None:
-        setattr(self, store_as, load_call_graph(self.breaker_dir / file_name))
+        setattr(self, store_as, load_call_graph(self.groupy_dir / file_name))
 
     # Queries (for use in asserts)
 

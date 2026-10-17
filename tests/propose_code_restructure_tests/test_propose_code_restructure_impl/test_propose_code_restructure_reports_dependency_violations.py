@@ -1,4 +1,4 @@
-from breaker_next_tests.breaker_next_test_env import callback
+from groupy_next_tests.groupy_next_test_env import callback
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     REPORTS_RFA_ID,
     Context,
@@ -87,16 +87,16 @@ def test_propose_code_restructure_reports_dependency_violations(context: Context
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Dependency violations do not block the stage, so Breaker should finish
+    # Dependency violations do not block the stage, so Groupy should finish
     # the stage, and print the violations, sorted:
     # - the method publish stays in the model, which calls an action;
     # - the rule get_overdue_reports calls an action.
     # The method save delegates to an action, so its call of the action
     # store_report is judged as a call of an action, which is allowed.
     if env.step(
-        env.run_breaker_next(),
+        env.run_groupy_next(),
         env.load_session(),
     ):
         assert env.output_lines == [

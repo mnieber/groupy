@@ -1,6 +1,6 @@
 from load_and_save_module_node_tests.node_file_test_env import Context, TestEnv
 
-# A node file in the format that Breaker writes: the fields are in the order of
+# A node file in the format that Groupy writes: the fields are in the order of
 # the schema, and fields that have their default value are left out.
 MARKDOWN_REPORTS_NODE_YAML = """\
 module_node:
@@ -82,7 +82,7 @@ def test_save_module_node_keeps_the_contents_of_a_loaded_node_file(
     # We have a node file in which every field of the schema is used.
     if env.step(
         env.write_file(
-            "reports/markdown_reports.py.breaker.yaml", MARKDOWN_REPORTS_NODE_YAML
+            "reports/markdown_reports.py.groupy.yaml", MARKDOWN_REPORTS_NODE_YAML
         ),
     ):
         pass
@@ -91,7 +91,7 @@ def test_save_module_node_keeps_the_contents_of_a_loaded_node_file(
     #
     # The module node should reflect the node file.
     if env.step(
-        env.load_module_node("reports/markdown_reports.py.breaker.yaml"),
+        env.load_module_node("reports/markdown_reports.py.groupy.yaml"),
     ):
         assert env.module_node.name == "reports/markdown_reports.py"
         assert env.module_node.concepts == {
@@ -115,9 +115,9 @@ def test_save_module_node_keeps_the_contents_of_a_loaded_node_file(
     #
     # The new node file should have the same contents as the original one.
     if env.step(
-        env.save_module_node("reports/copy.breaker.yaml"),
+        env.save_module_node("reports/copy.groupy.yaml"),
     ):
-        assert env.read_file("reports/copy.breaker.yaml") == MARKDOWN_REPORTS_NODE_YAML
+        assert env.read_file("reports/copy.groupy.yaml") == MARKDOWN_REPORTS_NODE_YAML
 
 
 class Env(TestEnv):

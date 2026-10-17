@@ -2,8 +2,8 @@ from apply_code_restructure_tests.apply_code_restructure_test_env import (
     Context,
     TestEnv,
 )
-from breaker.nodes.actions.set_code_unit_type import set_code_unit_type
-from breaker.nodes.actions.set_move_to_file import set_move_to_file
+from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
+from groupy.nodes.actions.set_move_to_file import set_move_to_file
 
 HELPERS = "myapp/reports/helpers.py"
 FORMAT_TITLE = "myapp/reports/utils/format_title.py"
@@ -41,15 +41,15 @@ def test_apply_code_restructure_deletes_emptied_modules(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # helpers.py has no code left, so Breaker should have deleted it,
+    # helpers.py has no code left, so Groupy should have deleted it,
     # together with its node file.
     if env.step(
-        env.run_breaker_next(),
+        env.run_groupy_next(),
     ):
         assert not env.module_exists(HELPERS)
-        assert not env.file_exists(f"src/{HELPERS}.breaker.yaml")
+        assert not env.file_exists(f"src/{HELPERS}.groupy.yaml")
         assert env.top_level_names(FORMAT_TITLE) == ["format_title"]
         assert env.top_level_names(FORMAT_NAME) == ["format_name"]
 

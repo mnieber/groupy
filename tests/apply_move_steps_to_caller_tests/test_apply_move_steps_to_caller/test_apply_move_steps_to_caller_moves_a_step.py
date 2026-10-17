@@ -1,8 +1,8 @@
-from breaker.functions.actions.add_step import add_step
-from breaker.functions.actions.add_step_to_move_to_caller import (
+from groupy.functions.actions.add_step import add_step
+from groupy.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
-from breaker_next_tests.breaker_next_test_env import callback, file_write
+from groupy_next_tests.groupy_next_test_env import callback, file_write
 from apply_move_steps_to_caller_tests.apply_move_steps_to_caller_test_env import (
     Context,
     TestEnv,
@@ -109,13 +109,13 @@ def test_apply_move_steps_to_caller_moves_a_step(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should have made an RFR for group-1 only. The callbacks in the
+    # Groupy should have made an RFR for group-1 only. The callbacks in the
     # RFR should not have committed by themselves: commit_refactoring should
     # have committed the source and the node file together.
     if env.step(
-        env.run_breaker("next"),
+        env.run_groupy("next"),
     ):
         assert env.rfr_ids() == [RFR_ID]
         assert env.rfa_ids() == []

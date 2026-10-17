@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from breaker.nodes.actions.create_module_node_file import create_module_node_file
-from breaker.nodes.models.module_node import ModuleNode
-from breaker.nodes.rules.find_node import find_node
-from breaker.nodes.rules.load_module_node import load_module_node
+from groupy.nodes.actions.create_module_node_file import create_module_node_file
+from groupy.nodes.models.module_node import ModuleNode
+from groupy.nodes.rules.find_node import find_node
+from groupy.nodes.rules.load_module_node import load_module_node
 
 BOOKS_PY = """\
 MAX_CHAPTERS = 10
@@ -138,7 +138,7 @@ class TestEnv:
         return _find_by_name(self.module_node.variable_nodes, name)
 
     def _node_file_path(self) -> Path:
-        return self.source_root / f"{self.module_name}.breaker.yaml"
+        return self.source_root / f"{self.module_name}.groupy.yaml"
 
 
 def _find_by_name(nodes: T.List[T.Any], name: str):

@@ -18,12 +18,12 @@ def test_build_call_graph_finds_calls_between_functions(context: Context):
 
     # We build the call graph and load it.
     #
-    # It should be stored in .breaker/call-graph.yaml.
+    # It should be stored in .groupy/call-graph.yaml.
     if env.step(
         env.build_call_graph(),
         env.load_call_graph(),
     ):
-        assert (env.breaker_dir / "call-graph.yaml").exists()
+        assert (env.groupy_dir / "call-graph.yaml").exists()
 
     # We look at the calls within a module and between modules.
     #

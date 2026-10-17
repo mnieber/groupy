@@ -1,5 +1,5 @@
-from breaker.functions.actions.move_function_to_parent import InvalidParentError
-from breaker.nodes.utils.exceptions import NodeNotFoundError
+from groupy.functions.actions.move_function_to_parent import InvalidParentError
+from groupy.nodes.utils.exceptions import NodeNotFoundError
 from functions_tests.functions_test_env import Context, TestEnv
 
 BOOKS_PY = """\
@@ -50,7 +50,7 @@ def test_move_function_to_parent_rejects_invalid_moves(context: Context):
         ),
     ):
         assert isinstance(env.error, NodeNotFoundError)
-        assert env.read_file("myapp/books.py.breaker.yaml") == (
+        assert env.read_file("myapp/books.py.groupy.yaml") == (
             env.remembered_node_file_text
         )
 
@@ -90,7 +90,7 @@ def test_move_function_to_parent_rejects_invalid_moves(context: Context):
         ),
     ):
         assert isinstance(env.error, InvalidParentError)
-        assert env.read_file("myapp/books.py.breaker.yaml") == (
+        assert env.read_file("myapp/books.py.groupy.yaml") == (
             env.remembered_node_file_text
         )
 

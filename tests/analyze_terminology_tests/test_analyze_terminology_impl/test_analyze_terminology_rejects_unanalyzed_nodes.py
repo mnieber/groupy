@@ -4,7 +4,7 @@ from analyze_terminology_tests.analyze_terminology_test_env import (
     commit_messages,
     priority_callbacks,
 )
-from breaker.concepts.actions.analyze_terminology import UnanalyzedNodesError
+from groupy.concepts.actions.analyze_terminology import UnanalyzedNodesError
 
 RFA_ID = "analyze-terminology/group-1/chunk-1"
 RETRY_RFA_ID = "analyze-terminology/group-1/chunk-1/retry-1"
@@ -42,13 +42,13 @@ def test_analyze_terminology_rejects_unanalyzed_nodes(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should raise an error that names the node that is still not
+    # Groupy should raise an error that names the node that is still not
     # analyzed, which interrupts the stage. The chunk should not be finished,
     # but the callbacks should have been committed.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, UnanalyzedNodesError)

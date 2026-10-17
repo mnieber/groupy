@@ -3,10 +3,10 @@ from apply_code_restructure_tests.apply_code_restructure_test_env import (
     Context,
     TestEnv,
 )
-from breaker.restructure.actions.propose_code_restructure import (
+from groupy.restructure.actions.propose_code_restructure import (
     CodeRestructureHasProblemsError,
 )
-from sessions_tests.breaker_test_env import BOOKS_PY
+from sessions_tests.groupy_test_env import BOOKS_PY
 
 REPORT = "myapp/reports/report.py"
 
@@ -35,13 +35,13 @@ def test_apply_code_restructure_rechecks_the_proposal(context: Context):
     ):
         pass
 
-    # We run breaker next.
+    # We run groupy next.
     #
-    # Breaker should validate the proposal before it changes anything, and
+    # Groupy should validate the proposal before it changes anything, and
     # raise an error that lists the problem. Also the valid proposal of
     # books.py should not have been applied.
     if env.step(
-        env.catch_error(env.run_breaker, "next"),
+        env.catch_error(env.run_groupy, "next"),
         env.load_session(),
     ):
         assert isinstance(env.error, CodeRestructureHasProblemsError)
