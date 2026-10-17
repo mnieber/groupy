@@ -4,8 +4,6 @@ import yaml
 from breaker.claude_requests.models.callback import Callback
 from breaker.concepts.models.glossary import Glossary
 from breaker.concepts.rules.load_glossary import load_glossary
-from breaker.nodes.models.module_node import ModuleNode
-from breaker.nodes.rules.load_module_node import load_module_node
 from breaker_next_tests.breaker_next_test_env import Context
 from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
 from breaker_next_tests.breaker_next_test_env import callback
@@ -31,8 +29,6 @@ class TestEnv(BreakerNextTestEnv):
     group-2/chunk-1 has the modules of myapp/chapters."""
 
     def __init__(self, context: Context):
-        self.source_root = context.repo_dir / "src"
-        self.module_node: ModuleNode = None
         self.glossary: Glossary = None
         super().__init__(context)
 
@@ -50,11 +46,6 @@ class TestEnv(BreakerNextTestEnv):
             max_chunk_lines=10000,
         )
         self.set_next_stage(STAGE)
-
-    def load_module_node(self, module_name: str) -> None:
-        self.module_node = load_module_node(
-            self.source_root / f"{module_name}.breaker.yaml"
-        )
 
     def load_glossary(self) -> None:
         self.glossary = load_glossary(self.source_root / "glossary.breaker.yaml")
@@ -82,15 +73,6 @@ class TestEnv(BreakerNextTestEnv):
             for entry in self.glossary.entries
         ]
 
-    def function_node(self, location: str):
-        """Returns the function node or method node at the location (e.g.
-        `create_book` or `Book.__init__`)."""
-        if "." in location:
-            class_name, method_name = location.split(".")
-            class_node = _find_by_name(self.module_node.class_nodes, class_name)
-            return _find_by_name(class_node.method_nodes, method_name)
-        return _find_by_name(self.module_node.function_nodes, location)
-
 
 def priority_callbacks(module_name: str, *locations: str) -> T.List[Callback]:
     """Returns the callbacks that set the extract_method_priority of the
@@ -110,9 +92,3 @@ def commit_messages(callbacks: T.List[Callback]) -> T.List[str]:
     """Returns the messages of the commits that Breaker makes after running
     the callbacks."""
     return [f"{STAGE}: {callback.name}" for callback in callbacks]
-
-
-def _find_by_name(nodes: T.List[T.Any], name: str):
-    matches = [node for node in nodes if node.name == name]
-    assert len(matches) == 1, f"Expected one node called {name}"
-    return matches[0]

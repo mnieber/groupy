@@ -1,4 +1,5 @@
 import typing as T
+from dataclasses import dataclass
 from pathlib import Path
 
 from breaker.claude_requests.actions.run_callback import run_callback
@@ -34,22 +35,33 @@ class FakeRfaPolicy(RfaPolicy):
             run_callback(callback)
 
 
+@dataclass
+class FileWrite:
+    """A step of an RFR script that writes the new text of a file, where the
+    file path is relative to the repo dir (which is the cwd)."""
+
+    file_path: str
+    text: str
+
+
 class FakeRfrPolicy(RfrPolicy):
-    """Writes the scripted files of each RFR, instead of asking Claude to
-    refactor the code. It records the RFRs that it receives."""
+    """Runs the scripted steps of each RFR (file writes and callbacks),
+    instead of asking Claude to refactor the code. It records the RFRs that it
+    receives."""
 
     def __init__(self):
-        # Maps each RFR id onto the new texts of the files that it changes,
-        # by file path (relative to the repo dir, which is the cwd).
-        self.scripts: T.Dict[str, T.Dict[str, str]] = {}
+        self.scripts: T.Dict[str, T.List[T.Union[FileWrite, Callback]]] = {}
         self.requests: T.List[Rfr] = []
 
     def run(self, rfr: Rfr) -> None:
         self.requests.append(rfr)
         if rfr.id not in self.scripts:
             raise UnscriptedRequestError(f"There is no script for the RFR {rfr.id}")
-        for file_path, text in self.scripts[rfr.id].items():
-            Path(file_path).write_text(text)
+        for step in self.scripts[rfr.id]:
+            if isinstance(step, FileWrite):
+                Path(step.file_path).write_text(step.text)
+            else:
+                run_callback(step, in_rfr=True)
 
 
 class FakeRefactoringPolicy(RopeRefactoringPolicy):

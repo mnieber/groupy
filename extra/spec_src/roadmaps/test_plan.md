@@ -50,13 +50,21 @@ Feature packages:
 12. `propose-renamings` (batch 9, in `tests/propose_renamings_tests/`): recording renamings via callbacks, the RFA
     context (module sources, glossary), the conflicts per scope (clashes, same new name, cycles; chains are
     allowed), the follow-up RFA for conflicts, and the error when conflicts remain.
+13. `apply-renamings` (batch 10, in `tests/apply_renamings_tests/`): applying the renamings with the refactoring
+    policy (rope), including call sites in other modules, updating the node files, ordering chains, renaming
+    non-symbols in the node file only, rechecking conflicts, and resuming after a failed rename.
+14. `extract-methods` (batch 11, in `tests/extract_methods_tests/`): the candidates, the `extract_method` callback
+    with its RFR (`FakeRfrPolicy`), the node of the extracted function (renamed when nested), the follow-up RFA for
+    unfinished candidates, and a failed RFR.
 
 ## Test infrastructure for Claude requests
 
 1. Every request to Claude has a deterministic id that is derived from what it is about:
    1. RFA: `<stage-id>/<chunk-id>`, e.g. `identify-helper-functions/group-1/chunk-1`.
    2. Incremental accumulation: `<task>/batch-<n>`, e.g. `assign-groups/batch-2`.
-   3. RFR: `<action>/<location>`, e.g. `extract_method/myapp/books.py:create_book`.
+   3. RFR made by a callback: `<action>/<location>/<name>`, e.g.
+      `extract_method/myapp/books.py:create_book/_validate_title`. RFR made by a stage: `<stage-id>/<chunk-id>`, as
+      for an RFA.
    4. The real policy uses the id for logging and as the key of finished chunks in the session file (for resuming
       an interrupted stage).
 2. The tests use fake policies (in a `fake_policies.py` next to the tests). The config file of a test refers to a
@@ -64,7 +72,8 @@ Feature packages:
    before it runs `breaker next`. A fake is only added once a test needs it.
    1. `FakeRfaPolicy` maps each RFA id onto a list of scripted callbacks (an action name plus its arguments). It runs
       these callbacks through the same callback dispatcher that the real policy uses.
-   2. `FakeRfrPolicy` maps each RFR id onto scripted file edits (the new text per file).
+   2. `FakeRfrPolicy` maps each RFR id onto a list of scripted steps: file writes (`file_write`, the new text of a
+      module) and callbacks (run in RFR mode, so that they don't commit).
    3. `FakeGroupingPolicy` (for smart grouping with Haiku) maps each batch id onto a scripted answer.
    4. `FakeRefactoringPolicy` subclasses `RopeRefactoringPolicy`: it refactors with rope, records the renames and
       raises `FakeRefactoringError` for the renames that a test lets fail.
@@ -89,33 +98,24 @@ that `runtime/actions/run_next_stage.py` calls.
 Each stage runs its own loop over its chunks (the stages chunk different things, and some run an extra RFA after the
 last chunk), using the shared helper `sessions/actions/process_chunks.py` that skips finished chunks and records them.
 
-1. `apply-renamings` (MS-5, in `tests/apply_renamings_tests/`): `rename_symbol` of the refactoring policy (rope)
-   renames module-level variables, local symbols, parameters, functions, class attributes and methods, including
-   the imports and call sites in other modules; a commit per module with renamings; the node file gets the new
-   names, renamed concept and local term keys, and cleared `renamings`, `rename_to` and `aliases`; a renaming of a
-   non-symbol only changes the node file; chains are ordered; all renamings are checked for conflicts before any
-   change; a failed rename restores the working tree and the stage resumes at that module.
-   - Exercises: `renamings/actions/apply_renamings.py` (the stage), `renamings/policies/refactoring_policy.py`
-     (with `RenameConflictError`), `renamings/policies/rope_refactoring_policy.py`, the `refactoring_policy` config
-     field, `renamings/rules/find_renaming_conflicts.py` (with `ProposedRenamingHasConflictError` from
-     `renamings/actions/propose_renamings.py`).
-   - Also changes: `functions/actions/rename_helper_functions.py` takes the refactoring policy, and
-     `renamings/actions/rename_symbol.py` (batch 7) is replaced by the policy.
-2. `extract-methods` (MS-6, in `tests/extract_methods_tests/`): candidates with priority high or medium, an RFA
-   per chunk with candidates (`extract_method_candidates`, `module_sources`); the `extract_method` callback makes an
-   RFR (via `FakeRfrPolicy`) that changes the source, and the action creates a top-level node in source order; the
-   callbacks fill its analysis, nest it and update the parent, after which Breaker renames the helper; a follow-up
-   RFA for unfinished candidates and `UnfinishedCandidatesError`; a failed RFR raises `ExtractMethodFailedError` and
-   restores the working tree.
-   - Exercises: `functions/actions/extract_methods.py` (the stage, with `UnfinishedCandidatesError`),
-     `functions/actions/extract_method.py` (the callback, with `ExtractMethodFailedError`),
-     `functions/rules/get_extract_method_candidates.py`, `functions/actions/rename_helper_functions.py`,
-     `claude_requests/models/rfr.py`, `claude_requests/policies/rfr_policy.py`.
-3. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
-   moves the call.
-   - Exercises: `functions/actions/move_steps_to_caller.py` (the stage), `functions/actions/move_step_to_caller.py`
-     (the callback).
-4. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
+1. `propose-move-steps-to-caller` (MS-7, in `tests/propose_move_steps_to_caller_tests/`): an RFA per chunk with
+   candidates (`move_step_candidates`, `module_sources`, `caller_sources`); the callbacks record the steps to move
+   (`add_step_to_move_to_caller`) and the source is unchanged. The node edits of `steps_to_move_to_caller` (adding, withdrawing,
+   following `update_step` and `remove_step`, and the validations) are tested in `tests/node_edits_tests/`.
+   - Exercises: `functions/actions/propose_move_steps_to_caller.py` (the stage),
+     `functions/rules/get_move_step_candidates.py`, `functions/actions/add_step_to_move_to_caller.py`,
+     `functions/actions/remove_step_to_move.py`, the `steps_to_move_to_caller` field of `FunctionNode`, and the changes of
+     `update_step` and `remove_step`.
+2. `apply-move-steps-to-caller` (MS-7, in `tests/apply_move_steps_to_caller_tests/`): an RFR per chunk with steps
+   to move (`steps_to_move_to_caller`, `module_sources`, `caller_sources`); the scripted RFR edits the source and the steps
+   (via callbacks) and commits with `commit_refactoring`; a follow-up RFR for unapplied moves and
+   `UnappliedStepMovesError`; uncommitted changes after the RFR, code that does not parse, and a refactoring
+   callback in an RFR are rejected, and the working tree is restored.
+   - Exercises: `functions/actions/apply_move_steps_to_caller.py` (the stage, with `UncommittedRefactoringError`
+     and `UnappliedStepMovesError`), `functions/actions/commit_refactoring.py` (with
+     `RefactoringDoesNotParseError`), `claude_requests/actions/run_callback.py` (`in_rfr`, with
+     `CallbackNotAllowedError`).
+3. `propose-module-layout` and `propose-code-restructure` (MS-8): `proposed_modules` in the root package node file;
    the validations (missing `code_unit_type`, location rule per code unit type, one public code unit per file,
    dependency direction).
    - Exercises: `restructure/actions/propose_module_layout.py`, `nodes/actions/set_proposed_module.py`,

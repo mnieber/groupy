@@ -5,9 +5,11 @@ from pathlib import Path
 from breaker.call_graph.models.call_graph_view import FunctionView
 from breaker.claude_requests.models.callback import Callback
 from breaker.claude_requests.models.rfa import Rfa
+from breaker.claude_requests.models.rfr import Rfr
 from breaker.claude_requests.rules.create_rfa_policy import create_rfa_policy
 from breaker.groups.models.chunk import Chunk
 from breaker.groups.rules.get_chunks import get_chunks
+from breaker.nodes.models.module_node import ModuleNode
 from breaker.nodes.rules.load_module_node import load_module_node
 from breaker.runtime.actions.run_next_stage import STAGE_ACTIONS
 from breaker.sessions.actions.process_chunks import process_chunks
@@ -15,6 +17,7 @@ from breaker.sessions.enums import Stages
 from breaker.sessions.models.session import get_session
 from breaker.sessions.rules.load_config import load_config
 from breaker_next_tests.fake_policies import (
+    FileWrite,
     FakeRefactoringPolicy,
     FakeRfaPolicy,
     FakeRfrPolicy,
@@ -63,6 +66,8 @@ class TestEnv(BreakerTestEnv):
         # The fake policy is a singleton, so the script of an earlier test must
         # not leak into this one.
         reset_fake_policies()
+        self.source_root = context.repo_dir / "src"
+        self.module_node: ModuleNode = None
         super().__init__(context)
 
     # Actions
@@ -71,9 +76,9 @@ class TestEnv(BreakerTestEnv):
         self, modules: T.Dict[str, str] = None, **config_fields: T.Any
     ) -> None:
         """Creates a git repo with the target code and a config file that uses
-        the fake RFA, RFR and refactoring policies, and runs breaker init. The modules (a map from
-        module name to text) are added to the target code, and the
-        config_fields are added to the config file."""
+        the fake RFA, RFR and refactoring policies, and runs breaker init. The
+        modules (a map from module name to text) are added to the target code,
+        and the config_fields are added to the config file."""
         self.create_repo_with_target_code()
         for module_name, text in (modules or {}).items():
             self.write_file(f"src/{module_name}", text)
@@ -95,12 +100,8 @@ class TestEnv(BreakerTestEnv):
     def clear_rfa_requests(self) -> None:
         self.rfa_policy().requests.clear()
 
-    def script_rfr(self, rfr_id: str, module_texts: T.Dict[str, str]) -> None:
-        """Lets the RFR write the new texts of the modules, where the module
-        names are relative to the target dir (src)."""
-        self.rfr_policy().scripts[rfr_id] = {
-            f"src/{module_name}": text for module_name, text in module_texts.items()
-        }
+    def script_rfr(self, rfr_id: str, *steps: T.Union[FileWrite, Callback]) -> None:
+        self.rfr_policy().scripts[rfr_id] = list(steps)
 
     def fail_rename(self, module_name: str, name: str) -> None:
         """Lets the fake refactoring policy raise an error when it renames the
@@ -112,6 +113,19 @@ class TestEnv(BreakerTestEnv):
 
     def clear_renames(self) -> None:
         self.refactoring_policy().renames.clear()
+
+    def edit_node_file(
+        self, action: T.Callable, module_name: str, location: str, *args
+    ) -> None:
+        """Runs the node file edit (e.g. set_renaming) on the node at the
+        location, as the earlier stages or the developer would."""
+        action(self.source_root, module_name, location, *args)
+
+    def load_module_node(self, module_name: str) -> None:
+        """Loads the node file of the module into env.module_node."""
+        self.module_node = load_module_node(
+            self.source_root / f"{module_name}.breaker.yaml"
+        )
 
     def set_next_stage(self, stage_id: str) -> None:
         """Sets next_stage in the session file, and commits it (as if the
@@ -163,6 +177,11 @@ class TestEnv(BreakerTestEnv):
         assert len(matches) == 1, f"Expected one RFA with the id {rfa_id}"
         return matches[0]
 
+    def rfr(self, rfr_id: str) -> Rfr:
+        matches = [rfr for rfr in self.rfr_policy().requests if rfr.id == rfr_id]
+        assert len(matches) == 1, f"Expected one RFR with the id {rfr_id}"
+        return matches[0]
+
     def function_view_in_context(self, rfa_id: str, location: str) -> FunctionView:
         """Returns the function view at the location, in the call graph view
         in the context of the RFA."""
@@ -171,6 +190,35 @@ class TestEnv(BreakerTestEnv):
         assert len(matches) == 1, f"Expected one function view for {location}"
         return matches[0]
 
+    def read_module(self, module_name: str) -> str:
+        return (self.source_root / module_name).read_text()
+
+    def names(self, nodes: T.List[T.Any]) -> T.List[str]:
+        return [node.name for node in nodes]
+
+    def function_node(self, location: str):
+        """Returns the function node at the location in env.module_node, where
+        the location is the qualified name of the node in the node file (e.g.
+        `create_book`, `Book.save`, or `create_report._format_lines` for a
+        helper function node)."""
+        first_name, *other_names = location.split(".")
+        class_matches = [
+            node for node in self.module_node.class_nodes if node.name == first_name
+        ]
+        if class_matches:
+            node = _find_by_name(class_matches[0].method_nodes, other_names.pop(0))
+        else:
+            node = _find_by_name(self.module_node.function_nodes, first_name)
+        for name in other_names:
+            node = _find_by_name(node.helper_function_nodes, name)
+        return node
+
+    def class_node(self, name: str):
+        return _find_by_name(self.module_node.class_nodes, name)
+
+    def variable_node(self, name: str):
+        return _find_by_name(self.module_node.variable_nodes, name)
+
     def commit_messages_since_remembered_head(self) -> T.List[str]:
         log = self._git(
             "log", "--reverse", "--format=%s", f"{self.remembered_git_head}..HEAD"
@@ -178,8 +226,7 @@ class TestEnv(BreakerTestEnv):
         return log.splitlines()
 
     def responsibilities(self, module_name: str, function_name: str) -> T.List[str]:
-        node_file_path = self.repo_dir / "src" / f"{module_name}.breaker.yaml"
-        module_node = load_module_node(node_file_path)
+        module_node = load_module_node(self.source_root / f"{module_name}.breaker.yaml")
         matches = [
             node for node in module_node.function_nodes if node.name == function_name
         ]
@@ -192,3 +239,15 @@ def callback(name: str, **args: T.Any) -> Callback:
     action, without the source root and the glossary path, which the callback
     dispatcher supplies."""
     return Callback(name=name, args=args)
+
+
+def file_write(module_name: str, text: str) -> FileWrite:
+    """Returns a step for an RFR script that writes the new text of the
+    module, where the module name is relative to the target dir (src)."""
+    return FileWrite(file_path=f"src/{module_name}", text=text)
+
+
+def _find_by_name(nodes: T.List[T.Any], name: str):
+    matches = [node for node in nodes if node.name == name]
+    assert len(matches) == 1, f"Expected one node called {name}"
+    return matches[0]

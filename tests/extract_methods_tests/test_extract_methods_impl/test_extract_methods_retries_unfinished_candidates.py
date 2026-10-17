@@ -1,7 +1,7 @@
 from breaker.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from breaker_next_tests.breaker_next_test_env import callback
+from breaker_next_tests.breaker_next_test_env import callback, file_write
 from extract_methods_tests.extract_methods_test_env import (
     Context,
     TestEnv,
@@ -105,7 +105,7 @@ def test_extract_methods_retries_unfinished_candidates(context: Context):
         env.commit_all("analyze the terminology"),
         env.script_rfa(RFA_ID, *CHUNK_CALLBACKS),
         env.script_rfa(RETRY_RFA_ID, *RETRY_CALLBACKS),
-        env.script_rfr(RFR_ID, {TITLES: EXTRACTED_TITLES_PY}),
+        env.script_rfr(RFR_ID, file_write(TITLES, EXTRACTED_TITLES_PY)),
         env.remember_git_head(),
     ):
         pass

@@ -38,7 +38,7 @@ and offers actions that allow Claude to query the graph for more information.
 
 ## Keeping the call graph up-to-date
 
-1. Actions and RFRs change the code (e.g. extract-method adds functions, move-steps-to-caller changes callers).
+1. Actions and RFRs change the code (e.g. extract-method adds functions, apply-move-steps-to-caller changes callers).
    Since chunks are usually not independent, each chunk must see the changes made by the previous chunks.
 2. Before each chunk, Breaker rebuilds the call graph from scratch.
    1. Parsing the target code takes seconds, which is small compared to the time of a Claude request.
@@ -58,7 +58,8 @@ and offers actions that allow Claude to query the graph for more information.
 4. Each RFA defines which view of the call graph it uses. For example:
    1. identify-helper-functions: callers only (mainly the number of callers, and whether they are in the same module).
    2. analyze-terminology: the callers and the callees.
-   3. move-steps-to-caller: the callers of F, including their source.
+   3. propose-move-steps-to-caller and apply-move-steps-to-caller: the callers of F, including their source (as
+      `caller_sources`).
    4. propose-module-layout and propose-code-restructure: the dependencies between modules, aggregated from the
       function-level call graph.
 

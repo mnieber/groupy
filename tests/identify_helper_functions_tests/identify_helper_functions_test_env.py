@@ -11,7 +11,6 @@ from breaker.functions.actions.rename_helper_functions import (
     rename_helper_functions,
 )
 from breaker.nodes.models.module_node import ModuleNode
-from breaker.nodes.rules.load_module_node import load_module_node
 from breaker_next_tests.breaker_next_test_env import Context
 from breaker_next_tests.breaker_next_test_env import TestEnv as BreakerNextTestEnv
 
@@ -27,9 +26,7 @@ class TestEnv(BreakerNextTestEnv):
     modules are in the chunk group-1/chunk-1."""
 
     def __init__(self, context: Context):
-        self.source_root = context.repo_dir / "src"
         self.call_graph: CallGraph = None
-        self.module_node: ModuleNode = None
         super().__init__(context)
 
     # Actions
@@ -65,34 +62,7 @@ class TestEnv(BreakerNextTestEnv):
             self.source_root, module_names, self.refactoring_policy()
         )
 
-    def load_module_node(self, module_name: str) -> None:
-        self.module_node = load_module_node(
-            self.source_root / f"{module_name}.breaker.yaml"
-        )
-
     # Queries (for use in asserts)
-
-    def read_module(self, module_name: str) -> str:
-        return (self.source_root / module_name).read_text()
-
-    def names(self, nodes: T.List[T.Any]) -> T.List[str]:
-        return [node.name for node in nodes]
-
-    def function_node(self, location: str):
-        """Returns the function node at the location, where the location is
-        the qualified name of the node in the node file (e.g. `Book.save`, or
-        `create_report._format_lines` for a helper function node)."""
-        first_name, *other_names = location.split(".")
-        class_matches = [
-            node for node in self.module_node.class_nodes if node.name == first_name
-        ]
-        if class_matches:
-            node = _find_by_name(class_matches[0].method_nodes, other_names.pop(0))
-        else:
-            node = _find_by_name(self.module_node.function_nodes, first_name)
-        for name in other_names:
-            node = _find_by_name(node.helper_function_nodes, name)
-        return node
 
     def helper_names(self, location: str) -> T.List[str]:
         return self.names(self.function_node(location).helper_function_nodes)
@@ -114,12 +84,6 @@ class TestEnv(BreakerNextTestEnv):
             (call.location, call.scope, call.is_certain)
             for call in self.function_view_in_context(rfa_id, location).callers
         }
-
-
-def _find_by_name(nodes: T.List[T.Any], name: str):
-    matches = [node for node in nodes if node.name == name]
-    assert len(matches) == 1, f"Expected one node called {name}"
-    return matches[0]
 
 
 def _all_function_nodes(module_node: ModuleNode) -> T.Iterator[T.Tuple[str, T.Any]]:

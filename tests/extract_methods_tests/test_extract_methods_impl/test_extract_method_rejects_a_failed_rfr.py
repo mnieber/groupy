@@ -2,7 +2,7 @@ from breaker.functions.actions.extract_method import ExtractMethodFailedError
 from breaker.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from breaker_next_tests.breaker_next_test_env import callback
+from breaker_next_tests.breaker_next_test_env import callback, file_write
 from extract_methods_tests.extract_methods_test_env import Context, TestEnv
 
 TITLES = "myapp/titles.py"
@@ -52,7 +52,7 @@ def test_extract_method_rejects_a_failed_rfr(context: Context):
                 description="Capitalize the words",
             ),
         ),
-        env.script_rfr(RFR_ID, {TITLES: FAILED_TITLES_PY}),
+        env.script_rfr(RFR_ID, file_write(TITLES, FAILED_TITLES_PY)),
         env.remember_git_head(),
     ):
         pass

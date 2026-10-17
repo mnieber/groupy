@@ -43,6 +43,11 @@ A call to `breaker next` runs the stage in the `next_stage` field of the session
       using the RFA id `<stage-id>/<chunk-id>`), and commits with the message `<stage-id>: finish <chunk-id>`.
    3. When a stage is interrupted (e.g. by an error), the next call to `breaker next` runs the same stage again,
       and skips the finished chunks.
+   4. When an action fails, Breaker restores the working tree to the last commit (undoing the partial changes of the
+      action, e.g. of rope or an RFR) and re-raises the error, which interrupts the stage. The actions that succeeded
+      stay committed, so the developer can inspect and repair the state, and run `breaker next` again. Each stage
+      derives its remaining work from the node files (e.g. the renamings that are left, or the candidates that are
+      not `n/a`), so that a resumed stage does not repeat finished work.
 3. After the stage, Breaker sets `next_stage` to the stage that follows it, clears `finished_chunks`, and commits
    with the message `<stage-id>: finish the stage`.
 
@@ -139,7 +144,20 @@ analysis (e.g. the concepts and steps) where needed, because Breaker does not re
    rejected.
 
 3. When an action or RFR changes the code of a function, then the analysis of that function (e.g. its concepts,
-   responsibilities and steps) is updated in the same RFA, so that later stages don't work with stale data.
+   responsibilities and steps) is updated in the same RFA (or RFR), so that later stages don't work with stale data.
+4. An RFR edits the source directly, but it may also run callbacks to update the node files.
+   1. In an RFR, only the node file edits (e.g. `add_step`, `move_function_to_parent`), the glossary edits and
+      `commit_refactoring` are allowed. Callbacks that refactor the code (e.g. `extract_method`) are rejected with
+      `CallbackNotAllowedError`, so that an RFR never starts another RFR.
+   2. The callbacks in an RFR do not commit by themselves, because the source may be half-refactored while they
+      run. Instead, `commit_refactoring(description)` checks that the changed Python files parse, and commits the
+      source and the node files together with the message `<stage-id>: <description>`. If a file does not parse,
+      Breaker restores the working tree to the last commit and raises `RefactoringDoesNotParseError`.
+   3. An RFR that is made by a stage (rather than by a callback) must commit its work with `commit_refactoring`
+      (typically once per refactoring). When there are uncommitted changes after the RFR, Breaker restores the
+      working tree and raises `UncommittedRefactoringError`.
+   4. An RFR that is made by a callback (e.g. `extract_method`) does not call `commit_refactoring`: the callback
+      verifies the result and commits.
 
 ## Functions and methods
 
@@ -201,12 +219,14 @@ An example node file is given in `./module_node_example.md`.
    7. `local_terms: Dict[str, str | None]`
    8. `responsibilities: List[str]`
    9. `steps: List[str]`
-   10. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a'] | None`: `None` means that the
+   10. `steps_to_move_to_caller: List[str]`: the steps (texts from `steps`, in the order of `steps`) that are proposed to move
+       to the caller(s) of the function (see MS-7).
+   11. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a'] | None`: `None` means that the
        priority is not set yet.
-   11. `renamings: Dict[str, str]`
-   12. `aliases: Dict[str, List[str]]`
-   13. `abbreviations: Dict[str, str]`
-   14. `helper_function_nodes: List[FunctionNode]`: the helper functions of this function. They are top-level
+   12. `renamings: Dict[str, str]`
+   13. `aliases: Dict[str, List[str]]`
+   14. `abbreviations: Dict[str, str]`
+   15. `helper_function_nodes: List[FunctionNode]`: the helper functions of this function. They are top-level
        functions in the Python code (see "Nested functions").
 3. A `ClassNode` has the fields:
    1. `name: str`
@@ -543,9 +563,12 @@ An example node file is given in `./module_node_example.md`.
          that still have the priority `high` or `medium`, whose context lists them (`unfinished_candidates`).
       2. If candidates are still unfinished after the follow-up RFA, Breaker raises `UnfinishedCandidatesError`,
          which lists them. This interrupts the stage, and the chunk is not finished.
-4. Breaker commits the results and updates `next_stage` to `move-steps-to-caller`.
+4. Breaker commits the results and updates `next_stage` to `propose-move-steps-to-caller`.
 
 ## MS-7: Breaker moves steps to the caller
+
+Moving a step changes the behaviour for every caller, so the developer reviews the proposed moves before they are
+applied. The stage is therefore split in two: `propose-move-steps-to-caller` and `apply-move-steps-to-caller`.
 
 1. The developer runs `breaker next`.
 2. Breaker asks Claude to identify steps in a function F that should be done by the caller of F, before it calls F.
@@ -554,8 +577,36 @@ An example node file is given in `./module_node_example.md`.
    2. Breaker passes the callers of F (from the call graph) to Claude.
    3. A step is only moved when F has a single caller, or when all callers of F should clearly perform the step.
       Otherwise, moving the step would duplicate code.
-3. Claude moves the step to the caller(s) of F, and updates the analysis of F and of its callers.
-4. Breaker commits the results and updates `next_stage` to `propose-module-layout`.
+   4. The candidates are the function nodes (also method nodes and helper function nodes) that have at least one
+      caller, where all callers are functions or methods with certain edges (not module-level code).
+   5. Breaker makes an RFA per chunk that has candidates. A chunk without candidates is finished without an RFA. The
+      RFA context contains `move_step_candidates` (the locations `<module>:<location>`, sorted), `module_sources`,
+      and `caller_sources`: the source of each caller of a candidate (also in other modules), by its location.
+   6. Claude records each step that should move in `FunctionNode.steps_to_move_to_caller`, with the actions
+      `add_step_to_move_to_caller(module_name, location, step)` and `remove_step_to_move(module_name, location, step)`.
+      1. The step must be one of the `steps` of the function, and it is listed once.
+      2. `update_step` also updates the step in `steps_to_move_to_caller`, and `remove_step` also removes it from
+         `steps_to_move_to_caller`.
+   7. The source does not change. There is no check that Claude considered every candidate: moving steps is
+      optional.
+3. Breaker commits the results and updates `next_stage` to `apply-move-steps-to-caller`.
+4. The developer reviews the proposed moves (and possibly edits them), and runs `breaker next`.
+5. Claude moves the steps to the caller(s) of F, and updates the analysis of F and of its callers.
+   1. Since this is a refactoring of the source, the stage makes an RFR (not an RFA) per chunk that has steps to
+      move, with the id `apply-move-steps-to-caller/<chunk-id>`. A chunk without steps to move is finished without
+      an RFR.
+   2. The RFR context contains `steps_to_move_to_caller` (lines `<module>:<location>: <step>`, sorted by location and in the
+      order of the steps), `module_sources`, and `caller_sources` (the source of each caller of a function with
+      steps to move).
+   3. Claude edits the source, updates the steps of F and of its callers with the node file edits, and calls
+      `commit_refactoring` after each move (see "Guidelines for the Claude requests"). Removing the step from F
+      (with `remove_step`) also removes it from `steps_to_move_to_caller`. When Claude decides that a step cannot be moved,
+      it withdraws the proposal with `remove_step_to_move`.
+   4. After the RFR of a chunk, Breaker makes one follow-up RFR (with the id `<rfr-id>/retry-1`) for the steps that
+      are still in `steps_to_move_to_caller`, whose context lists them. If steps are still not moved after the follow-up RFR,
+      Breaker raises `UnappliedStepMovesError`, which lists them. This interrupts the stage, and the chunk is not
+      finished.
+6. Breaker commits the results and updates `next_stage` to `propose-module-layout`.
 
 ## MS-8: Breaker proposes to restructure the code
 

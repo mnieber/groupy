@@ -1,7 +1,7 @@
 from breaker.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from breaker_next_tests.breaker_next_test_env import callback
+from breaker_next_tests.breaker_next_test_env import callback, file_write
 from extract_methods_tests.extract_methods_test_env import (
     Context,
     TestEnv,
@@ -132,7 +132,7 @@ def test_extract_methods_extracts_a_helper_function(context: Context):
         env.edit_node_file(set_extract_method_priority, REPORTS, "send_report", "n/a"),
         env.commit_all("analyze the terminology"),
         env.script_rfa(RFA_ID, *CALLBACKS),
-        env.script_rfr(RFR_ID, {REPORTS: EXTRACTED_REPORTS_PY}),
+        env.script_rfr(RFR_ID, file_write(REPORTS, EXTRACTED_REPORTS_PY)),
         env.remember_git_head(),
     ):
         pass
@@ -200,11 +200,11 @@ def test_extract_methods_extracts_a_helper_function(context: Context):
 
     # We look at the session.
     #
-    # The next stage should be move-steps-to-caller.
+    # The next stage should be propose-move-steps-to-caller.
     if env.step(
         env.load_session(),
     ):
-        assert env.session.next_stage == "move-steps-to-caller"
+        assert env.session.next_stage == "propose-move-steps-to-caller"
         assert env.session.finished_chunks == []
 
 
