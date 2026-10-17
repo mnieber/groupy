@@ -17,7 +17,7 @@ then you can do so.
 
 ## The session and its mechanics
 
-1. `s01_a_developer_starts_a_session`
+1. `s01_a_developer_starts_a_session` (written)
    The developer runs `groupy init`. Groupy creates a branch, the session file, the config file (if missing), a node
    file per module and package, and the group file, and commits them. The developer can review the node files and
    the group file before the first stage.

@@ -1,9 +1,3 @@
-# Scope
-
-Groupy is a radical refactoring tool that takes a python code-base apart and rebuilds it.
-Since it is expected to break the code, the developer will need to help with
-fixing the errors and testing.
-
 # Glossary
 
 - action: an operation - offered by Groupy - that changes nodes files and/or target code
@@ -253,13 +247,6 @@ An example node file is given in `./module_node_example.md`.
 6. The `concepts` and `local_terms` fields map each concept or local term onto a short description.
    1. The description is empty if it is already given elsewhere (e.g. in `ModuleNode.concepts`).
    2. Groupy writes an empty description as `null`, but accepts both `null` and `""`.
-7. All paths in node files use the same notation: a file path relative to the source root
-   (e.g. `myapp/reports/rules/create_user_stats_report.py`).
-8. Groupy leaves out the fields that have their default value (`null`, `{}`, `[]` or `false`) when it writes a
-   node file, and it reads a missing field as its default value.
-   1. Therefore, a missing field and a field with the default value mean the same thing.
-   2. The fields are written in the order of the schema, so that loading and saving a node file keeps its contents.
-
 ## Glossary file
 
 1. The project glossary (`glossary.groupy.yaml` in the root of the target dir) is a list of entries. Each entry
@@ -303,33 +290,6 @@ An example node file is given in `./module_node_example.md`.
 ```
 
 # Milestones
-
-## MS-1: A developer initiates a groupy session
-
-1. The developer runs `groupy init --target-dir=<target-dir> --branch-name=<branch-name>`
-2. Groupy will create a new branch with --branch-name
-3. Groupy will create a .groupy/session.yaml file in the repository root.
-   1. This session file contains a `next_stage` field that identifies the next stage of the refactoring
-   2. It also contains the `target_dir` field that identifies the target code.
-   3. When the repository does not contain a config file (see "Config file"), Groupy creates it with all fields set
-      to their default value. Otherwise, it keeps the existing config file.
-4. Groupy will create node files that form a source map
-   1. Per package it will create a package node file (called `package-node.groupy.yaml`) in the package root.
-      1. A package is the target dir (the root package), or a dir below it that contains Python modules, directly
-         or in a sub-dir.
-      2. A dir does not need an `__init__.py` to be a package (i.e. namespace packages are packages).
-   2. Per python module it will create a module node file (e.g. `books.py.groupy.yaml` for `books.py`)
-      1. Initially, each module node file just reflects the current contents of the module.
-      2. Specifically, Groupy sets the initial contents of the `function_nodes`, `class_nodes` and
-         `variable_nodes` fields.
-      3. Every top-level function gets a node in `function_nodes`, and every method gets a node in the `method_nodes`
-         of its class; the `helper_function_nodes` fields are still empty.
-      4. Functions that are nested in the Python code get no node (see "Nested functions").
-      5. An `__init__.py` is just another module, so it also gets a module node file.
-5. Groupy creates the group file (see ./chunking.md), using the grouping strategy and the sizes in the config file.
-   1. The developer can inspect (and edit) the group file before running the first stage.
-6. Groupy creates a first commit with the session file, the config file, the group file and the new node files.
-   1. It will set `next_stage` to `identify-helper-functions`.
 
 ## MS-2: Groupy identifies helper functions
 
