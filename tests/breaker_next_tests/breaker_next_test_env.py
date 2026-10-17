@@ -17,8 +17,10 @@ from breaker.sessions.rules.load_config import load_config
 from breaker_next_tests.fake_policies import (
     FakeRefactoringPolicy,
     FakeRfaPolicy,
+    FakeRfrPolicy,
     get_fake_refactoring_policy,
     get_fake_rfa_policy,
+    get_fake_rfr_policy,
     reset_fake_policies,
 )
 from sessions_tests.breaker_test_env import Context
@@ -69,8 +71,7 @@ class TestEnv(BreakerTestEnv):
         self, modules: T.Dict[str, str] = None, **config_fields: T.Any
     ) -> None:
         """Creates a git repo with the target code and a config file that uses
-        the fake RFA policy and the fake refactoring policy, and runs breaker
-        init. The modules (a map from
+        the fake RFA, RFR and refactoring policies, and runs breaker init. The modules (a map from
         module name to text) are added to the target code, and the
         config_fields are added to the config file."""
         self.create_repo_with_target_code()
@@ -78,6 +79,7 @@ class TestEnv(BreakerTestEnv):
             self.write_file(f"src/{module_name}", text)
         config_lines = [
             f"rfa_policy: {FAKE_RFA_POLICY}",
+            f"rfr_policy: {FAKE_RFR_POLICY}",
             f"refactoring_policy: {FAKE_REFACTORING_POLICY}",
         ] + [f"{field}: {value}" for field, value in config_fields.items()]
         self.write_file(".breaker/config.yaml", "\n".join(config_lines) + "\n")
@@ -92,6 +94,13 @@ class TestEnv(BreakerTestEnv):
 
     def clear_rfa_requests(self) -> None:
         self.rfa_policy().requests.clear()
+
+    def script_rfr(self, rfr_id: str, module_texts: T.Dict[str, str]) -> None:
+        """Lets the RFR write the new texts of the modules, where the module
+        names are relative to the target dir (src)."""
+        self.rfr_policy().scripts[rfr_id] = {
+            f"src/{module_name}": text for module_name, text in module_texts.items()
+        }
 
     def fail_rename(self, module_name: str, name: str) -> None:
         """Lets the fake refactoring policy raise an error when it renames the
@@ -128,6 +137,12 @@ class TestEnv(BreakerTestEnv):
 
     def rfa_policy(self) -> FakeRfaPolicy:
         return get_fake_rfa_policy()
+
+    def rfr_policy(self) -> FakeRfrPolicy:
+        return get_fake_rfr_policy()
+
+    def rfr_ids(self) -> T.List[str]:
+        return [rfr.id for rfr in self.rfr_policy().requests]
 
     def refactoring_policy(self) -> FakeRefactoringPolicy:
         return get_fake_refactoring_policy()

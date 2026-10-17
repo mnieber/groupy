@@ -4,7 +4,9 @@ from pathlib import Path
 from breaker.claude_requests.actions.run_callback import run_callback
 from breaker.claude_requests.models.callback import Callback
 from breaker.claude_requests.models.rfa import Rfa
+from breaker.claude_requests.models.rfr import Rfr
 from breaker.claude_requests.policies.rfa_policy import RfaPolicy
+from breaker.claude_requests.policies.rfr_policy import RfrPolicy
 from breaker.renamings.policies.rope_refactoring_policy import RopeRefactoringPolicy
 
 
@@ -30,6 +32,24 @@ class FakeRfaPolicy(RfaPolicy):
             raise UnscriptedRequestError(f"There is no script for the RFA {rfa.id}")
         for callback in self.scripts[rfa.id]:
             run_callback(callback)
+
+
+class FakeRfrPolicy(RfrPolicy):
+    """Writes the scripted files of each RFR, instead of asking Claude to
+    refactor the code. It records the RFRs that it receives."""
+
+    def __init__(self):
+        # Maps each RFR id onto the new texts of the files that it changes,
+        # by file path (relative to the repo dir, which is the cwd).
+        self.scripts: T.Dict[str, T.Dict[str, str]] = {}
+        self.requests: T.List[Rfr] = []
+
+    def run(self, rfr: Rfr) -> None:
+        self.requests.append(rfr)
+        if rfr.id not in self.scripts:
+            raise UnscriptedRequestError(f"There is no script for the RFR {rfr.id}")
+        for file_path, text in self.scripts[rfr.id].items():
+            Path(file_path).write_text(text)
 
 
 class FakeRefactoringPolicy(RopeRefactoringPolicy):
@@ -60,6 +80,7 @@ class FakeRefactoringPolicy(RopeRefactoringPolicy):
 
 
 _fake_rfa_policy = FakeRfaPolicy()
+_fake_rfr_policy = FakeRfrPolicy()
 _fake_refactoring_policy = FakeRefactoringPolicy()
 
 
@@ -69,6 +90,12 @@ def get_fake_rfa_policy() -> FakeRfaPolicy:
     return _fake_rfa_policy
 
 
+def get_fake_rfr_policy() -> FakeRfrPolicy:
+    """The config of the tests refers to this function, so that Breaker uses
+    the fake policy that the test has scripted."""
+    return _fake_rfr_policy
+
+
 def get_fake_refactoring_policy() -> FakeRefactoringPolicy:
     """The config of the tests refers to this function, so that Breaker uses
     the fake policy that the test has scripted."""
@@ -76,6 +103,7 @@ def get_fake_refactoring_policy() -> FakeRefactoringPolicy:
 
 
 def reset_fake_policies() -> None:
-    global _fake_rfa_policy, _fake_refactoring_policy
+    global _fake_rfa_policy, _fake_rfr_policy, _fake_refactoring_policy
     _fake_rfa_policy = FakeRfaPolicy()
+    _fake_rfr_policy = FakeRfrPolicy()
     _fake_refactoring_policy = FakeRefactoringPolicy()

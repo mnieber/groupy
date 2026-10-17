@@ -64,7 +64,7 @@ Feature packages:
    before it runs `breaker next`. A fake is only added once a test needs it.
    1. `FakeRfaPolicy` maps each RFA id onto a list of scripted callbacks (an action name plus its arguments). It runs
       these callbacks through the same callback dispatcher that the real policy uses.
-   2. `FakeRfrPolicy` maps each RFR id onto scripted file edits.
+   2. `FakeRfrPolicy` maps each RFR id onto scripted file edits (the new text per file).
    3. `FakeGroupingPolicy` (for smart grouping with Haiku) maps each batch id onto a scripted answer.
    4. `FakeRefactoringPolicy` subclasses `RopeRefactoringPolicy`: it refactors with rope, records the renames and
       raises `FakeRefactoringError` for the renames that a test lets fail.
@@ -101,10 +101,16 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
      `renamings/actions/propose_renamings.py`).
    - Also changes: `functions/actions/rename_helper_functions.py` takes the refactoring policy, and
      `renamings/actions/rename_symbol.py` (batch 7) is replaced by the policy.
-2. `extract-methods` (MS-6): the extract-method RFR (via `FakeRfrPolicy`) changes the source; the action creates a
-   node for the extracted function; the callbacks fill its analysis and update the parent.
-   - Exercises: `functions/actions/extract_methods.py` (the stage), `functions/actions/extract_method.py` (the
-     callback), `functions/rules/get_extract_method_candidates.py`.
+2. `extract-methods` (MS-6, in `tests/extract_methods_tests/`): candidates with priority high or medium, an RFA
+   per chunk with candidates (`extract_method_candidates`, `module_sources`); the `extract_method` callback makes an
+   RFR (via `FakeRfrPolicy`) that changes the source, and the action creates a top-level node in source order; the
+   callbacks fill its analysis, nest it and update the parent, after which Breaker renames the helper; a follow-up
+   RFA for unfinished candidates and `UnfinishedCandidatesError`; a failed RFR raises `ExtractMethodFailedError` and
+   restores the working tree.
+   - Exercises: `functions/actions/extract_methods.py` (the stage, with `UnfinishedCandidatesError`),
+     `functions/actions/extract_method.py` (the callback, with `ExtractMethodFailedError`),
+     `functions/rules/get_extract_method_candidates.py`, `functions/actions/rename_helper_functions.py`,
+     `claude_requests/models/rfr.py`, `claude_requests/policies/rfr_policy.py`.
 3. `move-steps-to-caller` (MS-7): the RFA context contains the callers of F with their source; the scripted RFR
    moves the call.
    - Exercises: `functions/actions/move_steps_to_caller.py` (the stage), `functions/actions/move_step_to_caller.py`
@@ -118,9 +124,6 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
      `restructure/rules/find_dependency_violations.py`.
 
 ## 10. Smart grouping and the group file
-
-These tests don't affect the stage runner. They can also move to just before the stages that need them (item 3
-depends on actions that rename or split off files, which arrive with the later stages).
 
 1. Smart grouping with `FakeGroupingPolicy`: the index file, the group description file and the group file;
    Breaker rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
