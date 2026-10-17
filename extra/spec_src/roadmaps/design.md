@@ -47,7 +47,7 @@ An example node file is given in `./module_node_example.md`.
    8. `responsibilities: List[str]`
    9. `steps: List[str]`
    10. `steps_to_move_to_caller: List[str]`: the steps (texts from `steps`, in the order of `steps`) that are proposed to move
-       to the caller(s) of the function (see MS-7).
+       to the caller(s) of the function.
    11. `extract_method_priority: Literal['high', 'medium', 'low', 'n/a'] | None`: `None` means that the
        priority is not set yet.
    12. `renamings: Dict[str, str]`
@@ -83,29 +83,6 @@ An example node file is given in `./module_node_example.md`.
    2. The scrambled name should contain a special token that allows Groupy/Claude to skip that name.
 
 # Milestones
-
-## MS-7: Groupy moves steps to the caller
-
-Moving a step changes the behaviour for every caller, so the developer reviews the proposed moves before they are
-applied. The stage is therefore split in two: `propose-move-steps-to-caller` and `apply-move-steps-to-caller`.
-
-1. The developer reviews the proposed moves (and possibly edits them), and runs `groupy next`.
-2. Claude moves the steps to the caller(s) of F, and updates the analysis of F and of its callers.
-   1. Since this is a refactoring of the source, the stage makes an RFR (not an RFA) per chunk that has steps to
-      move, with the id `apply-move-steps-to-caller/<chunk-id>`. A chunk without steps to move is finished without
-      an RFR.
-   2. The RFR context contains `steps_to_move_to_caller` (lines `<module>:<location>: <step>`, sorted by location and in the
-      order of the steps), `module_sources`, and `caller_sources` (the source of each caller of a function with
-      steps to move).
-   3. Claude edits the source, updates the steps of F and of its callers with the node file edits, and calls
-      `commit_refactoring` after each move. Removing the step from F
-      (with `remove_step`) also removes it from `steps_to_move_to_caller`. When Claude decides that a step cannot be moved,
-      it withdraws the proposal with `remove_step_to_move_to_caller`.
-   4. After the RFR of a chunk, Groupy makes one follow-up RFR (with the id `<rfr-id>/retry-1`) for the steps that
-      are still in `steps_to_move_to_caller`, whose context lists them. If steps are still not moved after the follow-up RFR,
-      Groupy raises `UnappliedStepMovesError`, which lists them. This interrupts the stage, and the chunk is not
-      finished.
-3. Groupy commits the results and updates `next_stage` to `propose-module-layout`.
 
 ## MS-8: Groupy proposes to restructure the code
 

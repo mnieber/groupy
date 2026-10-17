@@ -76,7 +76,7 @@ then you can do so.
     Per chunk, Claude proposes steps of a function that its callers should perform instead (using the callers'
     sources). The source does not change; the developer reviews the proposals.
 
-12. `s12_groupy_moves_steps_to_the_caller`
+12. `s12_groupy_moves_steps_to_the_caller` (written)
     Per chunk, Groupy makes an RFR in which Claude moves the proposed steps to the callers, updates the analysis, and
     commits each move with `commit_refactoring` (or withdraws a proposal). Groupy retries unapplied moves.
 
