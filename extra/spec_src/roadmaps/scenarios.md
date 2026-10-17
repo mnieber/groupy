@@ -51,7 +51,7 @@ then you can do so.
    function in the node file, and Groupy renames the helpers to start with an underscore (in the source too, via
    the refactoring policy).
 
-7. `s07_groupy_analyzes_the_terminology`
+7. `s07_groupy_analyzes_the_terminology` (written)
    Per chunk, Claude fills in the concepts, local terms, responsibilities, steps, aliases and extract-method
    priority of each node, and adds the concepts to the project glossary. Groupy retries nodes that were not
    analyzed. After the last chunk, Claude consolidates the glossary; the developer then resolves names with several

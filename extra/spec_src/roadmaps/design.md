@@ -74,132 +74,8 @@ An example node file is given in `./module_node_example.md`.
       sub-packages).
    3. `proposed_modules: Dict[str, str]`: only used in the root package node file (the package node file of
       the target dir).
-6. The `concepts` and `local_terms` fields map each concept or local term onto a short description.
-   1. The description is empty if it is already given elsewhere (e.g. in `ModuleNode.concepts`).
-   2. Groupy writes an empty description as `null`, but accepts both `null` and `""`.
-## Glossary file
-
-1. The project glossary (`glossary.groupy.yaml` in the root of the target dir) is a list of entries. Each entry
-   describes one concept, with the fields:
-   1. `name: str`: the name of the concept.
-   2. `description: str`: a one-line description.
-   3. `aliases: List[str]`: other names that are used in the code-base for this concept.
-   4. `abbreviation: str | None`: the abbreviation of the concept, if any.
-2. When a name is used for several meanings in the code-base, the glossary has an entry per meaning (with the same
-   name), each with its own aliases and abbreviation.
-3. As for node files, fields that have their default value are left out.
-4. Groupy saves the entries sorted by name. The sort is stable, so entries with the same name keep their order.
-5. Callbacks identify an entry by its name.
-   1. When several entries have that name, the callback also passes `meaning_nr`: the (1-based) position of the
-      entry among the entries with that name. Without it, the callback is rejected as ambiguous.
-6. The glossary is a guide for choosing names. The concepts in the node files do not need to have an entry in the
-   glossary, and the glossary does not record where its concepts are used.
-7. Groupy offers these actions on the glossary (they are also available as callbacks):
-   1. `add_glossary_entry(name, description)`: adds a new entry, also when there already is an entry with that name
-      (a second meaning).
-   2. `set_glossary_description(name, description)`.
-   3. `add_glossary_alias(name, alias)`: an alias is listed once.
-   4. `set_glossary_abbreviation(name, abbreviation)`: an abbreviation of `null` removes the abbreviation.
-   5. `merge_glossary_entries(name, into_name)`: removes the entry `name`, and adds its name and aliases to the
-      aliases of the entry `into_name`. The entry `into_name` keeps its description, and its abbreviation (if it has
-      none, it gets the abbreviation of the entry `name`). It takes `meaning_nr` for `name` and `into_meaning_nr`
-      for `into_name`.
-   6. An action on a name that is not in the glossary raises an error, and leaves the glossary unchanged.
-   7. When the glossary file does not exist yet, the actions treat it as an empty glossary.
-
-```yaml
-- name: report
-  description: a markdown document with the statistics of a user
-- name: report
-  description: an error report that is sent to Sentry
-  aliases: [error_doc]
-- name: title
-  description: the name of a book
-  aliases: [name, book_title]
-  abbreviation: ttl
-```
 
 # Milestones
-
-## MS-3: Groupy analyzes the terminology
-
-1. The developer runs `groupy next`
-2. Groupy will pass each node file to Claude and ask it to update it (by running actions)
-   1. Groupy makes an RFA per chunk. The RFA context contains:
-      1. `module_sources`: the source of each module of the chunk (by module name).
-      2. `call_graph_view`: the call graph view of the chunk, with the callers and the callees.
-      3. `glossary`: the text of the glossary file so far (empty when there is no glossary file yet).
-   2. Claude first updates the `ModuleNode.concepts: Dict[str, str | None]` field
-      1. These are the concepts that apply to the module as a whole.
-      2. Each key names a concept and the value is a short description of that concept.
-      3. They are recorded once at the module level to avoid repeating them in each FunctionNode.
-         Concepts in `FunctionNode.concepts` are not necessarily less important.
-   3. Claude will then update each function-node in `function_nodes` (and each class-node in `class_nodes`):
-      1. It updates the `FunctionNode.concepts: Dict[str, str | None]` field
-         1. Each key names a concept that is used in the function, and that is not already present (with the same meaning) in `ModuleNode.concepts`.
-            1. If it's present there with a different meaning (which should be rare), then it can be duplicated in the FunctionNode.
-         2. The value optionally describes the concept.
-            1. Claude leaves the description empty if it is already given elsewhere (e.g. in another node of the
-               same module), unless the meaning in this function is specific.
-            2. When the glossary has several entries (meanings) for the name, the meaning is always specific, so
-               Claude gives a description.
-         3. A concept is a term that helps explain the purpose and responsibilities of the function.
-      2. It updates the `FunctionNode.local_terms: Dict[str, str | None]` field
-         1. Each key names a local term that is used in the function
-         2. The value optionally describes the local term (following the same rule as for concepts).
-         3. A local term has local significance but is not significant in a wider context (and therefore is not a concept).
-            1. E.g. `hash_tag` may be a local term if the function deals with hash_tags, but this term may not
-               be a meaningful concept within the larger context that is the code-base.
-            2. Claude will use its own judgement to distinguish between concepts and local terms.
-               1. The distinction matters because concepts are only meaningful when not everything is a concept.
-      3. It updates the `FunctionNode.responsibilities: List[str]` field.
-         1. Each string describes a responsibility of the function
-         2. The description usually refers to concepts and local terms.
-         3. The responsibility to update (by the action) is identified by its list index
-         4. Based on whether the function has too many responsibilities, it sets `extract_method_priority`.
-            1. `'n/a'` means that the function doesn't need refactoring
-      4. It updates the `FunctionNode.steps: List[str]` field
-         1. Each string describes a step that the function takes to meet its responsibilities.
-         2. The description usually refers to concepts and local terms.
-         3. The step to update (by the action) is identified by its list index
-      5. When a function uses several names for the same concept or term (aliases), Claude records each concept or
-         term once (using the name that it considers canonical) and lists the aliases in the
-         `FunctionNode.aliases: Dict[str, List[str]]` field.
-         1. E.g. `outlier: [outlier_point]`.
-         2. The list of aliases serves as an input for determining the renamings that are used to get rid of aliases.
-   4. Claude updates the project glossary (see "Glossary file") with the concepts of the chunk.
-      1. Each RFA receives the glossary so far, so that Claude can reuse the names and descriptions of earlier chunks.
-      2. A concept that is not in the glossary yet is added with its description.
-      3. When a concept has the same meaning as a glossary entry with another name, Claude adds its name as an alias
-         of that entry.
-      4. When a concept has the same name as a glossary entry, but a different meaning, Claude adds a new entry
-         with the same name. Claude does not try to resolve this.
-      5. Abbreviations may be used to keep names relatively short.
-         1. Concepts that are already short usually don't need an abbreviation.
-         2. Abbreviations are recorded in the glossary so that they can be applied consistently across the
-            code-base.
-            1. Once an abbreviation is introduced, we should always use exactly that abbreviation and no alternative
-               abbreviations.
-   5. After the RFA of a chunk, Groupy checks that Claude analyzed every function node (also method nodes and
-      helper function nodes) and class node of the chunk, i.e. that its `extract_method_priority` is set.
-      1. If some nodes are not analyzed, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose
-         context lists their locations (`unanalyzed_nodes`, sorted, e.g. `myapp/books.py:Book.__init__`).
-      2. If nodes are still not analyzed after the follow-up RFA, Groupy raises an error that lists them. This
-         interrupts the stage, and the chunk is not finished.
-3. After the last chunk, Groupy asks Claude to consolidate the glossary (in a single session that receives the
-   entire glossary).
-   1. The consolidation RFA has the id `analyze-terminology/consolidate-glossary`, and its context contains the
-      `glossary`. It is treated as a final chunk: Groupy records it in `finished_chunks` and commits with the message
-      `analyze-terminology: finish consolidate-glossary`, so that a stage that is interrupted during the
-      consolidation only reruns the consolidation.
-   2. Early chunks may have added entries that turn out to have the same meaning. Claude merges them into one entry,
-      and the other names become aliases.
-   3. Claude makes the abbreviations consistent.
-   4. Claude does not resolve names with several meanings; that is up to the developer.
-4. The developer reviews the glossary and cleans it up.
-   1. In particular, the developer gives entries with the same name distinct names (e.g. `report` for the user
-      statistics, and `error_report`, with the alias `report`, for the error reports).
-5. Groupy commits the results and updates `next_stage` to `propose-renamings`.
 
 ## MS-4: Groupy proposes renamings that unify the terminology
 
@@ -617,7 +493,7 @@ benefits from seeing the entire code-base (e.g. so that the glossary and the mod
    1. `groupy init`, `groupy sync` and `groupy group` keep a node file for every module, and the group file lists
       every module. The filter does not change the groups or the chunks, so that chunk ids do not depend on the
       filter.
-   2. The analysis stages ignore the filter: the nesting of helper functions (identify-helper-functions), analyze-terminology (MS-3)
+   2. The analysis stages ignore the filter: the nesting of helper functions (identify-helper-functions), analyze-terminology
       and propose-module-layout (MS-8, which receives the summaries of all modules).
    3. The call graph and the context of the Claude requests (e.g. `caller_sources`) cover the entire target dir.
 3. The proposals and refactorings only start from the nodes in modules that match the filter.
