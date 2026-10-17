@@ -75,70 +75,20 @@ An example node file is given in `./module_node_example.md`.
    3. `proposed_modules: Dict[str, str]`: only used in the root package node file (the package node file of
       the target dir).
 
+## Open points
+
+1. Renamings: only symbols that are defined in the target code may be renamed, not the attributes, parameters and
+   dict keys of external libraries. How do we ensure this?
+   1. Maybe scramble the third party names to protect them from being renamed, and afterwards undo the scrambling.
+   2. The scrambled name should contain a special token that allows Groupy/Claude to skip that name.
+
 # Milestones
-
-## MS-4: Groupy proposes renamings that unify the terminology
-
-1. The developer runs `groupy next`.
-2. Groupy asks Claude to update the `FunctionNode.renamings: Dict[str, str]` field, using the glossary.
-   1. Groupy makes an RFA per chunk. The RFA context contains `module_sources` (the source of each module of the
-      chunk) and `glossary` (the text of the glossary file). Claude reads the concepts and aliases from the node
-      files.
-   2. Renamings are used to get rid of aliases. They apply to:
-      1. Symbols that are local to the function (variables and parameters).
-      2. Concepts and local terms (in the node file)
-   3. Claude will chose `renamings` such that all aliases are replaced by the canonical name.
-      1. Ideally, the canonical name comes from the global glossary,
-      2. Claude may also choose the canonical name from the module scope.
-   4. The glossary is a guide. When a concept in the node file has the same meaning as a glossary entry (judged
-      from its description and the source), Claude may rename the concept to the name of that entry, also when
-      the glossary lists the concept as an alias.
-      1. When the glossary still has several entries with the same name, Claude chooses the entry from the
-         context, or leaves the name unchanged.
-      2. A concept without a glossary entry keeps its name, unless one of the other rules applies.
-      3. The entire symbol is stored as the key, not some part thereof (since there is no partial matching).
-      4. The new name maintains the meaning (e.g. plural stays plural).
-         1. E.g. if the function uses `outlier` and `outlier_point` as aliases then `new_outlier_points` will be renamed to `new_outliers` and `find_next_outlier_point` will be renamed to `find_next_outlier`.
-   5. Renamings can also be used to create shorter symbol names.
-   6. A renaming of the function itself is stored in `FunctionNode.rename_to`.
-      Renamings of module-level symbols are stored in `ModuleNode.renamings`.
-   7. The `renamings` field maps the old symbol name onto the new symbol name, using these guidelines:
-      1. Map types are renamed to `foo_by_bar` where `foo` is the value and `bar` is the key.
-         1. It's also possible to have `foo_by_bar_by_baz`, where `baz` is the key and `foo_by_bar` is the value.
-      2. Abbreviations from the glossary may be used to keep the new name relatively short.
-         1. E.g. if `sf` is the abbreviation for `suitability_fraction` in the glossary then Claude may add a renaming from `highest_suitability_fraction_by_plot_id` to `highest_sf_by_plot_id`
-         2. Local terms that need an abbreviation are recorded in `FunctionNode.abbreviations: Dict[str, str]`.
-      3. Only symbols that are defined in the code-base are renamed. Attributes, parameters and dict-keys of external
-         libraries are not renamed.
-         1. ❔how will we ensure this?
-         2. Maybe scramble the third party names to protect them from being renamed, and afterwards undo the scrambling?
-         3. The scrambled name should contain a special token that allows Groupy/Claude to skip that name.
-3. Groupy validates the proposed renamings after the RFA of each chunk.
-   1. It reports a conflict when a new name clashes with an existing name in the same scope, that is not itself
-      renamed. The scopes are:
-      1. A function: its local symbols (variables and parameters) and the keys of its `renamings`.
-      2. A class: its attributes and methods, with the class `renamings` and the `rename_to` of its methods.
-      3. A module: its top-level functions, classes and variables, with `ModuleNode.renamings` and the `rename_to`
-         of its top-level nodes.
-   2. It also reports a conflict when two renamings in the same scope have the same new name.
-   3. A chain (e.g. `title -> text` and `text -> body`) is allowed: the new name `text` is renamed away, and
-      apply-renamings orders the renames so that they work. A cycle (e.g. a swap of `title` and `text`) is a
-      conflict, because there is no such order without a temporary name.
-   4. Each conflict is a line `<module>:<scope location>: <description>`, where the scope location is `@module`
-      for the module scope, e.g.:
-      1. `myapp/reports.py:create_report: title -> text clashes with the existing name text`
-      2. `myapp/reports.py:create_report: report -> person and user -> person have the same new name`
-      3. `myapp/reports.py:create_report: text -> title and title -> text form a cycle`
-   5. When there are conflicts, Groupy makes one follow-up RFA (with the id `<rfa-id>/retry-1`) whose context
-      lists them (`renaming_conflicts`, sorted). If conflicts remain after the follow-up RFA, Groupy raises an error
-      that lists them. This interrupts the stage, and the chunk is not finished.
-4. Groupy commits the results and updates `next_stage` to `apply-renamings`.
 
 ## MS-5: Groupy applies the unified terminology
 
 1. The developer reviews all node files, possibly making edits to the proposed renamings and terminology.
 2. When they are done, they run `groupy next`.
-   1. Groupy first checks all renamings for conflicts (see MS-4), before it changes anything. When there are
+   1. Groupy first checks all renamings for conflicts (as in propose-renamings), before it changes anything. When there are
       conflicts, it raises the same error as propose-renamings, which lists them. Since a module whose renamings
       are applied has no renamings left, the check also works when the stage is resumed.
    2. Groupy will then apply the renamings (using `rename_symbol` of the refactoring policy), including in all call

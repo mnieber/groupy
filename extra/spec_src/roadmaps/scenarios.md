@@ -57,7 +57,7 @@ then you can do so.
    analyzed. After the last chunk, Claude consolidates the glossary; the developer then resolves names with several
    meanings.
 
-8. `s08_groupy_proposes_renamings`
+8. `s08_groupy_proposes_renamings` (written)
    Per chunk, Claude proposes renamings that replace aliases by canonical names from the glossary (and that shorten
    names with abbreviations). Groupy validates the renamings per scope (clashes, duplicate new names, cycles) and
    asks Claude once to fix conflicts.
