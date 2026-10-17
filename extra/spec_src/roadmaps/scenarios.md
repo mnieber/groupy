@@ -62,7 +62,7 @@ then you can do so.
    names with abbreviations). Groupy validates the renamings per scope (clashes, duplicate new names, cycles) and
    asks Claude once to fix conflicts.
 
-9. `s09_groupy_applies_renamings`
+9. `s09_groupy_applies_renamings` (written)
    After the developer's review, Groupy rechecks the renamings and applies them per module with the refactoring
    policy (including call sites in other modules), ordering chains so that they work, and updates the node files.
    No Claude requests.

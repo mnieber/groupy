@@ -84,36 +84,6 @@ An example node file is given in `./module_node_example.md`.
 
 # Milestones
 
-## MS-5: Groupy applies the unified terminology
-
-1. The developer reviews all node files, possibly making edits to the proposed renamings and terminology.
-2. When they are done, they run `groupy next`.
-   1. Groupy first checks all renamings for conflicts (as in propose-renamings), before it changes anything. When there are
-      conflicts, it raises the same error as propose-renamings, which lists them. Since a module whose renamings
-      are applied has no renamings left, the check also works when the stage is resumed.
-   2. Groupy will then apply the renamings (using `rename_symbol` of the refactoring policy), including in all call
-      sites in the code-base.
-      1. This stage makes no Claude requests. It processes the chunks with `process_chunks`, and the modules of a
-         chunk in sorted order.
-      2. Per module, Groupy applies all renamings of the module node file (the `renamings` of the module, its
-         classes and its functions, and the `rename_to` of its functions, methods and classes), updates the node
-         file, and commits with the message `apply-renamings: apply the renamings of <module>`. A module without
-         renamings gets no commit.
-      3. Within a scope, Groupy orders the renames so that a chain works (e.g. for `title -> text` and
-         `text -> body`, it renames `text` first).
-      4. A renaming whose old name is not a symbol in the source scope (e.g. a concept such as `outlier_point`)
-         only renames the keys in the node file.
-      5. When a rename fails, Groupy discards the uncommitted changes (it restores the working tree to the last
-         commit, which also undoes the renames of the module that already succeeded), and re-raises the error. The
-         module keeps its renamings, so the next `groupy next` resumes at that module.
-   3. Groupy updates each node whose renamings it applied:
-      1. `name` becomes `rename_to`, and `rename_to` is cleared.
-      2. The keys of `concepts`, `local_terms` and `abbreviations` are renamed by the `renamings` of the node, all at
-         once (so `text -> body` and `body -> content` turn the keys `text` and `body` into `body` and `content`).
-         When a key that is not renamed already has the new name, it keeps its own description.
-      3. `renamings` and `aliases` are cleared, because the aliases are gone.
-3. Groupy commits the results and updates `next_stage` to `extract-methods`.
-
 ## MS-6: Groupy extract methods
 
 1. The developer runs `groupy next`.
