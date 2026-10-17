@@ -12,7 +12,6 @@ def run_scenario():
     r.stage_action = m.Renamings.Actions.ProposeRenamings
     r.set_renaming_action = m.Renamings.Actions.SetRenaming
     r.set_rename_to_action = m.Nodes.Actions.SetRenameTo
-    r.set_abbreviation_action = m.Concepts.Actions.SetAbbreviation
     r.validate_renamings_rule = m.Renamings.Rules.ValidateRenamings
 
     with goal().propose_the(r.renamings).that_unify_the(r.terminology):
@@ -25,9 +24,9 @@ def run_scenario():
                 with the(r.claude).replaces_each(r.alias).by_its(r.canonical_name):
                     it().calls(r.set_renaming_action).for_each(r.symbol).in_a(r.scope)
                     it().calls(r.set_rename_to_action).for_each(r.renamed_node)
-                    it().calls(r.set_abbreviation_action).for_each(
-                        r.local_term
-                    ).that_needs_an(r.abbreviation)
+                    it().uses_the(r.abbreviations).of_the(r.glossary).and_of_the(
+                        r.function_node
+                    )
 
             # Validate the renamings
             with the(r.stage_action).calls(r.validate_renamings_rule).for_the(r.chunk):
@@ -68,9 +67,9 @@ plural stays plural). E.g. when a function uses `outlier_point` as an alias of `
   from its description and the source). When the glossary still has several entries with the same name, Claude
   chooses the entry from the context, or leaves the name unchanged.
 - Renamings may also shorten names. A map is named `foo_by_bar`, where `foo` is the value and `bar` the key. The
-  abbreviations of the glossary may be used (e.g. `highest_sf_by_plot_id`, where `sf` is the abbreviation of
-  `suitability_fraction`). A local term that needs an abbreviation records it in the `abbreviations` of its function
-  node.
+  abbreviations that analyze-terminology decided may be used: those of the glossary everywhere (e.g.
+  `highest_sf_by_plot_id`, where `sf` is the abbreviation of `suitability_fraction`), and those in the
+  `abbreviations` of a function node within that function. Claude does not introduce new abbreviations.
 - Only symbols that are defined in the target code are renamed, not the attributes, parameters and dict keys of
   external libraries.
 
@@ -100,7 +99,7 @@ sequenceDiagram
     actor Claude
     actor Developer
     participant Stage as ProposeRenamings (action)
-    participant NodeEdits as set_renaming, set_rename_to, set_abbreviation (actions)
+    participant NodeEdits as set_renaming, set_rename_to (actions)
     participant ValidateRenamings as ValidateRenamings (rule)
 
     loop for each chunk

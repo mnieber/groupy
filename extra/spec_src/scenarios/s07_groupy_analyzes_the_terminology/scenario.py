@@ -14,6 +14,7 @@ def run_scenario():
     r.set_concept_action = m.Concepts.Actions.SetConcept
     r.set_local_term_action = m.Concepts.Actions.SetLocalTerm
     r.add_alias_action = m.Concepts.Actions.AddAlias
+    r.set_abbreviation_action = m.Concepts.Actions.SetAbbreviation
     r.add_responsibility_action = m.Functions.Actions.AddResponsibility
     r.add_step_action = m.Functions.Actions.AddStep
     r.set_extract_method_priority_action = m.Functions.Actions.SetExtractMethodPriority
@@ -32,6 +33,9 @@ def run_scenario():
                 with the(r.claude).analyzes_each(r.node):
                     it().calls(r.set_concept_action).and_(r.set_local_term_action)
                     it().calls(r.add_alias_action).for_each(r.alias)
+                    it().calls(r.set_abbreviation_action).for_each(
+                        r.local_term
+                    ).that_needs_an(r.abbreviation)
                     it().calls(r.add_responsibility_action).and_(r.add_step_action)
                     it().calls(r.set_extract_method_priority_action)
 
@@ -95,6 +99,9 @@ callbacks:</br>
 - `aliases` of a function node: when a function uses several names for the same concept (e.g. `outlier` and
   `outlier_point`), Claude records the concept once, under the name that it considers canonical, and lists the
   other names as aliases (`outlier: [outlier_point]`). The aliases are the input for the renamings.
+- `abbreviations` of a function node: abbreviations of local terms, and of concepts that have no glossary entry,
+  that help to keep names short (e.g. `time_stamp: ts`). The abbreviations of glossary concepts are recorded in the
+  glossary instead.
 - `extract_method_priority` (`high`, `medium`, `low` or `n/a`): whether the function has too many responsibilities
   and should be split up.
 
@@ -127,6 +134,9 @@ descriptions of earlier chunks.</br>
   not try to resolve such names; that is up to the developer.
 - Long concepts may get an abbreviation (`set_glossary_abbreviation`), so that it is applied consistently across
   the code-base: once an abbreviation is introduced, no alternative abbreviation is used.
+
+All abbreviations (in the glossary and in the node files) are decided in this stage, so that the developer reviews
+the entire terminology at once. The renamings use them, but don't introduce new ones.
 
 The glossary does not record where its concepts are used, and the concepts in the node files do not need to have an
 entry.</br>
@@ -166,7 +176,7 @@ sequenceDiagram
         Note over Stage,GlossaryEdits: Claude analyzes the nodes and updates the glossary
         Stage->>Claude: RFA(module_sources, call_graph_view, glossary)
         loop for each node
-            Claude->>NodeEdits: set_concept, set_local_term, add_alias
+            Claude->>NodeEdits: set_concept, set_local_term, add_alias, set_abbreviation
             Claude->>NodeEdits: add_responsibility, add_step, set_extract_method_priority
         end
         Claude->>GlossaryEdits: add_glossary_entry, add_glossary_alias, set_glossary_abbreviation

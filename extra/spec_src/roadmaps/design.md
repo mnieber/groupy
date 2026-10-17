@@ -52,7 +52,7 @@ An example node file is given in `./module_node_example.md`.
        priority is not set yet.
    12. `renamings: Dict[str, str]`
    13. `aliases: Dict[str, List[str]]`
-   14. `abbreviations: Dict[str, str]`
+   14. `abbreviations: Dict[str, str]`: abbreviations of local terms and of concepts without a glossary entry
    15. `helper_function_nodes: List[FunctionNode]`: the helper functions of this function. They are top-level
        functions in the Python code.
 3. A `ClassNode` has the fields:

@@ -64,8 +64,9 @@ BOOKS_CALLBACKS = [
 ]
 
 # The callbacks of the RFA of the chapters chunk. They analyze the modules of
-# myapp/chapters, add a second meaning of title to the glossary, and add
-# section, which has the same meaning as chapter.
+# myapp/chapters (including the abbreviation of a local term), add a second
+# meaning of title to the glossary, and add section, which has the same
+# meaning as chapter.
 CHAPTERS_CALLBACKS = [
     callback(
         "set_concept",
@@ -78,8 +79,15 @@ CHAPTERS_CALLBACKS = [
         "set_local_term",
         module_name=CHAPTER_TITLES,
         location="number_heading",
-        local_term="nr",
+        local_term="number",
         description=None,
+    ),
+    callback(
+        "set_abbreviation",
+        module_name=CHAPTER_TITLES,
+        location="number_heading",
+        term="number",
+        abbreviation="nr",
     ),
     callback(
         "add_alias",
@@ -216,7 +224,8 @@ def test_analyze_terminology_fills_the_analysis_and_the_glossary(context: Contex
 
     # We look at the node file of chapter_titles.py.
     #
-    # The callbacks should have filled the concepts, local terms and aliases.
+    # The callbacks should have filled the concepts, local terms, aliases and
+    # abbreviations.
     if env.step(
         env.load_module_node(CHAPTER_TITLES),
     ):
@@ -224,8 +233,9 @@ def test_analyze_terminology_fills_the_analysis_and_the_glossary(context: Contex
         assert number_heading_node.concepts == {
             "chapter_title": "the heading of a chapter, with its number"
         }
-        assert number_heading_node.local_terms == {"nr": None}
+        assert number_heading_node.local_terms == {"number": None}
         assert number_heading_node.aliases == {"chapter_title": ["heading"]}
+        assert number_heading_node.abbreviations == {"number": "nr"}
 
     # We look at the session.
     #
