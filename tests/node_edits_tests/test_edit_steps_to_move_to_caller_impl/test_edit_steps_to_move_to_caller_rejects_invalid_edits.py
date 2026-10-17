@@ -2,7 +2,9 @@ from breaker.functions.actions.add_step import add_step
 from breaker.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
-from breaker.functions.actions.remove_step_to_move import remove_step_to_move
+from breaker.functions.actions.remove_step_to_move_to_caller import (
+    remove_step_to_move_to_caller,
+)
 from breaker.nodes.utils.exceptions import EntryNotFoundError, InvalidValueError
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
@@ -44,7 +46,7 @@ def test_edit_steps_to_move_rejects_invalid_edits(context: Context):
     # unchanged.
     if env.step(
         env.edit_node_file_and_catch_error(
-            remove_step_to_move, "create_book", "Log the title"
+            remove_step_to_move_to_caller, "create_book", "Log the title"
         ),
     ):
         assert isinstance(env.error, EntryNotFoundError)

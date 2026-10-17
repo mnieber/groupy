@@ -100,12 +100,14 @@ last chunk), using the shared helper `sessions/actions/process_chunks.py` that s
 
 1. `propose-move-steps-to-caller` (MS-7, in `tests/propose_move_steps_to_caller_tests/`): an RFA per chunk with
    candidates (`move_step_candidates`, `module_sources`, `caller_sources`); the callbacks record the steps to move
-   (`add_step_to_move_to_caller`) and the source is unchanged. The node edits of `steps_to_move_to_caller` (adding, withdrawing,
-   following `update_step` and `remove_step`, and the validations) are tested in `tests/node_edits_tests/`.
+   (`add_step_to_move_to_caller`) and the source is unchanged; the candidates exclude functions without callers,
+   with an uncertain caller or with a module-level caller, and `caller_sources` includes callers in other chunks and
+   (dedented) methods. The node edits of `steps_to_move_to_caller` (adding, withdrawing, following `update_step` and
+   `remove_step`, and the validations) are tested in `tests/node_edits_tests/`.
    - Exercises: `functions/actions/propose_move_steps_to_caller.py` (the stage),
      `functions/rules/get_move_step_candidates.py`, `functions/actions/add_step_to_move_to_caller.py`,
-     `functions/actions/remove_step_to_move.py`, the `steps_to_move_to_caller` field of `FunctionNode`, and the changes of
-     `update_step` and `remove_step`.
+     `functions/actions/remove_step_to_move_to_caller.py`, the `steps_to_move_to_caller` field of `FunctionNode`,
+     and the changes of `update_step` and `remove_step`.
 2. `apply-move-steps-to-caller` (MS-7, in `tests/apply_move_steps_to_caller_tests/`): an RFR per chunk with steps
    to move (`steps_to_move_to_caller`, `module_sources`, `caller_sources`); the scripted RFR edits the source and the steps
    (via callbacks) and commits with `commit_refactoring`; a follow-up RFR for unapplied moves and

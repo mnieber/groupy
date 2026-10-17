@@ -585,10 +585,15 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
    5. Breaker makes an RFA per chunk that has candidates. A chunk without candidates is finished without an RFA. The
       RFA context contains `move_step_candidates` (the locations `<module>:<location>`, sorted), `module_sources`,
       and `caller_sources`: the source of each caller of a candidate (also in other modules), by its location.
+      1. The source of a caller that is a method is dedented, and its location is its qualified name (e.g.
+         `myapp/stats.py:Sample.summarize`).
    6. Claude records each step that should move in `FunctionNode.steps_to_move_to_caller`, with the actions
-      `add_step_to_move_to_caller(module_name, location, step)` and `remove_step_to_move(module_name, location, step)`.
+      `add_step_to_move_to_caller(module_name, location, step)` and
+      `remove_step_to_move_to_caller(module_name, location, step)`.
       1. The step must be one of the `steps` of the function, and it is listed once.
-      2. `update_step` also updates the step in `steps_to_move_to_caller`, and `remove_step` also removes it from
+      2. The action does not check that the function is a candidate: the candidates guide Claude, the developer
+         reviews the proposals, and the apply stage can withdraw a proposal that it cannot do.
+      3. `update_step` also updates the step in `steps_to_move_to_caller`, and `remove_step` also removes it from
          `steps_to_move_to_caller`.
    7. The source does not change. There is no check that Claude considered every candidate: moving steps is
       optional.
@@ -604,7 +609,7 @@ applied. The stage is therefore split in two: `propose-move-steps-to-caller` and
    3. Claude edits the source, updates the steps of F and of its callers with the node file edits, and calls
       `commit_refactoring` after each move (see "Guidelines for the Claude requests"). Removing the step from F
       (with `remove_step`) also removes it from `steps_to_move_to_caller`. When Claude decides that a step cannot be moved,
-      it withdraws the proposal with `remove_step_to_move`.
+      it withdraws the proposal with `remove_step_to_move_to_caller`.
    4. After the RFR of a chunk, Breaker makes one follow-up RFR (with the id `<rfr-id>/retry-1`) for the steps that
       are still in `steps_to_move_to_caller`, whose context lists them. If steps are still not moved after the follow-up RFR,
       Breaker raises `UnappliedStepMovesError`, which lists them. This interrupts the stage, and the chunk is not

@@ -3,7 +3,9 @@ from breaker.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
 from breaker.functions.actions.remove_step import remove_step
-from breaker.functions.actions.remove_step_to_move import remove_step_to_move
+from breaker.functions.actions.remove_step_to_move_to_caller import (
+    remove_step_to_move_to_caller,
+)
 from breaker.functions.actions.update_step import update_step
 from node_edits_tests.node_edits_test_env import Context, TestEnv
 
@@ -64,7 +66,9 @@ def test_edit_steps_to_move_records_proposed_moves(context: Context):
     # There should be no steps to move, and the step should stay.
     if env.step(
         env.edit_node_file(
-            remove_step_to_move, "create_book", "Validate the title of the book"
+            remove_step_to_move_to_caller,
+            "create_book",
+            "Validate the title of the book",
         ),
         env.load_module_node(),
     ):
