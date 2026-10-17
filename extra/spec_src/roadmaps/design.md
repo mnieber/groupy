@@ -86,23 +86,10 @@ An example node file is given in `./module_node_example.md`.
 
 ## MS-8: Groupy proposes to restructure the code
 
+The proposal of the module layout is described in the scenario `s13_groupy_proposes_the_module_layout`.
+
 1. The developer runs `groupy next`.
-2. Groupy asks Claude to propose the module layout of the application package.
-   1. Claude receives the glossary and, for each module node file, the module concepts and the names and
-      responsibilities of the top-level functions and classes.
-      1. Groupy makes a single RFA for the whole code-base, with the id `propose-module-layout/all`. It is recorded
-         as a finished chunk (`finish all`), so that a resumed stage does not repeat it.
-      2. The RFA context contains `glossary` (the text of the glossary file) and `module_summaries`: per module
-         node file, its `concepts` and its `code_units`, which map the name of each top-level function and class
-         onto its first responsibility (or `None`). Module-level variables and helper function nodes are left out.
-   2. Claude runs an action to record the list of proposed modules in the root package node file (in the
-      `PackageNode.proposed_modules: Dict[str, str]` field), mapping each module name onto a one-line description.
-      1. A module name is the path of a (feature) package, e.g. `myapp/books` or `myapp/utils`.
-      2. The actions are `set_proposed_module(name, description)` and `remove_proposed_module(name)`.
-   3. The developer reviews (and possibly edits) the proposed module layout.
-3. Groupy commits the results and updates `next_stage` to `propose-code-restructure`.
-4. The developer runs `groupy next`.
-5. Groupy asks Claude to propose a structuring for each module node file, using the proposed module layout.
+2. Groupy asks Claude to propose a structuring for each module node file, using the proposed module layout.
    1. Groupy makes an RFA per chunk, whose context contains `module_sources`, `proposed_modules`,
       `call_graph_view` (with the callers and callees, so that Claude can follow the dependency direction) and
       `glossary`. Claude uses the callbacks `set_code_unit_type`, `set_move_to_file` and `set_rename_to`.
@@ -122,16 +109,9 @@ An example node file is given in `./module_node_example.md`.
          group file.
       2. A method without these fields stays as it is. Claude does not set them for the methods that must stay
          methods (see "Functions and methods").
-6. The target code structure follows the following guidelines:
-   1. Application package
-      1. The application consists of a single application package (e.g. `myapp/`).
-      2. The application package is divided into feature packages, e.g. `myapp/books/`, `myapp/chapters/`.
-         1. Each feature package covers one cohesive area of the domain and is named after its main concept,
-            using the canonical name from the glossary).
-            1. When in doubt, plural form is preferred, e.g. `books` or `chapters`.
-         2. Code that is used by several modules but belongs to none of them goes into a shared module
-            (e.g. `myapp/utils/` for generic utils).
-   2. Code units
+3. The target code structure follows the following guidelines (the feature packages are described in the
+   scenario `s13_groupy_proposes_the_module_layout`):
+   1. Code units
       1. A function that changes the application state (e.g. it writes to a database, a file or a network
          service, or it mutates its arguments) is an action.
          1. It goes to `<module>/actions/<action_name>.py`.
@@ -168,13 +148,13 @@ An example node file is given in `./module_node_example.md`.
           1. The abstract policy goes to `<module>/policies/<policy_name>.py` (e.g. `rfa_policy.py`), and each
              implementation goes to its own file in the same directory (e.g. `claude_rfa_policy.py`).
           2. Fake implementations for tests live with the tests (e.g. in `fake_policies.py`).
-   3. Files
+   2. Files
       1. Each action, rule, util and model gets its own file (except for util group files).
       2. The file is named after the code unit it contains, in snake_case
          (e.g. `CreateChapterForm` and `create_chapter` live in `chapters/actions/create_chapter.py`).
       3. Helper functions stay in the file of their parent function and start with an underscore.
          1. A helper that is used by several public functions is promoted to a rule or util.
-   4. Dependencies
+   3. Dependencies
       1. Dependencies point in one direction: entrypoints → actions → rules → utils.
          1. A rule never calls an action, and a util never calls a rule or an action.
          2. Models, schemas and enums may be used by all code units.
@@ -183,7 +163,7 @@ An example node file is given in `./module_node_example.md`.
                Claude), it receives the function as an argument.
       2. Imports between modules must not create circular imports at runtime.
          1. Type references to models in other modules use a `typing.TYPE_CHECKING` guard.
-7. Groupy validates the proposal after the RFA of each chunk.
+4. Groupy validates the proposal after the RFA of each chunk.
    1. It validates all node files, and keeps the problems of the nodes of the chunk (so that a clash with a node of
       an earlier chunk is reported for the node of this chunk). Each problem is a line
       `<module>:<location>: <description>`, e.g.: 1. `myapp/reports/report.py:count_reports: has no code_unit_type` 2. `myapp/reports/report.py:Report: a model goes to <package>/models/report.py, not
@@ -214,7 +194,7 @@ myapp/reports/enums.py`
       violation, sorted, e.g. `myapp/reports/report.py:get_overdue_reports (rule) calls
 myapp/reports/report.py:send_reminder (action)`. Without violations, it prints
       `The proposed code structure follows the dependency direction.`
-8. Groupy commits the results and updates `next_stage` to `apply-code-restructure`.
+5. Groupy commits the results and updates `next_stage` to `apply-code-restructure`.
 
 ## MS-9: Groupy restructures the code
 

@@ -80,7 +80,7 @@ then you can do so.
     Per chunk, Groupy makes an RFR in which Claude moves the proposed steps to the callers, updates the analysis, and
     commits each move with `commit_refactoring` (or withdraws a proposal). Groupy retries unapplied moves.
 
-13. `s13_groupy_proposes_the_module_layout`
+13. `s13_groupy_proposes_the_module_layout` (written)
     In a single RFA for the whole code-base, Claude receives condensed module summaries and the glossary, and
     proposes the feature packages of the application in the root package node file. The developer reviews them.
 
