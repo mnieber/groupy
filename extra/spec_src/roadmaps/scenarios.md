@@ -39,7 +39,7 @@ then you can do so.
    edits and `commit_refactoring` are allowed as callbacks. `commit_refactoring` checks that the code parses and
    commits the source and node files together; uncommitted work after the RFR is rejected.
 
-5. `s05_a_developer_syncs_the_node_files`
+5. `s05_a_developer_syncs_the_node_files` (written)
    After editing the code by hand, the developer runs `groupy sync`. Groupy adds and removes nodes and node files so
    that they reflect the source again, updates the group file, and reports the changes (with hints for moving the
    analysis of renamed nodes). The developer reviews and commits the changes.
