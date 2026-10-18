@@ -41,6 +41,8 @@ default config refers to `claude_requests.policies.claude_rfa_policy:ClaudeRfaPo
    5. As a safety net, the policy terminates `claude` when it is still running some time (e.g. 5 minutes) after the
       error file was written. If Claude turns out to ignore the instruction, a Claude Code hook (passed with
       `--settings`) can block every tool call once the error file exists.
+   6. On Ctrl+C, the policy terminates `claude` and re-raises the `KeyboardInterrupt`, so that the stage is
+      interrupted like on a failed callback (see s03).
 5. The policies restrict the tools that Claude may use (`--allowedTools`).
    1. `ClaudeRfaPolicy`: `Read`, `Glob`, `Grep` and `Bash(groupy callback:*)`. Claude does not edit files in an RFA;
       all changes go through callbacks.

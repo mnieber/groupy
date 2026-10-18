@@ -73,8 +73,14 @@ commits with the message `<stage-id>: finish <chunk-id>`.</br>
 #### It finishes the stage
 
 Groupy sets `next_stage` to the stage that follows, clears `finished_chunks`, and commits with the message
-`<stage-id>: finish the stage`. The developer reviews the result (e.g. the node files) before running the next
-stage, and may edit it.</br>
+`<stage-id>: finish the stage`.</br>
+Then `groupy next` prints a report: the stage that finished and the number of commits it made (since the tag that
+marks the start of the stage, see s03), what to review, and what the next `groupy next` will do. The stage guide
+(`get_stage_guide`) gives the description of each stage and what to review (e.g. the glossary after
+analyze-terminology). Messages that the stage printed itself (e.g. the dependency violations of
+propose-code-restructure) come before the report.</br>
+The developer reviews the result (e.g. the node files) before running the next stage, and may edit it and commit
+the edits.</br>
 
 ### Diagram
 
@@ -115,6 +121,7 @@ sequenceDiagram
     Note over RunNextStage: Finish the stage
     RunNextStage->>RunNextStage: set next_stage, clear finished_chunks
     RunNextStage->>RunNextStage: commit "<stage-id>: finish the stage"
+    Groupy-->>Developer: report: commits, what to review, next stage
     Developer->>Developer: review the commits of the stage
 ```
 

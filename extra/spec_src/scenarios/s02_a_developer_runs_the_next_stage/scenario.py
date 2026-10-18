@@ -20,6 +20,7 @@ def run_scenario():
     r.rfa = c.ClaudeRequests.Models.Rfa
     r.run_callback_action = c.ClaudeRequests.Actions.RunCallback
     r.find_node_rule = c.Nodes.Rules.FindNode
+    r.get_stage_guide_rule = c.Sessions.Rules.GetStageGuide
 
     with goal().run_the(r.next_stage).of_the(r.session):
 
@@ -72,6 +73,14 @@ def run_scenario():
             it().sets_the(r.next_stage).of_the(r.session).to_the(r.following_stage)
             it().clears_the(r.finished_chunks)
             it().commits(r.session_file)
+
+        with the(r.groupy_cli).prints_a(r.stage_report):
+            it().calls(r.get_stage_guide_rule).for_the(r.stage).and_the(
+                r.following_stage
+            )
+            it().prints_the(r.number_of_commits).of_the(r.stage)
+            it().prints_what_to_review()
+            it().prints_what_the(r.next_command).will_do()
 
         the(r.developer).reviews_the(r.commits).of_the(r.stage)
 
@@ -148,8 +157,14 @@ commits with the message `<stage-id>: finish <chunk-id>`.</br>
 #### It finishes the stage
 
 Groupy sets `next_stage` to the stage that follows, clears `finished_chunks`, and commits with the message
-`<stage-id>: finish the stage`. The developer reviews the result (e.g. the node files) before running the next
-stage, and may edit it.</br>
+`<stage-id>: finish the stage`.</br>
+Then `groupy next` prints a report: the stage that finished and the number of commits it made (since the tag that
+marks the start of the stage, see s03), what to review, and what the next `groupy next` will do. The stage guide
+(`get_stage_guide`) gives the description of each stage and what to review (e.g. the glossary after
+analyze-terminology). Messages that the stage printed itself (e.g. the dependency violations of
+propose-code-restructure) come before the report.</br>
+The developer reviews the result (e.g. the node files) before running the next stage, and may edit it and commit
+the edits.</br>
 
 ### Diagram
 
@@ -190,6 +205,7 @@ sequenceDiagram
     Note over RunNextStage: Finish the stage
     RunNextStage->>RunNextStage: set next_stage, clear finished_chunks
     RunNextStage->>RunNextStage: commit "<stage-id>: finish the stage"
+    Groupy-->>Developer: report: commits, what to review, next stage
     Developer->>Developer: review the commits of the stage
 ```
 """

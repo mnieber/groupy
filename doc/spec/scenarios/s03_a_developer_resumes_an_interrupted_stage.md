@@ -7,23 +7,59 @@
 Since Groupy changes the code radically, a stage may stop halfway: a refactoring fails, a Claude
 request fails, or Groupy detects a problem that Claude could not fix. Groupy is designed so that an interrupted
 stage leaves a consistent state that the developer can inspect and repair, and so that running `groupy next`
-again continues where the stage stopped, without repeating finished work.
+again continues where the stage stopped, without repeating finished work. When the developer prefers to redo the
+stage, `groupy reset` takes the session back to the start of the stage.
 
 ### Steps
 
 #### The stage is interrupted
 
+When `groupy next` starts a stage, it tags the commit at the start of the stage as `groupy/<stage-id>/start`
+(`groupy init` tags its commit as `groupy/init`). When it resumes a stage, the tag already exists, and stays where
+it is. The tag comes after the review edits that the developer committed after the previous stage.</br>
 While a stage processes its chunks, each action that succeeds is committed, and each finished chunk is recorded in
 the `finished_chunks` of the session file.</br>
 When an action fails, Groupy restores the working tree to the last commit, which undoes the partial changes of
 the action (e.g. a refactoring that changed some files but not all). Then it re-raises the error, which interrupts
-the stage. The `next_stage` field of the session is unchanged.</br>
+the stage. The `next_stage` field of the session is unchanged. The same happens when the developer presses Ctrl+C.
+</br>
+
+Groupy records the result of each `groupy next` in `.groupy/last-run.yaml` (which is not committed): `running`
+while the stage runs, then `finished` or `interrupted`, with the request id of the chunk that was running and the
+error. A `running` result that is left behind means that the process crashed or was killed (the stage was
+*aborted*). Then the working tree may not be clean.</br>
+
+Instead of a traceback, `groupy next` prints the stage, the request id of the chunk (e.g.
+`extract-methods/group-2/chunk-1`) and the error, and explains that the committed work is kept and how to resume.
+With `-v`, it also prints the traceback. The errors that stop `groupy next` before the stage starts (e.g.
+`DirtyWorkingTreeError`) come with a hint of their own.</br>
+
+#### The developer inspects the state
+
+`groupy status` prints the state of the session, without changing anything:</br>
+
+- the result of the last `groupy next` (finished, interrupted or aborted), with the request id and the error;
+- whether `groupy next` will start or resume the next stage (it resumes when the stage has a start tag), and for a
+  stage that resumes, the finished chunks and the chunks that remain;
+- whether the working tree is clean, and if not, a hint to commit, stash, or reset.
 
 #### The developer repairs the state
 
 The working tree is clean, and the git history shows which actions succeeded. The developer finds the cause of the
 error (e.g. a name clash, or a proposal that cannot be applied), repairs it (e.g. by editing the code or a node
 file), and commits the repair.</br>
+
+#### Or the developer resets the stage
+
+Instead of repairing, the developer may run `groupy reset`, which resets the repo to the start tag of the current
+stage, so that the next `groupy next` runs the stage anew. This is also the way out after an aborted stage.</br>
+
+- Groupy first lists what will be lost: the commits since the tag that Groupy didn't make (e.g. repairs of the
+  developer), and the uncommitted changes. Then it asks for confirmation (`--yes` skips it).
+- It deletes the start tags of the stages that it undoes, and prints the previous head, so that the developer can
+  undo the reset with `git reset --hard <sha>`.
+- When the current stage has not started, there is nothing to reset.
+- `groupy reset --init` resets to `groupy/init` instead, which takes the session back to the first stage.
 
 #### The stage resumes
 
@@ -46,21 +82,38 @@ sequenceDiagram
     participant RunNextStage as RunNextStage (action)
     participant Stage as Stage (action)
     participant ProcessChunks as ProcessChunks (action)
+    participant ResetToTag as ResetToTag (action)
 
     Note over Developer,ProcessChunks: The stage is interrupted
     Developer->>Groupy: groupy next
     Groupy->>RunNextStage: run_next_stage()
+    RunNextStage->>RunNextStage: tag the start of the stage, record the last run (running)
     RunNextStage->>Stage: run the stage
     Stage->>ProcessChunks: process_chunks(chunks)
     ProcessChunks->>ProcessChunks: commit actions, record finished chunks
     ProcessChunks->>Stage: run chunk
-    Stage->>Stage: action fails
+    Stage->>Stage: action fails (or Ctrl+C)
     Stage->>Stage: restore working tree to last commit
-    Stage-->>Groupy: error
-    Groupy-->>Developer: error
+    Stage-->>RunNextStage: error (with the request id)
+    RunNextStage->>RunNextStage: record the last run (interrupted)
+    RunNextStage-->>Groupy: error
+    Groupy-->>Developer: error, and how to resume
 
-    Note over Developer: The developer repairs the state
-    Developer->>Developer: inspect commits and node files, repair, commit
+    Note over Developer,Groupy: The developer inspects the state
+    Developer->>Groupy: groupy status
+    Groupy-->>Developer: last run, next stage (start or resume), chunks, working tree
+
+    alt The developer repairs the state
+        Developer->>Developer: inspect commits and node files, repair, commit
+    else The developer resets the stage
+        Developer->>Groupy: groupy reset
+        Groupy-->>Developer: commits and changes that will be lost
+        Developer->>Groupy: confirm
+        Groupy->>ResetToTag: reset_to_tag(start tag)
+        ResetToTag->>ResetToTag: git reset --hard, delete the tags of undone stages
+        ResetToTag-->>Groupy: previous head
+        Groupy-->>Developer: how to undo the reset
+    end
 
     Note over Developer,ProcessChunks: The stage resumes
     Developer->>Groupy: groupy next

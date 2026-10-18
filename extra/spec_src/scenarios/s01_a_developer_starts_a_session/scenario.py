@@ -63,6 +63,7 @@ def run_scenario():
         the(r.init_session_action).commits(r.session_file).and_the(
             r.config_file
         ).and_the(r.group_file).and_the(r.node_files)
+        the(r.init_session_action).tags_the(r.commit).as_the(r.init_tag)
         the(r.developer).reviews(r.node_files).and_the(r.group_file)
 
 
@@ -143,8 +144,9 @@ in the config file, and writes the group file (`.groupy/groups.txt`).</br>
 
 #### It commits
 
-Groupy commits the session file, the config file, the group file and the node files on the new branch. Before
-running the first stage, the developer can inspect (and edit) the node files and the group file.</br>
+Groupy commits the session file, the config file, the group file and the node files on the new branch, and tags
+the commit as `groupy/init` (so that `groupy reset --init` can return to it). Before running the first stage, the
+developer can inspect (and edit) the node files and the group file.</br>
 
 ### Diagram
 
@@ -178,6 +180,7 @@ sequenceDiagram
     CreateGroupFile-->>InitSession: group file
 
     InitSession->>InitSession: commit session, config, group and node files
+    InitSession->>InitSession: tag the commit as groupy/init
     Developer->>Developer: review node files and group file
 ```
 """
