@@ -7,8 +7,12 @@ how to repair. This plan adds that guidance, a `groupy status` command and a `gr
 
 A stage is *interrupted* when it stops on an error that Groupy caught (a failed action or refactoring, a failed
 Claude request, or a check that Claude could not satisfy). Then the working tree is clean, and the developer can
-repair and resume. A stage can also be *aborted*: by Ctrl+C, or by a crash or kill of the process. Then the working
-tree may be dirty, and the developer may prefer to redo the stage.
+repair and resume. A Ctrl+C that Groupy catches also interrupts the stage (see 4). A stage is *aborted* when the
+process crashes or is killed. Then the working tree may be dirty, and the developer may prefer to redo the stage.
+
+The tests check the printed reports by key fragments (e.g. the stage id, the request id, the error class and
+message, and the phrases `finished`, `interrupted`, `aborted`, `will start`, `will resume`, `nothing to reset`),
+not by exact lines, so that the wording can evolve.
 
 1. When a stage finishes, `groupy next` prints a short report.
    1. The stage that finished, and the number of commits it made (e.g. `identify-helper-functions finished
@@ -20,6 +24,8 @@ tree may be dirty, and the developer may prefer to redo the stage.
    4. Messages that a stage already prints (e.g. the dependency violations of propose-code-restructure) come before
       the report.
 2. When a stage is interrupted, `groupy next` prints the error instead of a traceback, and exits with code 1.
+   `main()` still raises the error (so that tests can check its type); a wrapper `run()`, which is the console
+   script in `pyproject.toml`, prints the error and returns the exit code.
    1. The stage, the request id of the chunk that was running (e.g. `extract-methods/group-2/chunk-1`), and the
       error class and message.
    2. That the working tree was restored to the last commit, so the changes that are committed (see `git log`) are
@@ -47,7 +53,9 @@ tree may be dirty, and the developer may prefer to redo the stage.
       `KeyboardInterrupt` (they catch `BaseException` instead of `Exception`), so that a half-done action doesn't
       leave a dirty working tree.
    2. The Claude policies terminate the `claude` process on Ctrl+C, and the request is treated as failed.
-   3. After a crash or kill, the working tree may still be dirty. `groupy next` then refuses with
+   3. `last-run.yaml` records the stage as interrupted, with `KeyboardInterrupt` as the error, and `run()` exits with
+      code 130.
+   4. After a crash or kill, the working tree may still be dirty. `groupy next` then refuses with
       `DirtyWorkingTreeError`, whose hint mentions `groupy reset`.
 5. Groupy marks the start of each stage with a git tag, so that it can reset to it.
    1. `groupy init` tags its commit as `groupy/init`.
@@ -71,8 +79,8 @@ tree may be dirty, and the developer may prefer to redo the stage.
    4. Whether the working tree is clean (`groupy next` refuses to run otherwise), and if not, a hint to commit,
       stash, or `groupy reset`.
    5. What to review for the last finished stage (the stage guide), so that the developer can see it again later.
-8. To know the result of the last run, Groupy writes `.groupy/last-run.yaml`, with the stage, the result, the
-   request id and the error message.
+8. To know the result of the last run, Groupy writes `.groupy/last-run.yaml`, with the fields `stage`, `result`
+   (`running`, `finished` or `interrupted`), `request_id` and `error` (the error class and message).
    1. The file is excluded from git (like `call-graph.yaml`), so that writing it doesn't dirty the working tree
       after an interruption.
    2. `groupy next` writes the result `running` when it starts, and replaces it when it finishes or is interrupted.
@@ -80,9 +88,10 @@ tree may be dirty, and the developer may prefer to redo the stage.
    3. To know the request id of the running chunk, `run_unfinished_step` attaches it to the error (e.g. as a note
       on the exception) before re-raising.
 9. Tests:
-   1. extend `groupy_next_tests` with the printed report of a finished stage and of an interrupted stage, the start
-      tag, and the clean working tree after a `KeyboardInterrupt` in a callback;
-   2. add `groupy_status_tests` for a fresh session, an interrupted stage, an aborted stage, a finished stage and
-      `done`;
-   3. add `groupy_reset_tests` for a reset of a started stage (keeping the review edits before it), a reset with
-      `--init`, a stage that has not started, and the listing of the commits that will be lost.
+   1. `groupy_next_tests`: the report of an interrupted and of a finished stage (workflow test), the traceback with
+      `-v`, the hint for a dirty working tree, the start tags, the clean working tree after a Ctrl+C in a callback,
+      and a stage guide for every stage;
+   2. `groupy_status_tests`: the progress of a session from start to a finished stage (workflow test), an aborted
+      stage, `done`, and a repo without a session;
+   3. `groupy_reset_tests`: a reset of a started stage that keeps the review edits before it (workflow test), a
+      reset with `--init`, a stage that has not started, and the confirmation that lists what will be lost.

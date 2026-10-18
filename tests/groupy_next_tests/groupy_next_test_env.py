@@ -18,10 +18,12 @@ from sessions_tests.groupy_test_env import Context as GroupyContext
 from sessions_tests.groupy_test_env import TestEnv as GroupyTestEnv
 
 from groupy.call_graph.models.call_graph_view import FunctionView
+from groupy.claude_requests.actions.run_callback import NODE_EDITS
 from groupy.claude_requests.models.callback import Callback
 from groupy.claude_requests.models.rfa import Rfa
 from groupy.claude_requests.models.rfr import Rfr
 from groupy.claude_requests.rules.create_rfa_policy import create_rfa_policy
+from groupy.functions.actions.add_responsibility import add_responsibility
 from groupy.groups.models.chunk import Chunk
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.nodes.models.module_node import ModuleNode
@@ -82,6 +84,8 @@ class TestEnv(GroupyTestEnv):
         self.source_root = context.repo_dir / "src"
         self.module_node: ModuleNode = None
         self.output_lines: T.List[str] = []
+        self.output: str = ""
+        self.exit_code: int = None
         super().__init__(context)
 
     # Actions
@@ -111,6 +115,18 @@ class TestEnv(GroupyTestEnv):
         self.context.capsys.readouterr()
         self.run_groupy("next")
         self.output_lines = self.context.capsys.readouterr().out.splitlines()
+
+    def run_groupy_cli(self, *args: str) -> None:
+        """Runs groupy like the console script does, which prints errors
+        instead of raising them. Stores the exit code in env.exit_code, and what
+        groupy printed (to stdout and stderr) in env.output."""
+        # Imported here, so that the tests that don't need it run without it
+        from groupy.runtime.entrypoints.groupy import run as groupy_run
+
+        self.context.capsys.readouterr()
+        self.exit_code = groupy_run(list(args))
+        captured = self.context.capsys.readouterr()
+        self.output = captured.out + captured.err
 
     def install_fake_stage(self) -> None:
         self.context.monkeypatch.setitem(STAGE_ACTIONS, FAKE_STAGE, run_fake_stage)
@@ -147,6 +163,22 @@ class TestEnv(GroupyTestEnv):
         self.module_node = load_module_node(
             self.source_root / f"{module_name}.groupy.yaml"
         )
+
+    def press_ctrl_c_in_add_responsibility(self) -> None:
+        """Lets the add_responsibility callback raise a KeyboardInterrupt
+        (as if the developer pressed Ctrl+C) after it has changed the node
+        file, but before Groupy commits the change."""
+
+        def add_responsibility_and_press_ctrl_c(source_root, **args):
+            add_responsibility(source_root, **args)
+            raise KeyboardInterrupt()
+
+        self.context.monkeypatch.setitem(
+            NODE_EDITS, "add_responsibility", add_responsibility_and_press_ctrl_c
+        )
+
+    def tag_head(self, tag: str) -> None:
+        self.run_git("tag", tag)
 
     def set_next_stage(self, stage_id: str) -> None:
         """Sets next_stage in the session file, and commits it (as if the
@@ -244,6 +276,19 @@ class TestEnv(GroupyTestEnv):
 
     def variable_node(self, name: str):
         return _find_by_name(self.module_node.variable_nodes, name)
+
+    def git_tags(self) -> T.Set[str]:
+        return set(self._git("tag", "--list").splitlines())
+
+    def tagged_commit(self, tag: str) -> str:
+        return self._git("rev-parse", f"{tag}^{{commit}}")
+
+    def output_contains(self, *fragments: str) -> bool:
+        """Returns whether every fragment occurs in env.output. A failing
+        assert prints the output, to show what is missing."""
+        missing = [fragment for fragment in fragments if fragment not in self.output]
+        assert not missing, f"Missing {missing} in the output:\n{self.output}"
+        return True
 
     def commit_messages_since_remembered_head(self) -> T.List[str]:
         log = self._git(
