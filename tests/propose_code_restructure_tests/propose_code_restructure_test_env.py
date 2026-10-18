@@ -115,6 +115,16 @@ class TestEnv(GroupyNextTestEnv):
         self.script_rfa(BOOKS_RFA_ID, *BOOKS_CALLBACKS)
         self.script_rfa(CHAPTERS_RFA_ID, *CHAPTERS_CALLBACKS)
 
+    # Queries (for use in asserts)
+
+    def callees_in_context(self, rfa_id: str, location: str) -> T.Set[T.Tuple]:
+        """Returns the (callee, scope) pairs of the function view at the
+        location, in the call graph view in the context of the RFA."""
+        return {
+            (call.location, call.scope)
+            for call in self.function_view_in_context(rfa_id, location).callees
+        }
+
 
 def commit_messages(callbacks: T.List[Callback]) -> T.List[str]:
     """Returns the messages of the commits that Groupy makes after running

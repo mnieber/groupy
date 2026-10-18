@@ -36,6 +36,8 @@ __all__ = ["Context", "TestEnv"]
 
 FAKE_RFA_POLICY = "groupy_next_tests.fake_policies:get_fake_rfa_policy"
 
+FAKE_RFR_POLICY = "groupy_next_tests.fake_policies:get_fake_rfr_policy"
+
 FAKE_REFACTORING_POLICY = "groupy_next_tests.fake_policies:get_fake_refactoring_policy"
 
 # The fake stage replaces the first real stage, so that the tests of the stage
@@ -258,7 +260,7 @@ class TestEnv(GroupyTestEnv):
         return matches[0].responsibilities
 
 
-def callback(name: str, **args: T.Any) -> Callback:
+def callback(name: str, /, **args: T.Any) -> Callback:
     """Returns a callback for a script. The args are the arguments of the
     action, without the source root and the glossary path, which the callback
     dispatcher supplies."""

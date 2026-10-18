@@ -3,7 +3,10 @@ name = "groupy"
 description = "Python refactoring tool"
 version = "1.0.0"
 readme = "README.md"
-dependencies = []
+dependencies = ["dataclassy", "pyyaml", "rope"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [project.scripts]
 groupy = "groupy.runtime.entrypoints.groupy:main"

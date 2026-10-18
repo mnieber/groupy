@@ -1,0 +1,2 @@
+class AmbiguousEntryError(Exception):
+    pass
