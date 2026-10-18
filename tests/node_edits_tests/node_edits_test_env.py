@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+
 from groupy.nodes.actions.create_module_node_file import create_module_node_file
 from groupy.nodes.models.module_node import ModuleNode
 from groupy.nodes.rules.find_node import find_node

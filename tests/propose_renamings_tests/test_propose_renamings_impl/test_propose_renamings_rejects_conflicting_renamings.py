@@ -1,4 +1,3 @@
-from groupy.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
 from groupy_next_tests.groupy_next_test_env import callback
 from propose_renamings_tests.propose_renamings_test_env import (
     RETRY_RFA_ID,
@@ -7,6 +6,8 @@ from propose_renamings_tests.propose_renamings_test_env import (
     TestEnv,
     commit_messages,
 )
+
+from groupy.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
 
 REPORTS = "myapp/reports.py"
 

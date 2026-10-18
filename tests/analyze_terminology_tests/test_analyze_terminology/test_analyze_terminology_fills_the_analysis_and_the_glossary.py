@@ -5,9 +5,10 @@ from analyze_terminology_tests.analyze_terminology_test_env import (
     commit_messages,
     priority_callbacks,
 )
-from groupy.call_graph.enums import CallScopes
 from groupy_next_tests.groupy_next_test_env import callback
 from sessions_tests.groupy_test_env import BOOKS_PY
+
+from groupy.call_graph.enums import CallScopes
 
 BOOKS_RFA_ID = "analyze-terminology/group-1/chunk-1"
 CHAPTERS_RFA_ID = "analyze-terminology/group-2/chunk-1"

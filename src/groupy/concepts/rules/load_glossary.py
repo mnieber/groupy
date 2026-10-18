@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import yaml
+
 from groupy.concepts.models.glossary import Glossary
 from groupy.concepts.models.glossary_entry import GlossaryEntry
 

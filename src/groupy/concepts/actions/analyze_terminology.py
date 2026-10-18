@@ -1,9 +1,7 @@
 from groupy.call_graph.actions.build_call_graph import build_call_graph
 from groupy.call_graph.rules.get_call_graph_view import get_call_graph_view
 from groupy.call_graph.rules.load_call_graph import load_call_graph
-from groupy.claude_requests.actions.run_rfa_with_follow_up import (
-    run_rfa_with_follow_up,
-)
+from groupy.claude_requests.actions.run_rfa_with_follow_up import run_rfa_with_follow_up
 from groupy.claude_requests.models.rfa import Rfa
 from groupy.claude_requests.rules.create_rfa_policy import create_rfa_policy
 from groupy.concepts.rules.find_unanalyzed_nodes import find_unanalyzed_nodes

@@ -1,5 +1,4 @@
 import pytest
-
 from call_graph_tests.call_graph_test_env import Context
 
 

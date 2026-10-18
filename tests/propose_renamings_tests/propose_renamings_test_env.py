@@ -1,8 +1,9 @@
 import typing as T
 
-from groupy.claude_requests.models.callback import Callback
 from groupy_next_tests.groupy_next_test_env import Context
 from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
+
+from groupy.claude_requests.models.callback import Callback
 
 __all__ = ["Context", "TestEnv"]
 

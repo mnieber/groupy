@@ -1,9 +1,7 @@
 from groupy.call_graph.actions.build_call_graph import build_call_graph
 from groupy.call_graph.rules.get_call_graph_view import get_call_graph_view
 from groupy.call_graph.rules.load_call_graph import load_call_graph
-from groupy.claude_requests.actions.run_rfa_with_follow_up import (
-    run_rfa_with_follow_up,
-)
+from groupy.claude_requests.actions.run_rfa_with_follow_up import run_rfa_with_follow_up
 from groupy.claude_requests.models.rfa import Rfa
 from groupy.claude_requests.rules.create_rfa_policy import create_rfa_policy
 from groupy.concepts.rules.get_glossary_path import get_glossary_path
@@ -11,16 +9,12 @@ from groupy.concepts.rules.get_glossary_text import get_glossary_text
 from groupy.groups.models.chunk import Chunk
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.nodes.rules.get_module_sources import get_module_sources
-from groupy.nodes.rules.get_package_node_file_path import (
-    get_package_node_file_path,
-)
+from groupy.nodes.rules.get_package_node_file_path import get_package_node_file_path
 from groupy.nodes.rules.load_package_node import load_package_node
 from groupy.restructure.actions.report_dependency_violations import (
     report_dependency_violations,
 )
-from groupy.restructure.rules.validate_code_restructure import (
-    validate_code_restructure,
-)
+from groupy.restructure.rules.validate_code_restructure import validate_code_restructure
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_groupy_path import get_groupy_path

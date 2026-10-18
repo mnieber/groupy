@@ -1,5 +1,4 @@
 import pytest
-
 from apply_move_steps_to_caller_tests.apply_move_steps_to_caller_test_env import Context
 
 

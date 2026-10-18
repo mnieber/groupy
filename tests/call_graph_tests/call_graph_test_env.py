@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+
 from groupy.call_graph.actions.build_call_graph import build_call_graph
 from groupy.call_graph.models.call_edge import CallEdge
 from groupy.call_graph.models.call_graph import CallGraph

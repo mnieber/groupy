@@ -1,5 +1,6 @@
-from groupy.sessions.utils.exceptions import DirtyWorkingTreeError
 from groupy_next_tests.groupy_next_test_env import Context, TestEnv
+
+from groupy.sessions.utils.exceptions import DirtyWorkingTreeError
 
 
 def create_env(context: Context):

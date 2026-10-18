@@ -1,11 +1,12 @@
-from groupy.functions.actions.set_extract_method_priority import (
-    set_extract_method_priority,
-)
-from groupy_next_tests.groupy_next_test_env import callback, file_write
 from extract_methods_tests.extract_methods_test_env import (
     Context,
     TestEnv,
     commit_messages,
+)
+from groupy_next_tests.groupy_next_test_env import callback, file_write
+
+from groupy.functions.actions.set_extract_method_priority import (
+    set_extract_method_priority,
 )
 
 REPORTS = "myapp/reports.py"

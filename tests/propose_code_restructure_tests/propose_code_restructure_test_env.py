@@ -1,13 +1,12 @@
 import typing as T
 
-from groupy.claude_requests.models.callback import Callback
-from groupy.functions.actions.move_function_to_parent import (
-    move_function_to_parent,
-)
-from groupy.nodes.actions.set_proposed_module import set_proposed_module
 from groupy_next_tests.groupy_next_test_env import Context
 from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 from groupy_next_tests.groupy_next_test_env import callback
+
+from groupy.claude_requests.models.callback import Callback
+from groupy.functions.actions.move_function_to_parent import move_function_to_parent
+from groupy.nodes.actions.set_proposed_module import set_proposed_module
 
 __all__ = ["Context", "TestEnv"]
 

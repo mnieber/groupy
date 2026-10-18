@@ -2,6 +2,7 @@ import typing as T
 from pathlib import Path
 
 import yaml
+
 from groupy.nodes.models.class_node import ClassNode
 from groupy.nodes.models.function_node import FunctionNode
 from groupy.nodes.models.module_node import ModuleNode

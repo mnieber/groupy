@@ -1,3 +1,5 @@
+from node_edits_tests.node_edits_test_env import Context, TestEnv
+
 from groupy.functions.actions.add_step import add_step
 from groupy.functions.actions.remove_responsibility import remove_responsibility
 from groupy.functions.actions.set_extract_method_priority import (
@@ -9,7 +11,6 @@ from groupy.nodes.utils.exceptions import (
     InvalidIndexError,
     InvalidValueError,
 )
-from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 
 def create_env(context: Context):

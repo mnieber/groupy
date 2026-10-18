@@ -1,5 +1,6 @@
-from groupy.sessions.models.session import get_session
 from sessions_tests.groupy_test_env import Context, TestEnv
+
+from groupy.sessions.models.session import get_session
 
 
 def create_env(context: Context):

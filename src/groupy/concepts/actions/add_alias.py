@@ -1,14 +1,14 @@
 from pathlib import Path
 
 from groupy.nodes.actions.edit_node import edit_node
-from groupy.nodes.rules.check_node_has_field import check_node_has_field
+from groupy.nodes.utils.checks import check_has_field
 
 
 def add_alias(
     source_root: Path, module_name: str, location: str, name: str, alias: str
 ) -> None:
     def _edit(node):
-        check_node_has_field(node, "aliases")
+        check_has_field(node, "aliases")
         aliases = node.aliases.setdefault(name, [])
         if alias not in aliases:
             aliases.append(alias)

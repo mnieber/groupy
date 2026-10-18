@@ -1,6 +1,7 @@
+from functions_tests.functions_test_env import Context, TestEnv
+
 from groupy.functions.actions.move_function_to_parent import InvalidParentError
 from groupy.nodes.utils.exceptions import NodeNotFoundError
-from functions_tests.functions_test_env import Context, TestEnv
 
 BOOKS_PY = """\
 def create_book(title):

@@ -4,9 +4,7 @@ from pathlib import Path, PurePosixPath
 
 from groupy.groups.actions.add_file_to_group import add_file_to_group
 from groupy.groups.actions.remove_file_from_group import remove_file_from_group
-from groupy.groups.actions.rename_file_in_group_file import (
-    rename_file_in_group_file,
-)
+from groupy.groups.actions.rename_file_in_group_file import rename_file_in_group_file
 from groupy.nodes.actions.create_module_node_file import create_module_node_file
 from groupy.nodes.actions.move_module_node_file import move_module_node_file
 from groupy.nodes.actions.move_node_to_module import move_node_to_module

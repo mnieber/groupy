@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import yaml
+
 from groupy.sessions.models.config import Config
 
 

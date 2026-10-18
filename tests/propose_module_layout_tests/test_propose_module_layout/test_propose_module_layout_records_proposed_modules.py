@@ -1,10 +1,8 @@
+from groupy_next_tests.groupy_next_test_env import callback
+from propose_module_layout_tests.propose_module_layout_test_env import Context, TestEnv
+
 from groupy.concepts.actions.set_concept import set_concept
 from groupy.functions.actions.add_responsibility import add_responsibility
-from groupy_next_tests.groupy_next_test_env import callback
-from propose_module_layout_tests.propose_module_layout_test_env import (
-    Context,
-    TestEnv,
-)
 
 RFA_ID = "propose-module-layout/all"
 

@@ -1,5 +1,4 @@
 import pytest
-
 from apply_code_restructure_tests.apply_code_restructure_test_env import Context
 
 

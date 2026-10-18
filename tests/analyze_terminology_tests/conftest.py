@@ -1,5 +1,4 @@
 import pytest
-
 from analyze_terminology_tests.analyze_terminology_test_env import Context
 
 

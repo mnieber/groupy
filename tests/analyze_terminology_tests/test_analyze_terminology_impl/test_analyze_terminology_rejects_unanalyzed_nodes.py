@@ -4,6 +4,7 @@ from analyze_terminology_tests.analyze_terminology_test_env import (
     commit_messages,
     priority_callbacks,
 )
+
 from groupy.concepts.actions.analyze_terminology import UnanalyzedNodesError
 
 RFA_ID = "analyze-terminology/group-1/chunk-1"

@@ -1,5 +1,4 @@
 import pytest
-
 from groupy_next_tests.groupy_next_test_env import Context
 
 

@@ -1,6 +1,7 @@
 import typing as T
 
 from dataclassy import dataclass
+
 from groupy.call_graph.models.call_edge import CallEdge
 
 

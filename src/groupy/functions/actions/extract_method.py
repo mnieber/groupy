@@ -6,9 +6,7 @@ from groupy.claude_requests.policies.rfr_policy import RfrPolicy
 from groupy.nodes.actions.save_module_node import save_module_node
 from groupy.nodes.models.function_node import FunctionNode
 from groupy.nodes.rules.get_module_node_file_path import get_module_node_file_path
-from groupy.nodes.rules.get_top_level_function_names import (
-    get_top_level_function_names,
-)
+from groupy.nodes.rules.get_top_level_function_names import get_top_level_function_names
 from groupy.nodes.rules.load_module_node import load_module_node
 from groupy.renamings.rules.find_scope_def import find_scope_def
 

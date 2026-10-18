@@ -1,5 +1,4 @@
 import pytest
-
 from extract_methods_tests.extract_methods_test_env import Context
 
 

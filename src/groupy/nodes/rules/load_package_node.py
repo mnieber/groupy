@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import yaml
+
 from groupy.nodes.models.package_node import PackageNode
 
 

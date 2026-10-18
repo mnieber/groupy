@@ -12,7 +12,7 @@ from groupy.renamings.rules.find_scope_def import find_scope_def
 from groupy.renamings.rules.get_scope_renamings import get_scope_renamings
 from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
 from groupy.renamings.rules.order_renamings import order_renamings
-from groupy.renamings.rules.rename_keys import rename_keys
+from groupy.renamings.utils.rename_keys import rename_keys
 
 
 def apply_module_renamings(

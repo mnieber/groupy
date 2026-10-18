@@ -1,13 +1,12 @@
 from pathlib import Path
 
 from groupy.nodes.actions.edit_node import edit_node
-from groupy.nodes.rules.check_index import check_index
-from groupy.nodes.rules.check_node_has_field import check_node_has_field
+from groupy.nodes.utils.checks import check_has_field, check_index
 
 
 def remove_step(source_root: Path, module_name: str, location: str, index: int) -> None:
     def _edit(node):
-        check_node_has_field(node, "steps")
+        check_has_field(node, "steps")
         check_index(node.steps, index)
         old_step = node.steps.pop(index)
 

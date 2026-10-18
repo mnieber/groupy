@@ -1,3 +1,5 @@
+from node_edits_tests.node_edits_test_env import Context, TestEnv
+
 from groupy.concepts.actions.add_alias import add_alias
 from groupy.concepts.actions.remove_abbreviation import remove_abbreviation
 from groupy.concepts.actions.remove_alias import remove_alias
@@ -6,7 +8,6 @@ from groupy.concepts.actions.remove_local_term import remove_local_term
 from groupy.concepts.actions.set_abbreviation import set_abbreviation
 from groupy.concepts.actions.set_concept import set_concept
 from groupy.concepts.actions.set_local_term import set_local_term
-from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 
 def create_env(context: Context):

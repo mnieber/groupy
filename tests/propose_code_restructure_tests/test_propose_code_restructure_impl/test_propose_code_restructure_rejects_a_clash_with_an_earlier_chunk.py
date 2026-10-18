@@ -1,6 +1,3 @@
-from groupy.restructure.actions.propose_code_restructure import (
-    CodeRestructureHasProblemsError,
-)
 from groupy_next_tests.groupy_next_test_env import callback
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     BOOKS_CALLBACKS,
@@ -9,6 +6,10 @@ from propose_code_restructure_tests.propose_code_restructure_test_env import (
     CHAPTERS_RFA_ID,
     Context,
     TestEnv,
+)
+
+from groupy.restructure.actions.propose_code_restructure import (
+    CodeRestructureHasProblemsError,
 )
 
 ZEBRA = "myapp/zebra.py"

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import yaml
+
 from groupy.call_graph.models.call_edge import CallEdge
 from groupy.call_graph.models.call_graph import CallGraph
 

@@ -1,18 +1,15 @@
 import typing as T
 
+from groupy_next_tests.groupy_next_test_env import Context
+from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
+
 from groupy.call_graph.actions.build_call_graph import build_call_graph
 from groupy.call_graph.models.call_graph import CallGraph
 from groupy.call_graph.rules.load_call_graph import load_call_graph
 from groupy.functions.actions.mark_helper_candidates import mark_helper_candidates
-from groupy.functions.actions.move_function_to_parent import (
-    move_function_to_parent,
-)
-from groupy.functions.actions.rename_helper_functions import (
-    rename_helper_functions,
-)
+from groupy.functions.actions.move_function_to_parent import move_function_to_parent
+from groupy.functions.actions.rename_helper_functions import rename_helper_functions
 from groupy.nodes.models.module_node import ModuleNode
-from groupy_next_tests.groupy_next_test_env import Context
-from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 
 __all__ = ["Context", "TestEnv"]
 

@@ -1,9 +1,7 @@
 from groupy.groups.models.chunk import Chunk
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.nodes.rules.get_module_names import get_module_names
-from groupy.renamings.rules.create_refactoring_policy import (
-    create_refactoring_policy,
-)
+from groupy.renamings.rules.create_refactoring_policy import create_refactoring_policy
 from groupy.restructure.actions.propose_code_restructure import (
     CodeRestructureHasProblemsError,
 )
@@ -11,9 +9,7 @@ from groupy.restructure.actions.report_dependency_violations import (
     report_dependency_violations,
 )
 from groupy.restructure.actions.restructure_module import restructure_module
-from groupy.restructure.rules.validate_code_restructure import (
-    validate_code_restructure,
-)
+from groupy.restructure.rules.validate_code_restructure import validate_code_restructure
 from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree

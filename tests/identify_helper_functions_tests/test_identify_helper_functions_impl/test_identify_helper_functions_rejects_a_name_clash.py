@@ -1,10 +1,11 @@
-from groupy.renamings.policies.refactoring_policy import RenameConflictError
 from groupy_next_tests.groupy_next_test_env import callback
 from identify_helper_functions_tests.identify_helper_functions_test_env import (
     RFA_ID,
     Context,
     TestEnv,
 )
+
+from groupy.renamings.policies.refactoring_policy import RenameConflictError
 
 TITLES_PY = """\
 def create_title(text):

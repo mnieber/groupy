@@ -1,6 +1,7 @@
 import typing as T
 
 from dataclassy import dataclass
+
 from groupy.concepts.models.glossary_entry import GlossaryEntry  # noqa
 
 

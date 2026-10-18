@@ -1,11 +1,12 @@
 import typing as T
 
+from call_graph_tests.call_graph_test_env import Context, TestEnv
+
 from groupy.call_graph.enums import CallScopes
 from groupy.call_graph.models.call_graph_view import CallGraphView, FunctionView
 from groupy.call_graph.rules.get_call_graph_view import get_call_graph_view
 from groupy.functions.actions.add_responsibility import add_responsibility
 from groupy.nodes.actions.create_module_node_file import create_module_node_file
-from call_graph_tests.call_graph_test_env import Context, TestEnv
 
 
 def create_env(context: Context):

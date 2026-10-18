@@ -1,9 +1,10 @@
-from groupy.functions.actions.add_step import add_step
 from groupy_next_tests.groupy_next_test_env import callback
 from propose_move_steps_to_caller_tests.propose_move_steps_to_caller_test_env import (
     Context,
     TestEnv,
 )
+
+from groupy.functions.actions.add_step import add_step
 
 REPORTS = "myapp/reports.py"
 

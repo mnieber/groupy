@@ -1,8 +1,9 @@
 import typing as T
 
+from call_graph_tests.call_graph_test_env import Context, TestEnv
+
 from groupy.call_graph.models.call_graph_view import CallGraphView, FunctionView
 from groupy.call_graph.rules.get_call_graph_view import get_call_graph_view
-from call_graph_tests.call_graph_test_env import Context, TestEnv
 
 LOGS_PY = """\
 def log(message):

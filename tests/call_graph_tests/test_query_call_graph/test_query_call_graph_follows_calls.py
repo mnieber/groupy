@@ -1,10 +1,11 @@
 import typing as T
 
+from call_graph_tests.call_graph_test_env import Context, TestEnv
+
 from groupy.call_graph.models.call_edge import CallEdge
 from groupy.call_graph.rules.get_callees import get_callees
 from groupy.call_graph.rules.get_callers import get_callers
 from groupy.functions.rules.get_source import get_source
-from call_graph_tests.call_graph_test_env import Context, TestEnv
 
 
 def create_env(context: Context):

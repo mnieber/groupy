@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+
 from groupy.groups.models.chunk import Chunk
 from groupy.groups.models.group import Group
 from groupy.groups.rules.create_package_groups import create_package_groups

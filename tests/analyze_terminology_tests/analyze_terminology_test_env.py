@@ -1,12 +1,13 @@
 import typing as T
 
 import yaml
-from groupy.claude_requests.models.callback import Callback
-from groupy.concepts.models.glossary import Glossary
-from groupy.concepts.rules.load_glossary import load_glossary
 from groupy_next_tests.groupy_next_test_env import Context
 from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 from groupy_next_tests.groupy_next_test_env import callback
+
+from groupy.claude_requests.models.callback import Callback
+from groupy.concepts.models.glossary import Glossary
+from groupy.concepts.rules.load_glossary import load_glossary
 
 __all__ = ["Context", "TestEnv"]
 

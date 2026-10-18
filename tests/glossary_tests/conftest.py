@@ -1,5 +1,4 @@
 import pytest
-
 from glossary_tests.glossary_test_env import Context
 
 

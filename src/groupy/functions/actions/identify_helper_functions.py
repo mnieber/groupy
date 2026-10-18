@@ -4,14 +4,10 @@ from groupy.call_graph.rules.load_call_graph import load_call_graph
 from groupy.claude_requests.models.rfa import Rfa
 from groupy.claude_requests.rules.create_rfa_policy import create_rfa_policy
 from groupy.functions.actions.mark_helper_candidates import mark_helper_candidates
-from groupy.functions.actions.rename_helper_functions import (
-    rename_helper_functions,
-)
+from groupy.functions.actions.rename_helper_functions import rename_helper_functions
 from groupy.groups.models.chunk import Chunk
 from groupy.groups.rules.get_chunks import get_chunks
-from groupy.renamings.rules.create_refactoring_policy import (
-    create_refactoring_policy,
-)
+from groupy.renamings.rules.create_refactoring_policy import create_refactoring_policy
 from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree

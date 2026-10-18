@@ -1,5 +1,6 @@
-from groupy.sessions.actions.init_session import SessionExistsError
 from sessions_tests.groupy_test_env import Context, TestEnv
+
+from groupy.sessions.actions.init_session import SessionExistsError
 
 
 def create_env(context: Context):

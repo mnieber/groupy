@@ -3,7 +3,7 @@ from pathlib import Path
 
 from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
-from groupy.sessions.rules.get_changed_files import get_changed_files
+from groupy.utils.get_changed_files import get_changed_files
 
 
 def commit_refactoring(description: str) -> None:

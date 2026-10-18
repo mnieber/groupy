@@ -1,6 +1,7 @@
 import typing as T
 
 from dataclassy import dataclass
+
 from groupy.nodes.models.function_node import FunctionNode
 
 

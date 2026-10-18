@@ -3,16 +3,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+
 from groupy.concepts.actions.add_glossary_alias import add_glossary_alias
 from groupy.concepts.actions.add_glossary_entry import add_glossary_entry
 from groupy.concepts.actions.merge_glossary_entries import merge_glossary_entries
 from groupy.concepts.actions.save_glossary import save_glossary
-from groupy.concepts.actions.set_glossary_abbreviation import (
-    set_glossary_abbreviation,
-)
-from groupy.concepts.actions.set_glossary_description import (
-    set_glossary_description,
-)
+from groupy.concepts.actions.set_glossary_abbreviation import set_glossary_abbreviation
+from groupy.concepts.actions.set_glossary_description import set_glossary_description
 from groupy.concepts.models.glossary import Glossary, GlossaryEntry
 from groupy.concepts.rules.load_glossary import load_glossary
 

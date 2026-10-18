@@ -1,4 +1,3 @@
-from groupy.call_graph.enums import CallScopes
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     BOOKS,
     BOOKS_CALLBACKS,
@@ -12,6 +11,8 @@ from propose_code_restructure_tests.propose_code_restructure_test_env import (
     commit_messages,
 )
 from sessions_tests.groupy_test_env import BOOKS_PY
+
+from groupy.call_graph.enums import CallScopes
 
 
 def create_env(context: Context):

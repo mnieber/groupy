@@ -1,10 +1,11 @@
-from groupy.call_graph.enums import CallScopes
 from groupy_next_tests.groupy_next_test_env import callback
 from identify_helper_functions_tests.identify_helper_functions_test_env import (
     RFA_ID,
     Context,
     TestEnv,
 )
+
+from groupy.call_graph.enums import CallScopes
 
 REPORTS_PY = """\
 def create_report(user):

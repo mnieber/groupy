@@ -2,8 +2,7 @@ import typing as T
 from pathlib import Path
 
 from groupy.nodes.actions.edit_node import edit_node
-from groupy.nodes.rules.check_index import check_index
-from groupy.nodes.rules.check_node_has_field import check_node_has_field
+from groupy.nodes.utils.checks import check_has_field, check_index
 
 
 def add_step(
@@ -15,7 +14,7 @@ def add_step(
 ) -> None:
     # Without an index, the step is added at the end
     def _edit(node):
-        check_node_has_field(node, "steps")
+        check_has_field(node, "steps")
         step_index = len(node.steps) if index is None else index
         check_index(node.steps, step_index, allow_end=True)
         node.steps.insert(step_index, step)

@@ -1,4 +1,5 @@
 from apply_renamings_tests.apply_renamings_test_env import Context, TestEnv
+
 from groupy.concepts.actions.set_concept import set_concept
 from groupy.concepts.actions.set_local_term import set_local_term
 from groupy.renamings.actions.set_renaming import set_renaming

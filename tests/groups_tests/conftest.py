@@ -1,5 +1,4 @@
 import pytest
-
 from groups_tests.groups_test_env import Context
 
 

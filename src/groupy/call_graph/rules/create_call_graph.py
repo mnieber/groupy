@@ -3,6 +3,7 @@ import typing as T
 from pathlib import Path
 
 from dataclassy import dataclass
+
 from groupy.call_graph.models.call_edge import CallEdge
 from groupy.call_graph.models.call_graph import CallGraph
 from groupy.nodes.rules.get_target_module_names import get_target_module_names

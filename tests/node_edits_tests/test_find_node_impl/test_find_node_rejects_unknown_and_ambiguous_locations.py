@@ -1,5 +1,6 @@
-from groupy.nodes.utils.exceptions import AmbiguousLocationError, NodeNotFoundError
 from node_edits_tests.node_edits_test_env import Context, TestEnv
+
+from groupy.nodes.utils.exceptions import AmbiguousLocationError, NodeNotFoundError
 
 LIBRARY_PY = """\
 def validate(item):

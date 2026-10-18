@@ -1,8 +1,6 @@
 from pathlib import Path
 
-from groupy.nodes.actions.insert_node_in_source_order import (
-    insert_node_in_source_order,
-)
+from groupy.nodes.actions.insert_node_in_source_order import insert_node_in_source_order
 from groupy.nodes.actions.save_module_node import save_module_node
 from groupy.nodes.rules.find_located_node import find_located_node
 from groupy.nodes.rules.get_module_node_file_path import get_module_node_file_path

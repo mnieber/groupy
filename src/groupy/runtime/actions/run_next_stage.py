@@ -1,22 +1,18 @@
 import typing as T
 
 from groupy.concepts.actions.analyze_terminology import analyze_terminology
-from groupy.functions.actions.identify_helper_functions import (
-    identify_helper_functions,
-)
 from groupy.functions.actions.apply_move_steps_to_caller import (
     apply_move_steps_to_caller,
 )
 from groupy.functions.actions.extract_methods import extract_methods
+from groupy.functions.actions.identify_helper_functions import identify_helper_functions
 from groupy.functions.actions.propose_move_steps_to_caller import (
     propose_move_steps_to_caller,
 )
 from groupy.renamings.actions.apply_renamings import apply_renamings
 from groupy.renamings.actions.propose_renamings import propose_renamings
 from groupy.restructure.actions.apply_code_restructure import apply_code_restructure
-from groupy.restructure.actions.propose_code_restructure import (
-    propose_code_restructure,
-)
+from groupy.restructure.actions.propose_code_restructure import propose_code_restructure
 from groupy.restructure.actions.propose_module_layout import propose_module_layout
 from groupy.sessions.actions.commit_changes import commit_changes
 from groupy.sessions.actions.save_session import save_session

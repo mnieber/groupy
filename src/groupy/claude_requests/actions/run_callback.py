@@ -4,6 +4,7 @@ from groupy.call_graph.rules.get_callees import get_callees
 from groupy.call_graph.rules.get_callers import get_callers
 from groupy.call_graph.rules.load_call_graph import load_call_graph
 from groupy.claude_requests.models.callback import Callback
+from groupy.claude_requests.rules.create_rfr_policy import create_rfr_policy
 from groupy.concepts.actions.add_alias import add_alias
 from groupy.concepts.actions.add_glossary_alias import add_glossary_alias
 from groupy.concepts.actions.add_glossary_entry import add_glossary_entry
@@ -14,12 +15,8 @@ from groupy.concepts.actions.remove_concept import remove_concept
 from groupy.concepts.actions.remove_local_term import remove_local_term
 from groupy.concepts.actions.set_abbreviation import set_abbreviation
 from groupy.concepts.actions.set_concept import set_concept
-from groupy.concepts.actions.set_glossary_abbreviation import (
-    set_glossary_abbreviation,
-)
-from groupy.concepts.actions.set_glossary_description import (
-    set_glossary_description,
-)
+from groupy.concepts.actions.set_glossary_abbreviation import set_glossary_abbreviation
+from groupy.concepts.actions.set_glossary_description import set_glossary_description
 from groupy.concepts.actions.set_local_term import set_local_term
 from groupy.concepts.rules.get_glossary_path import get_glossary_path
 from groupy.functions.actions.add_responsibility import add_responsibility
@@ -27,12 +24,9 @@ from groupy.functions.actions.add_step import add_step
 from groupy.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
 )
-from groupy.claude_requests.rules.create_rfr_policy import create_rfr_policy
 from groupy.functions.actions.commit_refactoring import commit_refactoring
 from groupy.functions.actions.extract_method import extract_method
-from groupy.functions.actions.move_function_to_parent import (
-    move_function_to_parent,
-)
+from groupy.functions.actions.move_function_to_parent import move_function_to_parent
 from groupy.functions.actions.remove_responsibility import remove_responsibility
 from groupy.functions.actions.remove_step import remove_step
 from groupy.functions.actions.remove_step_to_move_to_caller import (

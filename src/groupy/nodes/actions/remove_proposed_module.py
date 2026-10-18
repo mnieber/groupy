@@ -1,11 +1,9 @@
 from pathlib import Path
 
 from groupy.nodes.actions.save_package_node import save_package_node
-from groupy.nodes.rules.check_has_entry import check_has_entry
-from groupy.nodes.rules.get_package_node_file_path import (
-    get_package_node_file_path,
-)
+from groupy.nodes.rules.get_package_node_file_path import get_package_node_file_path
 from groupy.nodes.rules.load_package_node import load_package_node
+from groupy.nodes.utils.checks import check_has_entry
 
 
 def remove_proposed_module(source_root: Path, name: str) -> None:

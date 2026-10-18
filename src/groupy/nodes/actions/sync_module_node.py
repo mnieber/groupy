@@ -5,8 +5,8 @@ from groupy.nodes.models.function_node import FunctionNode
 from groupy.nodes.models.located_node import LocatedNode
 from groupy.nodes.models.module_node import ModuleNode
 from groupy.nodes.models.variable_node import VariableNode
-from groupy.nodes.rules.get_changed_fields import get_changed_fields
 from groupy.nodes.rules.get_located_nodes import get_located_nodes
+from groupy.utils.get_changed_fields import get_changed_fields
 
 
 def sync_module_node(

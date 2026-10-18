@@ -1,8 +1,9 @@
+from extract_methods_tests.extract_methods_test_env import Context, TestEnv
+
 from groupy.functions.actions.extract_methods import UnfinishedCandidatesError
 from groupy.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from extract_methods_tests.extract_methods_test_env import Context, TestEnv
 
 TITLES = "myapp/titles.py"
 

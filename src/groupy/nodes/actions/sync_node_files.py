@@ -9,9 +9,7 @@ from groupy.nodes.actions.sync_module_node import sync_module_node
 from groupy.nodes.actions.sync_package_node_files import sync_package_node_files
 from groupy.nodes.rules.get_module_names import get_module_names
 from groupy.nodes.rules.get_module_node_file_path import get_module_node_file_path
-from groupy.nodes.rules.get_module_node_from_source import (
-    get_module_node_from_source,
-)
+from groupy.nodes.rules.get_module_node_from_source import get_module_node_from_source
 from groupy.nodes.rules.get_target_module_names import get_target_module_names
 from groupy.nodes.rules.load_module_node import load_module_node
 

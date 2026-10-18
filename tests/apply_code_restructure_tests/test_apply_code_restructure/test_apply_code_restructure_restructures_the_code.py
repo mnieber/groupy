@@ -7,6 +7,7 @@ from apply_code_restructure_tests.apply_code_restructure_test_env import (
     Context,
     TestEnv,
 )
+
 from groupy.functions.actions.add_responsibility import add_responsibility
 from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
 from groupy.nodes.actions.set_move_to_file import set_move_to_file

@@ -4,6 +4,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from groupy_next_tests.fake_policies import (
+    FakeRefactoringPolicy,
+    FakeRfaPolicy,
+    FakeRfrPolicy,
+    FileWrite,
+    get_fake_refactoring_policy,
+    get_fake_rfa_policy,
+    get_fake_rfr_policy,
+    reset_fake_policies,
+)
+from sessions_tests.groupy_test_env import Context as GroupyContext
+from sessions_tests.groupy_test_env import TestEnv as GroupyTestEnv
 
 from groupy.call_graph.models.call_graph_view import FunctionView
 from groupy.claude_requests.models.callback import Callback
@@ -19,18 +31,6 @@ from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.enums import Stages
 from groupy.sessions.models.session import get_session
 from groupy.sessions.rules.load_config import load_config
-from groupy_next_tests.fake_policies import (
-    FileWrite,
-    FakeRefactoringPolicy,
-    FakeRfaPolicy,
-    FakeRfrPolicy,
-    get_fake_refactoring_policy,
-    get_fake_rfa_policy,
-    get_fake_rfr_policy,
-    reset_fake_policies,
-)
-from sessions_tests.groupy_test_env import Context as GroupyContext
-from sessions_tests.groupy_test_env import TestEnv as GroupyTestEnv
 
 __all__ = ["Context", "TestEnv"]
 

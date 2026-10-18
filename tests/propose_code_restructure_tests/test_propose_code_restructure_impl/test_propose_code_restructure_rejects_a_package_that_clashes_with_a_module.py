@@ -1,12 +1,13 @@
-from groupy.restructure.actions.propose_code_restructure import (
-    CodeRestructureHasProblemsError,
-)
 from groupy_next_tests.groupy_next_test_env import callback
 from propose_code_restructure_tests.propose_code_restructure_test_env import (
     REPORTS_RETRY_RFA_ID,
     REPORTS_RFA_ID,
     Context,
     TestEnv,
+)
+
+from groupy.restructure.actions.propose_code_restructure import (
+    CodeRestructureHasProblemsError,
 )
 
 ENUMS = "myapp/reports/enums.py"

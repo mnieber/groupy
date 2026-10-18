@@ -1,19 +1,20 @@
 import ast
 from pathlib import Path, PurePosixPath
 
+from rope.base.project import Project
+from rope.refactor.move import MoveModule, create_move
+from rope.refactor.rename import Rename
+
+from groupy.renamings.actions.create_packages import create_packages
 from groupy.renamings.policies.refactoring_policy import (
     RefactoringPolicy,
     RenameConflictError,
     SymbolNotFoundError,
 )
-from groupy.renamings.actions.create_packages import create_packages
 from groupy.renamings.rules.create_delegation import create_delegation
 from groupy.renamings.rules.find_scope_def import find_scope_def
 from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
-from groupy.renamings.rules.get_symbol_offset import get_symbol_offset
-from rope.base.project import Project
-from rope.refactor.move import MoveModule, create_move
-from rope.refactor.rename import Rename
+from groupy.renamings.utils.get_symbol_offset import get_symbol_offset
 
 
 class RopeRefactoringPolicy(RefactoringPolicy):

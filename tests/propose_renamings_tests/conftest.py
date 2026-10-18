@@ -1,5 +1,4 @@
 import pytest
-
 from propose_renamings_tests.propose_renamings_test_env import Context
 
 

@@ -1,9 +1,10 @@
+from extract_methods_tests.extract_methods_test_env import Context, TestEnv
+from groupy_next_tests.groupy_next_test_env import callback, file_write
+
 from groupy.functions.actions.extract_method import ExtractMethodFailedError
 from groupy.functions.actions.set_extract_method_priority import (
     set_extract_method_priority,
 )
-from groupy_next_tests.groupy_next_test_env import callback, file_write
-from extract_methods_tests.extract_methods_test_env import Context, TestEnv
 
 TITLES = "myapp/titles.py"
 

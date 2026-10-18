@@ -1,8 +1,4 @@
-from groupy_next_tests.groupy_next_test_env import (
-    Context,
-    TestEnv,
-    callback,
-)
+from groupy_next_tests.groupy_next_test_env import Context, TestEnv, callback
 
 
 def create_env(context: Context):

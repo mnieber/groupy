@@ -3,9 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from groupy.functions.actions.move_function_to_parent import (
-    move_function_to_parent,
-)
+
+from groupy.functions.actions.move_function_to_parent import move_function_to_parent
 from groupy.nodes.actions.create_module_node_file import create_module_node_file
 from groupy.nodes.models.module_node import ModuleNode
 from groupy.nodes.rules.load_module_node import load_module_node

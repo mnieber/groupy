@@ -1,5 +1,6 @@
-from groupy.sessions.utils.exceptions import NoSessionError
 from groupy_sync_tests.groupy_sync_test_env import Context, TestEnv
+
+from groupy.sessions.utils.exceptions import NoSessionError
 
 
 def create_env(context: Context):

@@ -1,6 +1,7 @@
+from glossary_tests.glossary_test_env import Context, TestEnv
+
 from groupy.concepts.utils.exceptions import AmbiguousEntryError
 from groupy.nodes.utils.exceptions import EntryNotFoundError
-from glossary_tests.glossary_test_env import Context, TestEnv
 
 GLOSSARY_YAML = """\
 - name: report

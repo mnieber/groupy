@@ -4,9 +4,9 @@ import sys
 
 from groupy.nodes.actions.sync_node_files import sync_node_files
 from groupy.runtime.actions.run_next_stage import run_next_stage
+from groupy.sessions.actions.init_session import init_session
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
-from groupy.sessions.actions.init_session import init_session
 
 logger = logging.getLogger(__name__)
 

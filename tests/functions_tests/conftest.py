@@ -1,5 +1,4 @@
 import pytest
-
 from functions_tests.functions_test_env import Context
 
 

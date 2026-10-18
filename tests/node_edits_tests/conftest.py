@@ -1,5 +1,4 @@
 import pytest
-
 from node_edits_tests.node_edits_test_env import Context
 
 

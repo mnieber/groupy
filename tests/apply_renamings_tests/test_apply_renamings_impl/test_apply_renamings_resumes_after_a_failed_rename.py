@@ -1,6 +1,7 @@
 from apply_renamings_tests.apply_renamings_test_env import Context, TestEnv
-from groupy.renamings.actions.set_renaming import set_renaming
 from groupy_next_tests.fake_policies import FakeRefactoringError
+
+from groupy.renamings.actions.set_renaming import set_renaming
 
 HEADINGS = "myapp/headings.py"
 STATS = "myapp/stats.py"

@@ -3,10 +3,11 @@ from apply_code_restructure_tests.apply_code_restructure_test_env import (
     Context,
     TestEnv,
 )
+from sessions_tests.groupy_test_env import BOOKS_PY
+
 from groupy.restructure.actions.propose_code_restructure import (
     CodeRestructureHasProblemsError,
 )
-from sessions_tests.groupy_test_env import BOOKS_PY
 
 REPORT = "myapp/reports/report.py"
 

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+
 from groupy.groups.models.group import Group
 from groupy.groups.rules.load_group_file import load_group_file
 from groupy.runtime.entrypoints.groupy import main as groupy_main

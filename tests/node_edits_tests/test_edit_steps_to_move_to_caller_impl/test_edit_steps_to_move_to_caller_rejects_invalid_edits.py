@@ -1,3 +1,5 @@
+from node_edits_tests.node_edits_test_env import Context, TestEnv
+
 from groupy.functions.actions.add_step import add_step
 from groupy.functions.actions.add_step_to_move_to_caller import (
     add_step_to_move_to_caller,
@@ -6,7 +8,6 @@ from groupy.functions.actions.remove_step_to_move_to_caller import (
     remove_step_to_move_to_caller,
 )
 from groupy.nodes.utils.exceptions import EntryNotFoundError, InvalidValueError
-from node_edits_tests.node_edits_test_env import Context, TestEnv
 
 
 def create_env(context: Context):

@@ -1,5 +1,6 @@
-from groupy.sessions.utils.exceptions import NoGroupFileError
 from groupy_next_tests.groupy_next_test_env import Context, TestEnv
+
+from groupy.sessions.utils.exceptions import NoGroupFileError
 
 
 def create_env(context: Context):

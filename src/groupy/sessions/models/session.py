@@ -2,6 +2,7 @@ import typing as T
 
 import yaml
 from dataclassy import dataclass
+
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.utils.exceptions import NoSessionError
 
