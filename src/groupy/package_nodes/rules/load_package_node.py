@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from groupy.nodes.models.package_node import PackageNode
+from groupy.package_nodes.models.package_node import PackageNode
 
 
 def load_package_node(node_file_path: Path) -> PackageNode:

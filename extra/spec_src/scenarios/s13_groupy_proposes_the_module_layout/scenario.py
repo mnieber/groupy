@@ -10,8 +10,8 @@ def run_scenario():
     r.claude = c.External.Actors.Claude
     r.developer = c.External.Actors.Developer
     r.stage_action = c.Restructure.Actions.ProposeModuleLayout
-    r.set_proposed_module_action = c.Nodes.Actions.SetProposedModule
-    r.remove_proposed_module_action = c.Nodes.Actions.RemoveProposedModule
+    r.set_proposed_module_action = c.PackageNodes.Actions.SetProposedModule
+    r.remove_proposed_module_action = c.PackageNodes.Actions.RemoveProposedModule
     r.process_chunks_action = c.Sessions.Actions.ProcessChunks
 
     with goal().propose_the(r.feature_packages).of_the(r.application):

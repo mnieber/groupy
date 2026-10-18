@@ -12,7 +12,7 @@ def run_scenario():
     r.init_session_action = c.Sessions.Actions.InitSession
     r.session = c.Sessions.Models.Session
     r.config = c.Sessions.Models.Config
-    r.create_package_node_file_action = c.Nodes.Actions.CreatePackageNodeFile
+    r.create_package_node_file_action = c.PackageNodes.Actions.CreatePackageNodeFile
     r.create_module_node_file_action = c.Nodes.Actions.CreateModuleNodeFile
     r.create_group_file_action = c.Groups.Actions.CreateGroupFile
 

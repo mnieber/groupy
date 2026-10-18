@@ -3,6 +3,7 @@ from pathlib import Path
 # The test packages that are enabled, in the order in which the code is implemented
 ENABLED_TEST_PACKAGES = [
     "nodes_tests",
+    "package_nodes_tests",
     "functions_tests",
     "node_edits_tests",
     "glossary_tests",

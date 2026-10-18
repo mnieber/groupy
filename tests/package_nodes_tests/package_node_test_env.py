@@ -3,9 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from groupy.nodes.actions.create_package_node_file import create_package_node_file
-from groupy.nodes.models.package_node import PackageNode
-from groupy.nodes.rules.load_package_node import load_package_node
+from groupy.package_nodes.actions.create_package_node_file import (
+    create_package_node_file,
+)
+from groupy.package_nodes.models.package_node import PackageNode
+from groupy.package_nodes.rules.load_package_node import load_package_node
 
 
 @dataclass

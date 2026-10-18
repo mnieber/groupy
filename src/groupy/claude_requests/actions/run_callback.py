@@ -38,11 +38,11 @@ from groupy.functions.actions.set_extract_method_priority import (
 from groupy.functions.actions.update_responsibility import update_responsibility
 from groupy.functions.actions.update_step import update_step
 from groupy.functions.rules.get_source import get_source
-from groupy.nodes.actions.remove_proposed_module import remove_proposed_module
 from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
 from groupy.nodes.actions.set_move_to_file import set_move_to_file
-from groupy.nodes.actions.set_proposed_module import set_proposed_module
 from groupy.nodes.actions.set_rename_to import set_rename_to
+from groupy.package_nodes.actions.remove_proposed_module import remove_proposed_module
+from groupy.package_nodes.actions.set_proposed_module import set_proposed_module
 from groupy.renamings.actions.remove_renaming import remove_renaming
 from groupy.renamings.actions.set_renaming import set_renaming
 from groupy.sessions.actions.commit_stage_changes import commit_stage_changes

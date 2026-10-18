@@ -9,8 +9,10 @@ from groupy.concepts.rules.get_glossary_text import get_glossary_text
 from groupy.groups.models.chunk import Chunk
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.nodes.rules.get_module_sources import get_module_sources
-from groupy.nodes.rules.get_package_node_file_path import get_package_node_file_path
-from groupy.nodes.rules.load_package_node import load_package_node
+from groupy.package_nodes.rules.get_package_node_file_path import (
+    get_package_node_file_path,
+)
+from groupy.package_nodes.rules.load_package_node import load_package_node
 from groupy.restructure.actions.report_dependency_violations import (
     report_dependency_violations,
 )

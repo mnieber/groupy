@@ -9,8 +9,8 @@ from groupy.functions.actions.move_function_to_parent import move_function_to_pa
 from groupy.nodes.actions.set_code_unit_type import set_code_unit_type
 from groupy.nodes.actions.set_move_to_file import set_move_to_file
 from groupy.nodes.actions.set_rename_to import set_rename_to
-from groupy.nodes.models.package_node import PackageNode
-from groupy.nodes.rules.load_package_node import load_package_node
+from groupy.package_nodes.models.package_node import PackageNode
+from groupy.package_nodes.rules.load_package_node import load_package_node
 
 __all__ = ["Context", "TestEnv"]
 

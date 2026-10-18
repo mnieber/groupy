@@ -1,9 +1,11 @@
 from pathlib import Path
 
-from groupy.nodes.actions.save_package_node import save_package_node
-from groupy.nodes.models.package_node import PackageNode
-from groupy.nodes.rules.get_package_module_names import get_package_module_names
-from groupy.nodes.rules.get_package_node_file_path import get_package_node_file_path
+from groupy.package_nodes.actions.save_package_node import save_package_node
+from groupy.package_nodes.models.package_node import PackageNode
+from groupy.package_nodes.rules.get_package_module_names import get_package_module_names
+from groupy.package_nodes.rules.get_package_node_file_path import (
+    get_package_node_file_path,
+)
 
 
 def create_package_node_file(source_root: Path, package_name: str) -> None:

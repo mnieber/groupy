@@ -9,12 +9,12 @@ from groupy.nodes.actions.create_module_node_file import create_module_node_file
 from groupy.nodes.actions.move_module_node_file import move_module_node_file
 from groupy.nodes.actions.move_node_to_module import move_node_to_module
 from groupy.nodes.actions.save_module_node import save_module_node
-from groupy.nodes.actions.sync_package_node_files import sync_package_node_files
 from groupy.nodes.models.function_node import FunctionNode
 from groupy.nodes.rules.get_module_names import get_module_names
 from groupy.nodes.rules.get_module_node_file_path import get_module_node_file_path
 from groupy.nodes.rules.get_target_module_names import get_target_module_names
 from groupy.nodes.rules.load_module_node import load_module_node
+from groupy.package_nodes.actions.sync_package_node_files import sync_package_node_files
 from groupy.renamings.policies.refactoring_policy import RefactoringPolicy
 from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
 from groupy.restructure.actions.localize_import import localize_import

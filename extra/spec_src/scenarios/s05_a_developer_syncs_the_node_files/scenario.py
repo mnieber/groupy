@@ -11,7 +11,7 @@ def run_scenario():
     r.groupy_cli = c.Runtime.Entrypoints.Groupy
     r.sync_node_files_action = c.Nodes.Actions.SyncNodeFiles
     r.create_module_node_file_action = c.Nodes.Actions.CreateModuleNodeFile
-    r.create_package_node_file_action = c.Nodes.Actions.CreatePackageNodeFile
+    r.create_package_node_file_action = c.PackageNodes.Actions.CreatePackageNodeFile
     r.add_file_to_group_action = c.Groups.Actions.AddFileToGroup
 
     with goal().make_the(r.node_files).reflect_the(r.target_code).again():

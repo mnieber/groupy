@@ -8,9 +8,9 @@ from sessions_tests.groupy_test_env import TestEnv as GroupyTestEnv
 from groupy.functions.actions.add_responsibility import add_responsibility
 from groupy.functions.actions.move_function_to_parent import move_function_to_parent
 from groupy.nodes.models.module_node import ModuleNode
-from groupy.nodes.models.package_node import PackageNode
 from groupy.nodes.rules.load_module_node import load_module_node
-from groupy.nodes.rules.load_package_node import load_package_node
+from groupy.package_nodes.models.package_node import PackageNode
+from groupy.package_nodes.rules.load_package_node import load_package_node
 
 __all__ = ["Context", "TestEnv"]
 

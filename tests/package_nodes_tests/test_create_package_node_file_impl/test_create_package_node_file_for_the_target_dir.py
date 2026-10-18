@@ -1,4 +1,4 @@
-from create_package_node_file_tests.package_node_test_env import Context, TestEnv
+from package_nodes_tests.package_node_test_env import Context, TestEnv
 
 
 def create_env(context: Context):

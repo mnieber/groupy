@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from groupy.nodes.models.package_node import PackageNode
+from groupy.package_nodes.models.package_node import PackageNode
 from groupy.utils.dataclass_to_dict import dataclass_to_dict
 from groupy.utils.dump_yaml import dump_yaml
 

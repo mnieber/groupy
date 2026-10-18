@@ -10,7 +10,9 @@ from groupy.groups.rules.create_package_groups import create_package_groups
 from groupy.groups.rules.create_simple_groups import create_simple_groups
 from groupy.groups.rules.split_group_into_chunks import split_group_into_chunks
 from groupy.nodes.actions.create_module_node_file import create_module_node_file
-from groupy.nodes.actions.create_package_node_file import create_package_node_file
+from groupy.package_nodes.actions.create_package_node_file import (
+    create_package_node_file,
+)
 
 
 @dataclass
