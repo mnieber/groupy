@@ -34,7 +34,7 @@ def apply_renamings() -> None:
                 has_renamings = apply_module_renamings(
                     source_root, module_name, refactoring_policy
                 )
-            except Exception:
+            except BaseException:
                 restore_working_tree()
                 raise
             if has_renamings:

@@ -13,3 +13,9 @@ class Stages(str, Enum):
     PROPOSE_CODE_RESTRUCTURE = "propose-code-restructure"
     APPLY_CODE_RESTRUCTURE = "apply-code-restructure"
     DONE = "done"
+
+
+class RunResults(str, Enum):
+    RUNNING = "running"
+    FINISHED = "finished"
+    INTERRUPTED = "interrupted"

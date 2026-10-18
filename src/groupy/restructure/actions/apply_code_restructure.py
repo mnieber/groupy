@@ -42,7 +42,7 @@ def apply_code_restructure() -> None:
                 changed = restructure_module(
                     source_root, module_name, refactoring_policy, group_file_path
                 )
-            except Exception:
+            except BaseException:
                 restore_working_tree()
                 raise
             if changed:

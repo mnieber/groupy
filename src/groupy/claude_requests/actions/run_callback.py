@@ -144,7 +144,7 @@ def run_callback(callback: Callback, in_rfr: bool = False) -> T.Any:
     # A failed action is undone, so that the working tree matches the last commit
     try:
         result = run_edit()
-    except Exception:
+    except BaseException:
         restore_working_tree()
         raise
     commit_stage_changes(name)

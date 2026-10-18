@@ -12,6 +12,8 @@ ENABLED_TEST_PACKAGES = [
     "sessions_tests",
     "groupy_next_tests",
     "groupy_sync_tests",
+    "groupy_status_tests",
+    "groupy_reset_tests",
     "identify_helper_functions_tests",
     "analyze_terminology_tests",
     "propose_renamings_tests",

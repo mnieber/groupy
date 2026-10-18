@@ -69,7 +69,7 @@ def extract_methods() -> None:
             renamed = rename_helper_functions(
                 source_root, chunk.module_names, create_refactoring_policy(config)
             )
-        except Exception:
+        except BaseException:
             restore_working_tree()
             raise
         if renamed:

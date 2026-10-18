@@ -16,7 +16,13 @@ def run_unfinished_step(
     request_id = f"{stage.value}/{step_id}"
     if request_id in session.finished_chunks:
         return
-    run_step(request_id)
+    try:
+        run_step(request_id)
+    except BaseException as error:
+        # Lets the developer know where the stage was interrupted
+        if not hasattr(error, "groupy_request_id"):
+            error.groupy_request_id = request_id
+        raise
     session.finished_chunks.append(request_id)
     save_session(session)
     commit_stage_changes(f"finish {step_id}")

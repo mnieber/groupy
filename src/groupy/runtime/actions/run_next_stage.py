@@ -15,14 +15,20 @@ from groupy.restructure.actions.apply_code_restructure import apply_code_restruc
 from groupy.restructure.actions.propose_code_restructure import propose_code_restructure
 from groupy.restructure.actions.propose_module_layout import propose_module_layout
 from groupy.sessions.actions.commit_changes import commit_changes
+from groupy.sessions.actions.save_last_run import save_last_run
 from groupy.sessions.actions.save_session import save_session
-from groupy.sessions.enums import Stages
+from groupy.sessions.enums import RunResults, Stages
+from groupy.sessions.models.last_run import LastRun
 from groupy.sessions.models.session import get_session
 from groupy.sessions.rules.check_working_tree_is_clean import (
     check_working_tree_is_clean,
 )
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
+from groupy.sessions.rules.get_start_tag import get_start_tag
 from groupy.sessions.utils.exceptions import NoGroupFileError
+from groupy.utils.format_error import format_error
+from groupy.utils.has_git_tag import has_git_tag
+from groupy.utils.run_git import run_git
 
 STAGE_ACTIONS: T.Dict[Stages, T.Callable[[], None]] = {
     Stages.IDENTIFY_HELPER_FUNCTIONS: identify_helper_functions,
@@ -38,23 +44,44 @@ STAGE_ACTIONS: T.Dict[Stages, T.Callable[[], None]] = {
 }
 
 
-def run_next_stage() -> None:
+def run_next_stage() -> T.Optional[Stages]:
+    # Returns the stage that finished (none when the refactoring is done)
     session = get_session()
     stage = Stages(session.next_stage)
     if stage == Stages.DONE:
         print("The refactoring is done.")
-        return
+        return None
 
     if not get_groupy_path("groups.txt").exists():
         raise NoGroupFileError("There is no group file")
     check_working_tree_is_clean()
 
+    # Tag the start of the stage, unless the stage is resumed
+    start_tag = get_start_tag(stage)
+    if not has_git_tag(start_tag):
+        run_git("tag", start_tag)
+
     # When the stage is interrupted, next_stage is unchanged, so that the next
     # call runs the same stage again
-    STAGE_ACTIONS[stage]()
+    save_last_run(LastRun(stage=stage.value, result=RunResults.RUNNING.value))
+    try:
+        STAGE_ACTIONS[stage]()
+    except BaseException as error:
+        save_last_run(
+            LastRun(
+                stage=stage.value,
+                result=RunResults.INTERRUPTED.value,
+                request_id=getattr(error, "groupy_request_id", ""),
+                error=format_error(error),
+            )
+        )
+        error.groupy_stage_id = stage.value
+        raise
 
     stages = list(Stages)
     session.next_stage = stages[stages.index(stage) + 1].value
     session.finished_chunks = []
     save_session(session)
     commit_changes(f"{stage.value}: finish the stage")
+    save_last_run(LastRun(stage=stage.value, result=RunResults.FINISHED.value))
+    return stage

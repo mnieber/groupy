@@ -51,7 +51,7 @@ def apply_move_steps_to_caller() -> None:
         # are an unfinished refactoring
         try:
             rfr_policy.run(rfr)
-        except Exception:
+        except BaseException:
             restore_working_tree()
             raise
         if run_git("status", "--porcelain"):

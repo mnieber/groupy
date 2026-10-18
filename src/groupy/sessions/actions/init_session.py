@@ -15,6 +15,7 @@ from groupy.sessions.rules.check_working_tree_is_clean import (
     check_working_tree_is_clean,
 )
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
+from groupy.sessions.rules.get_start_tag import get_start_tag
 from groupy.sessions.rules.load_config import load_config
 from groupy.utils.run_git import run_git
 
@@ -26,6 +27,7 @@ def init_session(target_dir: str, branch_name: str) -> None:
 
     run_git("checkout", "-b", branch_name)
     exclude_groupy_file_from_git("call-graph.yaml")
+    exclude_groupy_file_from_git("last-run.yaml")
     reset_session()
     save_session(
         Session(
@@ -45,6 +47,7 @@ def init_session(target_dir: str, branch_name: str) -> None:
         source_root, load_config(config_path), get_groupy_path("groups.txt")
     )
     commit_changes("groupy init")
+    run_git("tag", get_start_tag())
 
 
 class SessionExistsError(Exception):
