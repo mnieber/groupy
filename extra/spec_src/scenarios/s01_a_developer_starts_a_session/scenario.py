@@ -96,8 +96,9 @@ working tree is not clean (`DirtyWorkingTreeError`).</br>
 - `next_stage`: the stage that the next `groupy next` runs (initially `identify-helper-functions`).
 
 The config file (`.groupy/config.yaml`) holds the choices that the developer makes for the session, such as the
-grouping strategy and the maximum sizes of groups and chunks, and the policies that Groupy uses to talk to Claude
-and to refactor the code. When the repository has no config file, Groupy writes one that lists every field with its
+grouping strategy and the maximum sizes of groups and chunks, the policies that Groupy uses to talk to Claude
+and to refactor the code, and the Claude model (`claude_model`). A stage may get a model of its own in
+`claude_model_by_stage` (e.g. a stronger model for a stage that needs more judgement). When the repository has no config file, Groupy writes one that lists every field with its
 default value, so that the developer can see what can be configured. An existing config file is kept, so the
 developer can prepare it before running `groupy init`.</br>
 

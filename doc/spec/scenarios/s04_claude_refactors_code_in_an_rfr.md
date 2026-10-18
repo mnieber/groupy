@@ -28,7 +28,7 @@ of the functions), using callbacks.</br>
 
 - In an RFR, only the node file edits, the glossary edits and `commit_refactoring` are allowed. A callback that
   refactors the code (e.g. `extract_method`) is rejected with `CallbackNotAllowedError`, so that an RFR never
-  starts another RFR.
+  starts another RFR. With the Claude policies, Claude can then continue without it.
 - The callbacks don't commit, because the source may be half-refactored while they run.
 
 When a refactoring is complete, Claude calls `commit_refactoring(description)`, typically once per refactoring.

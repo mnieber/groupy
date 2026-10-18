@@ -22,7 +22,8 @@ the `finished_chunks` of the session file.</br>
 When an action fails, Groupy restores the working tree to the last commit, which undoes the partial changes of
 the action (e.g. a refactoring that changed some files but not all). Then it re-raises the error, which interrupts
 the stage. The `next_stage` field of the session is unchanged. The same happens when the developer presses Ctrl+C.
-</br>
+With the Claude policies, Claude may first retry a failed callback once, and the stage is only interrupted when
+the retry fails too.</br>
 
 Groupy records the result of each `groupy next` in `.groupy/last-run.yaml` (which is not committed): `running`
 while the stage runs, then `finished` or `interrupted`, with the request id of the chunk that was running and the

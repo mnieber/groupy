@@ -133,8 +133,9 @@ with the id `<stage-id>/<chunk-id>` (e.g. `identify-helper-functions/group-1/chu
 the config file names.</br>
 
 - The config file names each policy (the RFA, RFR, grouping and refactoring policy) by the import path of a
-  callable that returns it, e.g. `groupy.claude_requests.policies.claude_rfa_policy:ClaudeRfaPolicy`. This lets the
-  tests use fake policies that replay scripted callbacks.
+  callable that returns it, e.g. `groupy.claude_requests.policies.claude_rfa_policy:ClaudeRfaPolicy`. The default
+  policies let Claude Code answer the requests. The tests use fake policies that replay scripted
+  callbacks.
 - Groupy pre-computes everything that can be computed deterministically (e.g. the sources of the modules, the
   call graph and the glossary) and passes it in the context of the RFA. Claude spends its effort on judgement,
   not on facts that Groupy can compute.
