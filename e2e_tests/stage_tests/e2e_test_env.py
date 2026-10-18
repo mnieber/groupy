@@ -35,7 +35,8 @@ class TestEnv(GroupyNextTestEnv):
     ) -> None:
         """Creates a git repo whose target code is the myapp package with the
         modules (a map from module name to text), with a config that uses the
-        real Claude policies and the Claude model, and runs groupy init."""
+        real Claude policies and the Claude model, and runs groupy init and
+        the first stage (group-modules)."""
         self.repo_dir.mkdir(parents=True)
         self.write_file("README.md", "# My app\n")
         self.write_file("src/myapp/__init__.py", "")
@@ -57,6 +58,8 @@ class TestEnv(GroupyNextTestEnv):
         self.write_file(".groupy/config.yaml", "\n".join(config_lines) + "\n")
         self.commit_all("add groupy config")
         self.run_groupy("init", "--accept-risks", "--target-dir=src")
+        # The first stage (group-modules) creates the group file
+        self.run_groupy("next")
 
     def edit_package_node_file(self, action: T.Callable, *args) -> None:
         """Runs the package node file edit (e.g. set_proposed_module), as the

@@ -17,7 +17,9 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
     # strategy (two chunks). The first stage is replaced by a fake stage that
     # makes an RFA per chunk. Only the RFA of the first chunk has a script.
     #
-    # groupy init should have tagged its commit as groupy/init.
+    # groupy init should have tagged its commit as groupy/init, and the first
+    # stage (group-modules, which the env ran) should have tagged its start,
+    # which is the same commit.
     if env.step(
         env.create_session(
             grouping_strategy="package", max_group_lines=10000, max_chunk_lines=10000
@@ -33,8 +35,11 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
             ),
         ),
     ):
-        assert env.git_tags() == {"groupy/init"}
-        assert env.tagged_commit("groupy/init") == env.git_head()
+        assert env.git_tags() == {"groupy/init", "groupy/group-modules/start"}
+        assert env.commit_message("groupy/init") == "groupy init"
+        assert env.tagged_commit("groupy/group-modules/start") == env.tagged_commit(
+            "groupy/init"
+        )
 
     # We commit a review edit of the developer, and run groupy next.
     #
@@ -49,6 +54,7 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
         assert env.error is not None
         assert env.git_tags() == {
             "groupy/init",
+            "groupy/group-modules/start",
             "groupy/identify-helper-functions/start",
         }
         assert (
@@ -74,6 +80,7 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
     ):
         assert env.git_tags() == {
             "groupy/init",
+            "groupy/group-modules/start",
             "groupy/identify-helper-functions/start",
         }
         assert (
@@ -83,4 +90,5 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
 
 
 class Env(TestEnv):
-    pass
+    def commit_message(self, revision: str) -> str:
+        return self._git("log", "-1", "--format=%s", revision)

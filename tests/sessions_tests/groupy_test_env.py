@@ -95,6 +95,9 @@ class TestEnv:
         self.context.monkeypatch.chdir(self.repo_dir)
 
     def run_groupy(self, *args: str) -> None:
+        # Each groupy command runs in a new process, which loads the session
+        # file anew
+        reset_session()
         groupy_main(list(args))
 
     def run_groupy_and_catch_error(self, *args: str) -> None:
@@ -112,6 +115,7 @@ class TestEnv:
         # Imported here, so that the tests that don't need it run without it
         from groupy.runtime.entrypoints.groupy import run as groupy_run
 
+        reset_session()
         self.context.capsys.readouterr()
         self.exit_code = groupy_run(list(args))
         captured = self.context.capsys.readouterr()

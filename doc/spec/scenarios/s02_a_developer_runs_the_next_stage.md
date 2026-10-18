@@ -10,7 +10,8 @@ chunks and sends a *request for actions* (RFA) per chunk to Claude. Claude answe
 Groupy to run one of its *actions*, which change the node files and/or the target code. Every change is
 committed, so the developer can follow (and undo) what happened in the git history.
 
-The stages are, in order: `identify-helper-functions`, `analyze-terminology`, `propose-renamings`,
+The stages are, in order: `group-modules` (see s17), `identify-helper-functions`, `analyze-terminology`,
+`propose-renamings`,
 `apply-renamings`, `extract-methods`, `propose-move-steps-to-caller`, `apply-move-steps-to-caller`,
 `propose-module-layout`, `propose-code-restructure` and `apply-code-restructure`. Then `next_stage` is `done`, and
 `groupy next` prints `The refactoring is done.` Most stages make an RFA per chunk; some make no Claude requests at
@@ -21,7 +22,7 @@ all, and some make a single request for the whole code-base.
 #### It checks the preconditions
 
 `run_next_stage` refuses to run when there is no session (`NoSessionError`), when there is no group file
-(`NoGroupFileError`), or when the working tree is not clean (`DirtyWorkingTreeError`). A clean working tree ensures
+(`NoGroupFileError`, except for the stage group-modules, which creates it), or when the working tree is not clean (`DirtyWorkingTreeError`). A clean working tree ensures
 that every change in the stage ends up in a commit of the stage, and that Groupy can undo a failed action by
 restoring the last commit.</br>
 The config file is part of the session: a change to it must be committed before `groupy next` runs.</br>
@@ -32,11 +33,8 @@ The config file is part of the session: a change to it must be committed before 
 with `get_chunks`.</br>
 
 - A *group* is a set of modules that belong together. The group file (`.groupy/groups.txt`) assigns each module (by
-  its path, e.g. `myapp/books.py`) to a group. The grouping strategy in the config file decides how `groupy init`
-  forms the groups:
-  - `simple`: the modules, sorted by path, are divided into groups of at most `max_group_lines` lines.
-  - `package` (the default): a group contains the entire file-tree of a sub-package of a top-level package (e.g.
-    `myapp/books`); the modules directly in a top-level package form a group of their own.
+  its path, e.g. `myapp/books.py`) to a group. The first stage, group-modules, creates it with the grouping strategy
+  of the config file (see s17).
 - A *chunk* is the part of a group that is processed in one Claude request, with at most `max_chunk_lines` lines.
   Groupy keeps the modules of a package together in a chunk where possible. A chunk has a deterministic id, such
   as `group-2/chunk-1`: the same group file always gives the same chunks.

@@ -82,7 +82,8 @@ class TestEnv(GroupyTestEnv):
         self, modules: T.Dict[str, str] = None, **config_fields: T.Any
     ) -> None:
         """Creates a git repo with the target code and a config file that uses
-        the fake RFA, RFR and refactoring policies, and runs groupy init. The
+        the fake RFA, RFR and refactoring policies, and runs groupy init and
+        the first stage (group-modules). The
         modules (a map from module name to text) are added to the target code,
         and the config_fields are added to the config file."""
         self.create_repo_with_target_code()
@@ -96,6 +97,8 @@ class TestEnv(GroupyTestEnv):
         self.write_file(".groupy/config.yaml", "\n".join(config_lines) + "\n")
         self.commit_all("add groupy config")
         self.run_groupy("init", "--accept-risks", "--target-dir=src")
+        # The first stage (group-modules) creates the group file
+        self.run_groupy("next")
 
     def run_groupy_next(self) -> None:
         """Runs groupy next and stores the lines that it prints in

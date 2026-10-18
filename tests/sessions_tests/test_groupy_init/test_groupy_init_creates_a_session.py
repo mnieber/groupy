@@ -34,7 +34,8 @@ def test_groupy_init_creates_a_session(context: Context):
     # We run groupy init with the src dir as the target dir and a branch name.
     #
     # Groupy should have created the branch and committed the session file,
-    # the config file, the group file and the node files on it.
+    # the config file and the node files on it. The group file is created by
+    # the first stage.
     if env.step(
         env.run_groupy(
             "init", "--accept-risks", "--target-dir=src", "--branch-name=refactor-myapp"
@@ -46,18 +47,17 @@ def test_groupy_init_creates_a_session(context: Context):
         assert env.files_in_head_commit() == {
             ".groupy/session.yaml",
             ".groupy/config.yaml",
-            ".groupy/groups.txt",
             *NODE_FILES,
         }
 
     # We look at the session.
     #
-    # The next stage should be identify-helper-functions, and the target code
+    # The next stage should be group-modules, and the target code
     # should be in the src dir.
     if env.step(
         env.load_session(),
     ):
-        assert env.session.next_stage == "identify-helper-functions"
+        assert env.session.next_stage == "group-modules"
         assert env.session.target_dir == "src"
 
     # We look at the node files.

@@ -34,7 +34,8 @@ longer exists is deleted. The `module_names` of the package node files are updat
 #### It updates the group file
 
 A new module goes into the group of a module in the same dir, or else into a new group. A deleted module is
-removed from its group.</br>
+removed from its group. Before the stage group-modules has run, there is no group file yet, and Groupy skips this
+step (the stage groups all the modules that exist then).</br>
 
 #### It reports the changes
 

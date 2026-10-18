@@ -7,6 +7,7 @@ from groupy.sessions.rules.get_stage_guide import StageGuide, get_stage_guide
 
 # A fragment of what to review, per stage
 REVIEW_FRAGMENTS = {
+    Stages.GROUP_MODULES: ["groups.txt"],
     Stages.IDENTIFY_HELPER_FUNCTIONS: ["helper_function_nodes"],
     Stages.ANALYZE_TERMINOLOGY: ["glossary"],
     Stages.PROPOSE_RENAMINGS: ["renamings"],

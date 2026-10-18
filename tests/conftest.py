@@ -8,6 +8,7 @@ ENABLED_TEST_PACKAGES = [
     "node_edits_tests",
     "glossary_tests",
     "groups_tests",
+    "group_modules_tests",
     "call_graph_tests",
     "sessions_tests",
     "groupy_next_tests",

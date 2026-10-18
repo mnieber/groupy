@@ -35,6 +35,7 @@ def test_groupy_reset_resets_the_current_stage(context: Context):
     ):
         assert env.git_tags() == {
             "groupy/init",
+            "groupy/group-modules/start",
             "groupy/identify-helper-functions/start",
         }
 
@@ -55,7 +56,7 @@ def test_groupy_reset_resets_the_current_stage(context: Context):
         assert env.git_head() == env.remembered_git_head
         assert env.git_status() == ""
         assert "Reviewed the node files." in env.read_file("README.md")
-        assert env.git_tags() == {"groupy/init"}
+        assert env.git_tags() == {"groupy/init", "groupy/group-modules/start"}
         assert env.session.next_stage == "identify-helper-functions"
         assert env.session.finished_chunks == []
 

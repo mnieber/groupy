@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class Stages(str, Enum):
+    GROUP_MODULES = "group-modules"
     IDENTIFY_HELPER_FUNCTIONS = "identify-helper-functions"
     ANALYZE_TERMINOLOGY = "analyze-terminology"
     PROPOSE_RENAMINGS = "propose-renamings"

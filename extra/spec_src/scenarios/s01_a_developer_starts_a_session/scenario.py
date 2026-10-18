@@ -14,7 +14,6 @@ def run_scenario():
     r.config = c.Sessions.Models.Config
     r.create_package_node_file_action = c.PackageNodes.Actions.CreatePackageNodeFile
     r.create_module_node_file_action = c.Nodes.Actions.CreateModuleNodeFile
-    r.create_group_file_action = c.Groups.Actions.CreateGroupFile
 
     with goal().start_a(r.session).for_the(r.target_code):
 
@@ -58,18 +57,11 @@ def run_scenario():
                     r.module
                 )
 
-        # Group the modules
-        with the(r.init_session_action).calls(r.create_group_file_action).with_the(
-            r.config
-        ):
-            it().assigns_each(r.module).to_a(r.group)
-            it().writes(r.group_file)
-
         the(r.init_session_action).commits(r.session_file).and_the(
             r.config_file
-        ).and_the(r.group_file).and_the(r.node_files)
+        ).and_the(r.node_files)
         the(r.init_session_action).tags_the(r.commit).as_the(r.init_tag)
-        the(r.developer).reviews(r.node_files).and_the(r.group_file)
+        the(r.developer).reviews(r.node_files).and_the(r.config_file)
 
 
 markdown_node = sunya.add_markdown_node(scenario, "A developer starts a session")
@@ -109,14 +101,16 @@ working tree is not clean (`DirtyWorkingTreeError`).</br>
 `init_session` creates the branch and writes the session file (`.groupy/session.yaml`). The session file contains:</br>
 
 - `target_dir`: the dir that contains the target code.
-- `next_stage`: the stage that the next `groupy next` runs (initially `identify-helper-functions`).
+- `next_stage`: the stage that the next `groupy next` runs (initially `group-modules`, see s17).
 
 The config file (`.groupy/config.yaml`) holds the choices that the developer makes for the session, such as the
 grouping strategy and the maximum sizes of groups and chunks, the policies that Groupy uses to talk to Claude
 and to refactor the code, and the Claude model (`claude_model`). A stage may get a model of its own in
 `claude_model_by_stage` (e.g. a stronger model for a stage that needs more judgement). When the repository has no config file, Groupy writes one that lists every field with its
 default value, so that the developer can see what can be configured. An existing config file is kept, so the
-developer can prepare it before running `groupy init`.</br>
+developer can prepare it before running `groupy init`. The developer can also change it (and commit the change)
+after `groupy init`, e.g. to choose another grouping strategy before the first stage groups the modules (see s17).
+</br>
 
 #### It creates the node files
 
@@ -153,17 +147,11 @@ are still empty: identifying helper functions is the first stage.</br>
 Groupy leaves out the fields that have their default value (e.g. `null`, `[]` or `false`), and reads a missing
 field as its default value.</br>
 
-#### It creates the group file
-
-To keep the workload per Claude request reasonable, the stages process the modules in groups, and the groups in
-chunks. `create_group_file` assigns each module to a group, using the grouping strategy and the maximum group size
-in the config file, and writes the group file (`.groupy/groups.txt`).</br>
-
 #### It commits
 
-Groupy commits the session file, the config file, the group file and the node files on the new branch, and tags
-the commit as `groupy/init` (so that `groupy reset --init` can return to it). Before running the first stage, the
-developer can inspect (and edit) the node files and the group file.</br>
+Groupy commits the session file, the config file and the node files on the new branch, and tags the commit as
+`groupy/init` (so that `groupy reset --init` can return to it). Before running the first stage, the developer can
+inspect (and edit) the node files and the config file.</br>
 
 ### Diagram
 
@@ -174,7 +162,6 @@ sequenceDiagram
     participant InitSession as InitSession (action)
     participant CreatePackageNodeFile as CreatePackageNodeFile (action)
     participant CreateModuleNodeFile as CreateModuleNodeFile (action)
-    participant CreateGroupFile as CreateGroupFile (action)
 
     Note over Developer,InitSession: Start the session
     Developer->>Groupy: groupy init --target-dir --branch-name
@@ -192,12 +179,8 @@ sequenceDiagram
         InitSession->>CreateModuleNodeFile: create_module_node_file(module)
     end
 
-    Note over InitSession,CreateGroupFile: Group the modules
-    InitSession->>CreateGroupFile: create_group_file(config)
-    CreateGroupFile-->>InitSession: group file
-
-    InitSession->>InitSession: commit session, config, group and node files
+    InitSession->>InitSession: commit session, config and node files
     InitSession->>InitSession: tag the commit as groupy/init
-    Developer->>Developer: review node files and group file
+    Developer->>Developer: review node files and config file
 ```
 """

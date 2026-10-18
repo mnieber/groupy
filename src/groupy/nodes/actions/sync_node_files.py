@@ -18,13 +18,16 @@ def sync_node_files(source_root: Path, group_file_path: Path) -> T.List[str]:
     # Updates the node files so that their structure reflects the source again.
     # Returns a line per change, sorted by module and location.
     changes: T.List[T.Tuple[str, str, str]] = []
+    # Before the modules are grouped, there is no group file to update
+    has_group_file = group_file_path.exists()
     module_names = get_module_names(source_root)
     target_module_names = get_target_module_names(source_root)
 
     for module_name in target_module_names:
         if module_name not in module_names:
             create_module_node_file(source_root, module_name)
-            add_file_to_group(group_file_path, module_name)
+            if has_group_file:
+                add_file_to_group(group_file_path, module_name)
             changes.append((module_name, "", "created the node file"))
             continue
 
@@ -38,7 +41,8 @@ def sync_node_files(source_root: Path, group_file_path: Path) -> T.List[str]:
     for module_name in module_names:
         if module_name not in target_module_names:
             get_module_node_file_path(source_root, module_name).unlink()
-            remove_file_from_group(group_file_path, module_name)
+            if has_group_file:
+                remove_file_from_group(group_file_path, module_name)
             changes.append((module_name, "", "deleted the node file"))
 
     sync_package_node_files(source_root)

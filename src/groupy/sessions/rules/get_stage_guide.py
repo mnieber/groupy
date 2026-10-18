@@ -2,6 +2,11 @@ from groupy.sessions.enums import Stages
 from groupy.sessions.models.stage_guide import StageGuide
 
 STAGE_GUIDES = {
+    Stages.GROUP_MODULES: StageGuide(
+        description="divides the modules into groups, with the grouping strategy of "
+        "the config file",
+        review="the groups in the group file (.groupy/groups.txt)",
+    ),
     Stages.IDENTIFY_HELPER_FUNCTIONS: StageGuide(
         description="nests each helper function under the function that it serves",
         review="the nesting of the helper functions (helper_function_nodes in the "

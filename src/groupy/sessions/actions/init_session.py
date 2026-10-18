@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from groupy.groups.actions.create_group_file import create_group_file
 from groupy.nodes.actions.create_node_files import create_node_files
 from groupy.sessions.actions.commit_changes import commit_changes
 from groupy.sessions.actions.exclude_groupy_file_from_git import (
@@ -16,7 +15,6 @@ from groupy.sessions.rules.check_working_tree_is_clean import (
 )
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_start_tag import get_start_tag
-from groupy.sessions.rules.load_config import load_config
 from groupy.utils.run_git import run_git
 
 
@@ -31,23 +29,16 @@ def init_session(target_dir: str, branch_name: str) -> None:
     exclude_groupy_file_from_git("logs")
     exclude_groupy_file_from_git("requests")
     reset_session()
-    save_session(
-        Session(
-            next_stage=Stages.IDENTIFY_HELPER_FUNCTIONS.value, target_dir=target_dir
-        )
-    )
+    save_session(Session(next_stage=Stages.GROUP_MODULES.value, target_dir=target_dir))
 
     # An existing config file is kept
     config_path = get_groupy_path("config.yaml")
     if not config_path.exists():
         save_config(Config(), config_path)
 
-    # Create the source map and the group file
-    source_root = Path(target_dir)
-    create_node_files(source_root)
-    create_group_file(
-        source_root, load_config(config_path), get_groupy_path("groups.txt")
-    )
+    # Create the source map. The modules are grouped in the first stage, so that
+    # the developer can change the grouping strategy first.
+    create_node_files(Path(target_dir))
     commit_changes("groupy init")
     run_git("tag", get_start_tag())
 

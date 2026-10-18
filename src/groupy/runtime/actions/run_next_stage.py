@@ -9,6 +9,7 @@ from groupy.functions.actions.identify_helper_functions import identify_helper_f
 from groupy.functions.actions.propose_move_steps_to_caller import (
     propose_move_steps_to_caller,
 )
+from groupy.groups.actions.group_modules import group_modules
 from groupy.renamings.actions.apply_renamings import apply_renamings
 from groupy.renamings.actions.propose_renamings import propose_renamings
 from groupy.restructure.actions.apply_code_restructure import apply_code_restructure
@@ -31,6 +32,7 @@ from groupy.utils.has_git_tag import has_git_tag
 from groupy.utils.run_git import run_git
 
 STAGE_ACTIONS: T.Dict[Stages, T.Callable[[], None]] = {
+    Stages.GROUP_MODULES: group_modules,
     Stages.IDENTIFY_HELPER_FUNCTIONS: identify_helper_functions,
     Stages.ANALYZE_TERMINOLOGY: analyze_terminology,
     Stages.PROPOSE_RENAMINGS: propose_renamings,
@@ -52,7 +54,8 @@ def run_next_stage() -> T.Optional[Stages]:
         print("The refactoring is done.")
         return None
 
-    if not get_groupy_path("groups.txt").exists():
+    # The first stage creates the group file
+    if stage != Stages.GROUP_MODULES and not get_groupy_path("groups.txt").exists():
         raise NoGroupFileError("There is no group file")
     check_working_tree_is_clean()
 

@@ -46,6 +46,8 @@ class TestEnv(GroupyNextTestEnv):
         )
         self.commit_all("add groupy config")
         self.run_groupy("init", "--accept-risks", "--target-dir=src")
+        # The first stage (group-modules) creates the group file
+        self.run_groupy("next")
 
         # The fake claude runs groupy with the Python of the tests
         bin_dir = self.fake_dir / "bin"
