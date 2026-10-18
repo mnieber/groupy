@@ -1,26 +1,3 @@
-# Chunking the work
-
-To keep the workload per Claude request reasonable, Groupy groups the node files into groups, it splits each
-group into chunks and processes these chunks in series.
-
-The groups, the chunks, and the `simple` and `package` grouping strategies are described in the scenario
-`s02_a_developer_runs_the_next_stage`. This document describes the parts that are not implemented yet.
-
-1. `groupy group` recreates the group file (e.g. after the developer changed the config file).
-2. The `smart` grouping strategy uses Claude Haiku to create the groups (see "Smart grouping").
-
-## Incremental accumulation
-
-Some tasks need to consider all node files, but the input is too large for a single Claude request.
-Such tasks use incremental accumulation:
-
-1. Groupy divides the input into batches of K items (with K fixed).
-2. For each batch, Claude receives the batch and a state file, and returns the updated state file.
-   1. The state file accumulates the result of the batches that were processed so far.
-3. Groupy validates the state file after each batch.
-   1. The task defines which changes to the state file are allowed (e.g. only adding entries).
-4. Items that were not processed in a batch are added to the next batch.
-
 ## Smart grouping
 
 1. Groupy creates an index file (`.groupy/index.yaml`) from the node files.
@@ -64,3 +41,20 @@ Such tasks use incremental accumulation:
    3. Groupy records each finished chunk in the session file, so that an interrupted stage can be resumed.
    4. Stages that need a view of the entire code-base (e.g. proposing the module layout) do not use groups.
       Instead, Claude receives condensed input in a single session.
+
+## 10. Smart grouping and the group file
+
+1. Smart grouping with `FakeGroupingPolicy` (which maps each batch id, e.g. `assign-groups/batch-2`, onto a scripted
+   answer): the index file, the group description file and the group file;
+   Groupy rejects renumbered, merged or deleted groups, discards malformed lines and retries unassigned node files.
+   - Exercises: `groups/actions/create_index_file.py`, `groups/actions/create_smart_groups.py`,
+     `groups/rules/load_group_file.py` (malformed lines), `groups/rules/validate_group_descriptions.py`.
+2. Incremental accumulation as a generic mechanism: batches of K items, validation of the state file after each
+   batch, unprocessed items are added to the next batch.
+   - Exercises: `claude_requests/actions/run_incremental_accumulation.py`.
+3. The group file is updated when an action renames a file or splits off a new file.
+   - Exercises: `groups/actions/rename_file_in_group_file.py`, `groups/actions/add_file_to_group.py` (first needed
+     by `groupy sync`).
+4. `groupy group` recreates the group file with the grouping strategy and the sizes of the (changed) config file,
+   and commits it.
+   - Exercises: `runtime/entrypoints/groupy.py`, `groups/actions/create_group_file.py`.

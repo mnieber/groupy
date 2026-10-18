@@ -1,0 +1,1 @@
+Discover models, not just functions. The design is centred on functions, but the models layer usually has to be found in implicit data: dicts with string keys, tuples, and long parameter lists that get passed around together. A step that proposes dataclassy models for these would give the other layers something to depend on.
