@@ -46,7 +46,7 @@ def run_next_stage() -> None:
         return
 
     if not get_groupy_path("groups.txt").exists():
-        raise NoGroupFileError("There is no group file: run groupy group first")
+        raise NoGroupFileError("There is no group file")
     check_working_tree_is_clean()
 
     # When the stage is interrupted, next_stage is unchanged, so that the next
