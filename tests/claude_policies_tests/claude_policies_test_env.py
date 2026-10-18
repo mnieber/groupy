@@ -30,10 +30,10 @@ class TestEnv(GroupyNextTestEnv):
 
     # Actions
 
-    def create_session_with_claude_policies(self) -> None:
+    def create_session_with_claude_policies(self, extra_config: str = "") -> None:
         """Creates a session for the myapp package, with a config that uses
-        the real Claude policies and the model haiku, and puts the fake claude
-        executable on the PATH."""
+        the real Claude policies and the model haiku (plus the extra config
+        text), and puts the fake claude executable on the PATH."""
         self.create_repo_with_target_code()
         config_lines = [
             "grouping_strategy: simple",
@@ -41,7 +41,9 @@ class TestEnv(GroupyNextTestEnv):
             "max_chunk_lines: 10000",
             "claude_model: haiku",
         ]
-        self.write_file(".groupy/config.yaml", "\n".join(config_lines) + "\n")
+        self.write_file(
+            ".groupy/config.yaml", "\n".join(config_lines) + "\n" + extra_config
+        )
         self.commit_all("add groupy config")
         self.run_groupy("init", "--target-dir=src")
 

@@ -26,14 +26,17 @@ default config refers to `claude_requests.policies.claude_rfa_policy:ClaudeRfaPo
    3. The RFR policy sets the env var `GROUPY_IN_RFR=1` for the subprocess, and the command passes
       `in_rfr=True` when it is set. This keeps `CallbackNotAllowedError` working without trusting Claude to pass a
       flag.
-4. A failed callback ends the request, and interrupts the stage, as the specs require (s03, and e.g.
+4. Claude may retry a failed callback once. When the retry fails too (two callbacks fail in a row), the request
+   ends, and the stage is interrupted, as the specs require (s03, and e.g.
    `test_apply_move_steps_to_caller_rejects_a_refactoring_callback`, which expects `CallbackNotAllowedError` from
-   `groupy next`). Groupy doesn't kill `claude`, but asks Claude to stop, so that the session ends normally and its
-   log is complete.
-   1. A failed callback writes the error to `.groupy/requests/<request-id>/error.yaml`: the import path of the
-      exception class and the message. `run_callback` has already restored the working tree.
-   2. It prints a fixed instruction, e.g. "The callback failed: `<error>`. Stop processing this request: don't run
-      more callbacks or edit files, and end your answer."
+   `groupy next` with the fake policies). Groupy doesn't kill `claude`, but asks Claude to stop, so that the session
+   ends normally and its log is complete.
+   1. A failed callback writes `.groupy/requests/<request-id>/failed-callback.yaml` (the callback and the error),
+      and prints the error with the offer to retry once. The next callback that succeeds removes the file.
+   2. When a callback fails while that file exists, it writes the error to `error.yaml` (the import path of the
+      exception class and the message), and prints a fixed instruction, e.g. "Stop processing this request now:
+      don't run more callbacks or edit files, and end your answer." `run_callback` has already restored the
+      working tree (in an RFA).
    3. When the error file exists, every later callback of the request runs nothing, and prints the same
       instruction.
    4. In headless mode, the `claude` process exits when Claude ends its answer. Then the policy restores the working
@@ -49,14 +52,17 @@ default config refers to `claude_requests.policies.claude_rfa_policy:ClaudeRfaPo
       all changes go through callbacks.
    2. `ClaudeRfrPolicy`: the same, plus `Edit` and `Write`, since Claude edits the source files in an RFR.
 6. The config gets a `claude_model: str` field (default: empty, which means the default model of Claude Code), that
-   the policies pass with `--model`. Both policies share the code that builds and runs the command
+   the policies pass with `--model`. The field `claude_model_by_stage` (a map from stage id to model, default empty)
+   gives a stage its own model, e.g. Sonnet for the stages that need more judgement (analyze-terminology,
+   propose-renamings and propose-code-restructure, see `e2e-test-plan.md`). The policies look up the stage in the
+   session, so that an RFR made by a callback (e.g. `extract_method`) uses the model of its stage. Both policies share the code that builds and runs the command
    (`claude_requests/utils/run_claude.py`).
 7. Tests (in a new `claude_policies_tests` package) don't call the real Claude. They put a fake `claude` executable
    on the `PATH` that records its arguments and runs a scripted list of `groupy callback` commands, and check that:
    1. the context file, the preamble, the allowed tools and the model are passed;
    2. callbacks in an RFR run without committing, and a refactoring callback is rejected;
-   3. after a failed callback, later callbacks are ignored and get the stop instruction, the working tree is
-      restored, and the policy raises the original error;
+   3. a failed callback may be retried once; after a failed retry, later callbacks are refused with the stop
+      instruction, the working tree is restored, and the policy raises the error of the retry;
    4. a failing `claude` raises `ClaudeRequestError`.
 8. Out of scope: `ClaudeGroupingPolicy` (the default `grouping_policy`) belongs to smart grouping
    (`add-a-smart-grouping-policy.md`). Until then, the default `grouping_strategy: package` does not use it.
@@ -78,6 +84,7 @@ The policies are implemented, and the e2e tests pass (see `e2e-test-plan.md`). D
    candidates (`candidate_steps`), the apply-move-steps-to-caller prompt says that `remove_step` also removes the
    step to move, and the extract-methods prompt says that a nested helper function keeps its name until Groupy
    renames it.
-6. Not done yet: the `claude_policies_tests` with a fake `claude` executable (item 7).
+6. The `claude_policies_tests` (item 7) use a fake `claude` executable (`fake_claude.py`) that runs scripted
+   steps: `groupy callback` commands and file writes.
 
 ### Open questions

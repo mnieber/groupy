@@ -1,3 +1,5 @@
+import typing as T
+
 from dataclassy import dataclass
 
 
@@ -19,3 +21,4 @@ class Config:
     max_group_lines: int = 2000
     max_chunk_lines: int = 500
     claude_model: str = ""
+    claude_model_by_stage: T.Dict[str, str] = {}
