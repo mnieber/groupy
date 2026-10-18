@@ -17,7 +17,8 @@ from groupy.sessions.rules.load_config import load_config
 PROMPT = """\
 For the functions in move_step_candidates, identify the steps that should be done by
 the callers of the function (before they call it), using the sources of the callers
-in caller_sources. Only propose to move a step when the function has a single caller,
+in caller_sources. The steps of each candidate are in candidate_steps: pass a step to
+a callback exactly as it is written there. Only propose to move a step when the function has a single caller,
 or when all callers should clearly perform the step; otherwise moving the step would
 duplicate code. Record each step that should move with add_step_to_move_to_caller.
 Do not change the source.
@@ -34,8 +35,8 @@ def propose_move_steps_to_caller() -> None:
         build_call_graph(source_root, call_graph_path)
         call_graph = load_call_graph(call_graph_path)
         candidates = [
-            (node_location, source_location)
-            for node_location, source_location, _ in get_function_locations(
+            (node_location, source_location, node)
+            for node_location, source_location, node in get_function_locations(
                 source_root, chunk.module_names
             )
             if is_move_step_candidate(call_graph, source_location)
@@ -50,15 +51,19 @@ def propose_move_steps_to_caller() -> None:
                 prompt=PROMPT,
                 context={
                     "move_step_candidates": sorted(
-                        node_location for node_location, _ in candidates
+                        node_location for node_location, _, _ in candidates
                     ),
+                    "candidate_steps": {
+                        node_location: node.steps
+                        for node_location, _, node in candidates
+                    },
                     "module_sources": get_module_sources(
                         source_root, chunk.module_names
                     ),
                     "caller_sources": get_caller_sources(
                         source_root,
                         call_graph,
-                        [source_location for _, source_location in candidates],
+                        [source_location for _, source_location, _ in candidates],
                     ),
                 },
             )

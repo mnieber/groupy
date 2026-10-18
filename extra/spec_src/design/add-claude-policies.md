@@ -61,4 +61,23 @@ default config refers to `claude_requests.policies.claude_rfa_policy:ClaudeRfaPo
 8. Out of scope: `ClaudeGroupingPolicy` (the default `grouping_policy`) belongs to smart grouping
    (`add-a-smart-grouping-policy.md`). Until then, the default `grouping_strategy: package` does not use it.
 
+### Implementation notes
+
+The policies are implemented, and the e2e tests pass (see `e2e-test-plan.md`). Differences with the plan above:
+
+1. The shared code is the action `claude_requests/actions/run_claude.py` (not a util), since it restores the
+   working tree and raises the error of a failed callback.
+2. Besides `--allowedTools`, the command passes `--tools` (the available tools), `--permission-mode dontAsk` (deny
+   without asking), `--strict-mcp-config` (no MCP servers) and `--no-session-persistence`. Claude Code still lets
+   read-only shell commands (e.g. `cd`, `find`, `cat`) through.
+3. Claude may `cd` in its shell, so the policy passes the repo dir in `GROUPY_REPO_DIR`, and `groupy callback`
+   runs there. The env vars are read in `groupy/settings.py`.
+4. The preamble names the target dir, explains the locations (also of classes and variables), and says that
+   every argument without a default is required (null for an empty value).
+5. The e2e tests showed gaps in some stages, which are fixed: propose-move-steps-to-caller passes the steps of the
+   candidates (`candidate_steps`), the apply-move-steps-to-caller prompt says that `remove_step` also removes the
+   step to move, and the extract-methods prompt says that a nested helper function keeps its name until Groupy
+   renames it.
+6. Not done yet: the `claude_policies_tests` with a fake `claude` executable (item 7).
+
 ### Open questions

@@ -74,8 +74,22 @@ together. They are written before the policies exist, and pass once the policies
 
 apply-renamings and apply-code-restructure don't call Claude (they refactor with rope), so they have no e2e test.
 
+### Models
+
+All tests pass with the real policies (`GROUPY_E2E=1 pytest e2e_tests`, about 3 minutes). Haiku is good enough for
+identify-helper-functions, extract-methods, the move-steps stages and propose-module-layout. Three tests use Sonnet:
+
+1. analyze-terminology: Haiku uses activities as concepts (e.g. `customer_lookup`) and misuses the glossary
+   callbacks.
+2. propose-renamings: Haiku confuses `set_renaming` and `set_rename_to`.
+3. propose-code-restructure: Haiku ignores the proposed modules (e.g. it proposes `myapp/models/book.py`).
+
+Changes to the snippets after the first runs: analyze-terminology uses `client` as an alias of `customer` (Claude
+rightly read `volume` as a copy of a book), and doesn't check abbreviations (they are introduced for long terms,
+not found in the code); propose-code-restructure uses a rule with clear business logic (`can_borrow_book`), in a
+module (`library.py`) that doesn't clash with the proposed package `myapp/books`.
+
 ### Open points
 
-1. Is Haiku good enough for analyze-terminology and propose-code-restructure? Decide per test, after running it.
-2. A test may be flaky when Claude sometimes makes another reasonable choice. Then we relax the assert (or make
+1. A test may be flaky when Claude sometimes makes another reasonable choice. Then we relax the assert (or make
    the snippet more obvious), rather than retry the test.

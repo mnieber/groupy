@@ -23,8 +23,11 @@ candidate, call extract_method(module_name, location, new_name, description) for
 part that should become a function of its own. Fill in the analysis of each
 extracted function (e.g. its concepts, responsibilities and steps), update the
 analysis of the original function, and nest an extracted function that is a helper
-function with move_function_to_parent. When you are done with a candidate (also when
-you decide not to extract anything), set its extract_method_priority to n/a.
+function with move_function_to_parent. A nested helper function keeps its name
+until Groupy renames it after this request (e.g. validate becomes _validate), so use
+its current name in the locations (e.g. create_report.validate). When you are done
+with a candidate (also when you decide not to extract anything), set its
+extract_method_priority to n/a.
 """
 
 FOLLOW_UP_PROMPT = """\

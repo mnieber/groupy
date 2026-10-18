@@ -18,3 +18,4 @@ class Config:
     grouping_strategy: str = "package"
     max_group_lines: int = 2000
     max_chunk_lines: int = 500
+    claude_model: str = ""

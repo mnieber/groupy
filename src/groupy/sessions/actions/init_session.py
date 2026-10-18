@@ -28,6 +28,8 @@ def init_session(target_dir: str, branch_name: str) -> None:
     run_git("checkout", "-b", branch_name)
     exclude_groupy_file_from_git("call-graph.yaml")
     exclude_groupy_file_from_git("last-run.yaml")
+    exclude_groupy_file_from_git("logs")
+    exclude_groupy_file_from_git("requests")
     reset_session()
     save_session(
         Session(

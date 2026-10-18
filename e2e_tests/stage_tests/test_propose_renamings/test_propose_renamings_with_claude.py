@@ -34,9 +34,10 @@ def test_propose_renamings_with_claude(context: Context):
 
     # We have a session that uses Claude, whose next stage is
     # propose-renamings. The module stats.py uses outlier_point as an alias of
-    # outlier, which the node files and the glossary record.
+    # outlier, which the node files and the glossary record. Haiku confuses
+    # set_renaming and set_rename_to, so this test uses Sonnet.
     if env.step(
-        env.create_session_with_claude({STATS: STATS_PY}),
+        env.create_session_with_claude({STATS: STATS_PY}, claude_model="sonnet"),
         env.write_glossary(GLOSSARY_YAML),
         env.edit_node_file(
             add_alias, STATS, "find_outliers", "outlier", "outlier_point"

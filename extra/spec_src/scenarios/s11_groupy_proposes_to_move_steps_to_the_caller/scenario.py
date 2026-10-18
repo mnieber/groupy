@@ -58,8 +58,9 @@ chunk that has candidates; a chunk without candidates is finished without an RFA
 
 #### Claude proposes steps to move
 
-The context of the RFA contains the candidates, the sources of the modules of the chunk, and the source of each
-caller of a candidate (`caller_sources`, also for callers in other modules).</br>
+The context of the RFA contains the candidates, the steps of each candidate (`candidate_steps`), the sources of the
+modules of the chunk, and the source of each caller of a candidate (`caller_sources`, also for callers in other
+modules).</br>
 Claude records each step that should move in the `steps_to_move_to_caller` of the function node, with
 `add_step_to_move_to_caller`. The step must be one of the `steps` of the function.</br>
 

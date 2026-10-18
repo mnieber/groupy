@@ -20,9 +20,10 @@ from groupy.utils.run_git import run_git
 PROMPT = """\
 Move the steps in steps_to_move_to_caller from their function to the callers of the
 function (see caller_sources). For each move: edit the source, remove the step from
-the function (remove_step), add it to the steps of the callers (add_step), and call
-commit_refactoring with a short description. When a step cannot be moved after all,
-withdraw the proposal with remove_step_to_move_to_caller.
+the function (remove_step, which also removes it from steps_to_move_to_caller), add
+it to the steps of the callers (add_step), and call commit_refactoring with a short
+description. Only when a step cannot be moved after all, withdraw the proposal with
+remove_step_to_move_to_caller (instead of moving it).
 """
 
 FOLLOW_UP_PROMPT = """\

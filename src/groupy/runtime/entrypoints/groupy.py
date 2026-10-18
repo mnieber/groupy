@@ -1,8 +1,23 @@
 import argparse
+import json
 import logging
+import os
 import sys
 import traceback
 
+from groupy import settings
+from groupy.claude_requests.actions.run_requested_callback import (
+    RequestStoppedError,
+    run_requested_callback,
+)
+from groupy.claude_requests.models.callback import Callback
+from groupy.claude_requests.rules.get_current_request_dir import (
+    get_current_request_dir,
+)
+from groupy.claude_requests.rules.get_retry_instruction import get_retry_instruction
+from groupy.claude_requests.rules.get_stop_instruction import get_stop_instruction
+from groupy.claude_requests.rules.is_request_stopped import is_request_stopped
+from groupy.claude_requests.utils.to_plain_data import to_plain_data
 from groupy.nodes.actions.sync_node_files import sync_node_files
 from groupy.runtime.actions.run_next_stage import run_next_stage
 from groupy.sessions.actions.init_session import init_session
@@ -23,6 +38,7 @@ from groupy.sessions.utils.exceptions import (
     NoGroupFileError,
     NoSessionError,
 )
+from groupy.utils.dump_yaml import dump_yaml
 from groupy.utils.format_error import format_error
 from groupy.utils.has_git_tag import has_git_tag
 from groupy.utils.run_git import run_git
@@ -72,6 +88,15 @@ def _parse_args(argv):
     )
     reset_parser.add_argument(
         "--yes", action="store_true", help="Don't ask for confirmation"
+    )
+
+    # Callback command
+    callback_parser = subparsers.add_parser(
+        "callback", help="Run a callback of Groupy (used by Claude)"
+    )
+    callback_parser.add_argument("name", help="The name of the callback")
+    callback_parser.add_argument(
+        "--args", default="{}", help="The arguments, as a JSON object"
     )
 
     # Global arguments
@@ -205,6 +230,30 @@ def _reset(args):
     print(f"To undo the reset, run: git reset --hard {previous_head}")
 
 
+def _callback(args):
+    # Claude may have changed its cwd
+    if settings.GROUPY_REPO_DIR:
+        os.chdir(settings.GROUPY_REPO_DIR)
+    try:
+        result = run_requested_callback(Callback(args.name, json.loads(args.args)))
+    except Exception as error:
+        if not isinstance(error, RequestStoppedError):
+            print(f"The callback failed: {format_error(error)}")
+        request_dir = get_current_request_dir()
+        if request_dir is not None and is_request_stopped(request_dir):
+            print(get_stop_instruction())
+        elif request_dir is not None:
+            print(get_retry_instruction())
+        return 1
+    if result is None:
+        print("OK")
+    elif isinstance(result, str):
+        print(result.rstrip("\n"))
+    else:
+        print(dump_yaml(to_plain_data(result)), end="")
+    return 0
+
+
 def _print_error(error, verbose):
     stage_id = getattr(error, "groupy_stage_id", None)
     if stage_id:
@@ -242,6 +291,8 @@ def _run_command(args):
         _status()
     elif args.command == "reset":
         _reset(args)
+    elif args.command == "callback":
+        return _callback(args)
     else:
         print("Please specify a command. Use --help for more information.")
         return 1

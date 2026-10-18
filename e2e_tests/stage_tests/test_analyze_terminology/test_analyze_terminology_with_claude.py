@@ -1,14 +1,15 @@
 from stage_tests.e2e_test_env import Context, TestEnv
 
-SHELVES_PY = """\
-def add_volume(shelf, volume, qty):
-    for _ in range(qty):
-        shelf.append(volume)
-    return shelf
+CUSTOMERS = "myapp/customers.py"
+
+CUSTOMERS_PY = """\
+def register_customer(customers, name):
+    customers.append({"name": name})
+    return customers
 
 
-def count_books(shelf, book):
-    return sum(1 for item in shelf if item == book)
+def find_client(customers, name):
+    return next(client for client in customers if client["name"] == name)
 """
 
 
@@ -21,10 +22,13 @@ def test_analyze_terminology_with_claude(context: Context):
     env = create_env(context)
 
     # We have a session that uses Claude, whose next stage is
-    # analyze-terminology. The module shelves.py uses volume as an alias of
-    # book, and qty as an abbreviation of quantity.
+    # analyze-terminology. The module customers.py uses client as an alias of
+    # customer. Haiku uses activities (e.g. book counting) as concepts, and
+    # misuses the glossary callbacks, so this test uses Sonnet.
     if env.step(
-        env.create_session_with_claude({"myapp/shelves.py": SHELVES_PY}),
+        env.create_session_with_claude(
+            {CUSTOMERS: CUSTOMERS_PY}, claude_model="sonnet"
+        ),
         env.set_next_stage("analyze-terminology"),
     ):
         pass
@@ -42,28 +46,22 @@ def test_analyze_terminology_with_claude(context: Context):
         assert env.session.next_stage == "propose-renamings"
         assert env.git_status() == ""
 
-    # We look at the node file of shelves.py.
+    # We look at the node file of customers.py and at the glossary.
     #
     # The module should have concepts, and every function responsibilities
-    # and steps. Claude should have recorded volume as an alias, and qty as an
-    # abbreviation.
+    # and steps. The glossary should have an entry for the concept of a
+    # customer. Claude should have recorded client as an alias (in the node
+    # files or in the glossary).
     if env.step(
-        env.load_module_node("myapp/shelves.py"),
+        env.load_module_node(CUSTOMERS),
+        env.load_glossary(),
     ):
         assert env.module_node.concepts
         for node in env.all_function_nodes():
             assert node.responsibilities, f"{node.name} has no responsibilities"
             assert node.steps, f"{node.name} has no steps"
-        assert "volume" in env.node_aliases()
-        assert "qty" in env.node_abbreviations()
-
-    # We look at the glossary.
-    #
-    # It should have an entry for the concept of a book (or volume).
-    if env.step(
-        env.load_glossary(),
-    ):
-        assert env.glossary_names() & {"book", "books", "volume"}
+        assert env.glossary_names() & {"customer", "customers"}
+        assert "client" in env.node_aliases() | env.glossary_aliases()
 
 
 class Env(TestEnv):
@@ -76,11 +74,5 @@ class Env(TestEnv):
             for alias in aliases
         }
 
-    def node_abbreviations(self):
-        """Returns the abbreviations in the function nodes of
-        env.module_node."""
-        return {
-            abbreviation
-            for node in self.all_function_nodes()
-            for abbreviation in node.abbreviations.values()
-        }
+    def glossary_aliases(self):
+        return {alias for entry in self.glossary.entries for alias in entry.aliases}
