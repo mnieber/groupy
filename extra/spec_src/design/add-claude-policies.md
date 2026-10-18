@@ -13,6 +13,7 @@ default config refers to `claude_requests.policies.claude_rfa_policy:ClaudeRfaPo
       stage then fails like it does for any other error, so that `groupy next` can resume it.
    4. The output of the session (`--output-format stream-json`) is written to `.groupy/logs/<request-id>.jsonl`, for
       debugging. `groupy init` excludes `.groupy/logs/` from git, like `call-graph.yaml`.
+   5. Support for an MCP server might be done in the future (not now).
 2. The context of a request is written to a file instead of being inlined in the prompt.
    1. Groupy writes `request.context` as yaml to `.groupy/requests/<request-id>/context.yaml` (also excluded from
       git), and the preamble tells Claude to read it.
@@ -61,7 +62,3 @@ default config refers to `claude_requests.policies.claude_rfa_policy:ClaudeRfaPo
    (`add-a-smart-grouping-policy.md`). Until then, the default `grouping_strategy: package` does not use it.
 
 ### Open questions
-
-1. Callbacks as a CLI command (above) or as an MCP server (`groupy mcp`) that the policies pass with `--mcp-config`?
-   The CLI is simpler and easy to test; MCP gives Claude typed tool schemas for the ~35 callbacks. Recommended: start
-   with the CLI, and list the callbacks with their arguments in the preamble.
