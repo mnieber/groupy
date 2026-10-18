@@ -20,6 +20,11 @@ def run_scenario():
 
         # Start the session
         with the(r.developer).runs(r.groupy_cli).with_the(r.init_command):
+            with the(r.groupy_cli).explains_the(r.risks):
+                it().asks(r.developer).to_accept_them().unless_the(
+                    r.accept_risks_option
+                ).is_given()
+                it().cancels_the(r.init_command).if_the(r.developer).declines()
             it().calls(r.init_session_action).with_the(r.target_dir).and_the(
                 r.branch_name
             )
@@ -85,6 +90,17 @@ code. For Groupy, the node files are the record of what was analyzed, proposed a
 
 The developer runs `groupy init --target-dir=<target-dir> --branch-name=<branch-name>` from the repository root.
 The branch name defaults to `groupy`.</br>
+Groupy first explains the risks, and asks the developer to accept them:</br>
+
+- Groupy radically refactors the code with rope and Claude, which may introduce errors. The developer remains fully
+  responsible for the correctness of the code, and reviews all changes (which Groupy commits on the branch).
+- Groupy runs Claude Code, which incurs costs, for which the developer is responsible. `groupy status` shows an
+  estimate (see s03), which comes without any guarantee: the developer checks the actual usage and costs with
+  Anthropic.
+- Groupy is provided as is, without warranty of any kind.
+
+When the developer declines, `groupy init` changes nothing. The option `--accept-risks` accepts the risks without
+being asked (e.g. in a script).</br>
 `init_session` refuses to start when the repository already has a session (`SessionExistsError`), or when the
 working tree is not clean (`DirtyWorkingTreeError`).</br>
 

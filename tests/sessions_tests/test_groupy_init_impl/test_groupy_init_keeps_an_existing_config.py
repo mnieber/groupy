@@ -27,7 +27,7 @@ def test_groupy_init_keeps_an_existing_config(context: Context):
     #
     # It should keep the config file as it is.
     if env.step(
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
     ):
         assert env.read_file(".groupy/config.yaml") == CONFIG_YAML
         assert env.git_status() == ""

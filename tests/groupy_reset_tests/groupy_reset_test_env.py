@@ -1,5 +1,3 @@
-import typing as T
-
 from groupy_next_tests.groupy_next_test_env import Context
 from groupy_next_tests.groupy_next_test_env import TestEnv as GroupyNextTestEnv
 from groupy_next_tests.groupy_next_test_env import callback
@@ -13,7 +11,6 @@ RFA_ID_2 = "identify-helper-functions/group-2/chunk-1"
 
 class TestEnv(GroupyNextTestEnv):
     def __init__(self, context: Context):
-        self.prompts: T.List[str] = []
         self.head_before_reset: str = None
         super().__init__(context)
 
@@ -58,11 +55,5 @@ class TestEnv(GroupyNextTestEnv):
         """Runs groupy reset like the console script does (see run_groupy_cli).
         When groupy asks for confirmation, it gets the answer, and the prompt
         is stored in env.prompts."""
-
-        def _input(prompt: str = "") -> str:
-            self.prompts.append(prompt)
-            assert answer is not None, "groupy reset asked for confirmation"
-            return answer
-
-        self.context.monkeypatch.setattr("builtins.input", _input)
+        self.answer_prompts(answer)
         self.run_groupy_cli("reset", *args)

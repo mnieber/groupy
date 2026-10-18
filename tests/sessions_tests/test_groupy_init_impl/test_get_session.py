@@ -16,7 +16,7 @@ def test_get_session(context: Context):
     # The session should be a singleton.
     if env.step(
         env.create_repo_with_target_code(),
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
         env.load_session(),
     ):
         assert get_session() is env.session

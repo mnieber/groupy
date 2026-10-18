@@ -34,7 +34,7 @@ def test_groupy_sync_accepts_helper_functions_and_nested_functions(
         env.create_repo_with_target_code(),
         env.write_file("src/myapp/authors.py", AUTHORS_PY),
         env.commit_all("add authors"),
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
     ):
         pass
 

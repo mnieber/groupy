@@ -24,7 +24,7 @@ def test_groupy_init_requires_a_clean_working_tree(context: Context):
     #
     # It should raise a DirtyWorkingTreeError and leave the repo untouched.
     if env.step(
-        env.run_groupy_and_catch_error("init", "--target-dir=src"),
+        env.run_groupy_and_catch_error("init", "--accept-risks", "--target-dir=src"),
     ):
         assert isinstance(env.error, DirtyWorkingTreeError)
         assert env.git_branch() == "main"
@@ -45,7 +45,7 @@ def test_groupy_init_requires_a_clean_working_tree(context: Context):
     # An untracked file also makes the working tree unclean, so it should
     # raise a DirtyWorkingTreeError again.
     if env.step(
-        env.run_groupy_and_catch_error("init", "--target-dir=src"),
+        env.run_groupy_and_catch_error("init", "--accept-risks", "--target-dir=src"),
     ):
         assert isinstance(env.error, DirtyWorkingTreeError)
         assert env.git_branches() == {"main"}

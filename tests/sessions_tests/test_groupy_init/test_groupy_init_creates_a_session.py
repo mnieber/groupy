@@ -36,7 +36,9 @@ def test_groupy_init_creates_a_session(context: Context):
     # Groupy should have created the branch and committed the session file,
     # the config file, the group file and the node files on it.
     if env.step(
-        env.run_groupy("init", "--target-dir=src", "--branch-name=refactor-myapp"),
+        env.run_groupy(
+            "init", "--accept-risks", "--target-dir=src", "--branch-name=refactor-myapp"
+        ),
     ):
         assert env.git_branch() == "refactor-myapp"
         assert env.git_head() != env.remembered_git_head

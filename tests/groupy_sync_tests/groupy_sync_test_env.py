@@ -40,7 +40,7 @@ class TestEnv(GroupyTestEnv):
         """Creates a git repo with the target code in the src dir, and runs
         groupy init."""
         self.create_repo_with_target_code()
-        self.run_groupy("init", "--target-dir=src")
+        self.run_groupy("init", "--accept-risks", "--target-dir=src")
 
     def run_groupy_sync(self) -> None:
         """Runs groupy sync and stores the lines that it prints in

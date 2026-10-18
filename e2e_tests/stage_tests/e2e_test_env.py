@@ -56,7 +56,7 @@ class TestEnv(GroupyNextTestEnv):
         ]
         self.write_file(".groupy/config.yaml", "\n".join(config_lines) + "\n")
         self.commit_all("add groupy config")
-        self.run_groupy("init", "--target-dir=src")
+        self.run_groupy("init", "--accept-risks", "--target-dir=src")
 
     def edit_package_node_file(self, action: T.Callable, *args) -> None:
         """Runs the package node file edit (e.g. set_proposed_module), as the

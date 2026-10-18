@@ -46,6 +46,23 @@ from groupy.utils.run_git import run_git
 
 logger = logging.getLogger(__name__)
 
+RISKS_TEXT = """\
+Groupy radically refactors the code in {target_dir}, using rope and Claude. This
+may introduce errors in the code.
+
+- You remain fully responsible for the correctness of the code. Review all changes
+  carefully: Groupy commits each change on the branch {branch}, so that you can
+  review (and undo) them with git.
+- Groupy runs Claude Code for its requests to Claude, which incurs costs (on your
+  AI model provider account, or within the limits of your subscription). You are
+  responsible for these costs. groupy status shows an estimate of the costs so
+  far, based on what Claude Code reports. This estimate comes without any
+  guarantee: it may be incomplete or wrong, so check your actual usage and costs
+  with your AI model provider.
+
+Groupy is provided as is, without warranty of any kind. See also: LICENSE.
+"""
+
 ERROR_HINTS = {
     DirtyWorkingTreeError: "Commit or stash your changes, or run groupy reset to "
     "undo the current stage.",
@@ -67,6 +84,11 @@ def _parse_args(argv):
     )
     init_parser.add_argument(
         "--branch-name", default="groupy", help="The branch to create"
+    )
+    init_parser.add_argument(
+        "--accept-risks",
+        action="store_true",
+        help="Accept the risks of using groupy without being asked",
     )
 
     # Next command
@@ -116,6 +138,23 @@ def _setup_logging(verbosity):
         log_level = logging.INFO
 
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
+
+
+def _init(args):
+    if not args.accept_risks:
+        print(RISKS_TEXT.format(target_dir=args.target_dir, branch=args.branch_name))
+        try:
+            answer = input("Do you accept these risks? [y/N] ")
+        except EOFError:
+            answer = ""
+        if answer.strip().lower() not in ("y", "yes"):
+            print(
+                "groupy init was cancelled, nothing was changed. "
+                "(Use --accept-risks to accept the risks without being asked.)"
+            )
+            return 1
+    init_session(args.target_dir, args.branch_name)
+    return 0
 
 
 def _sync():
@@ -289,7 +328,7 @@ def _print_error(error, verbose):
 
 def _run_command(args):
     if args.command == "init":
-        init_session(args.target_dir, args.branch_name)
+        return _init(args)
     elif args.command == "next":
         run_next_stage()
     elif args.command == "sync":

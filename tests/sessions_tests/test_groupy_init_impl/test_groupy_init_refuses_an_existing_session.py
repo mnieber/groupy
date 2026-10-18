@@ -14,7 +14,7 @@ def test_groupy_init_refuses_an_existing_session(context: Context):
     # We have a git repo with the myapp package, and we run groupy init.
     if env.step(
         env.create_repo_with_target_code(),
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
         env.remember_git_head(),
     ):
         assert env.file_exists(".groupy/session.yaml")
@@ -25,7 +25,7 @@ def test_groupy_init_refuses_an_existing_session(context: Context):
     # should raise a SessionExistsError and leave the repo untouched.
     if env.step(
         env.run_groupy_and_catch_error(
-            "init", "--target-dir=src", "--branch-name=groupy-2"
+            "init", "--accept-risks", "--target-dir=src", "--branch-name=groupy-2"
         ),
     ):
         assert isinstance(env.error, SessionExistsError)

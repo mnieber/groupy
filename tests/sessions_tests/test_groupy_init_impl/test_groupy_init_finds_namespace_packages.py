@@ -29,7 +29,7 @@ def test_groupy_init_finds_namespace_packages(context: Context):
     # Every dir that contains Python modules, directly or in a sub-dir, should
     # have a package node file, whether or not it has an __init__.py.
     if env.step(
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
     ):
         assert env.package_node_file_paths() == {
             # The target dir is the root package.

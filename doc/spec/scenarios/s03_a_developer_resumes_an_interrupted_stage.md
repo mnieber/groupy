@@ -42,7 +42,9 @@ With `-v`, it also prints the traceback. The errors that stop `groupy next` befo
 - the result of the last `groupy next` (finished, interrupted or aborted), with the request id and the error;
 - whether `groupy next` will start or resume the next stage (it resumes when the stage has a start tag), and for a
   stage that resumes, the finished chunks and the chunks that remain;
-- whether the working tree is clean, and if not, a hint to commit, stash, or reset.
+- whether the working tree is clean, and if not, a hint to commit, stash, or reset;
+- the costs of Claude so far, in USD, summed over the session logs (see s16). When the cost of a session is unknown
+  (it was aborted, so its log has no result), the total is a lower bound (e.g. `at least 0.25 USD`).
 
 #### The developer repairs the state
 

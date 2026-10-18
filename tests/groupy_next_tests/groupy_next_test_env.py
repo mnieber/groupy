@@ -1,9 +1,7 @@
 import re
 import typing as T
-from dataclasses import dataclass
 from pathlib import Path
 
-import pytest
 from groupy_next_tests.fake_policies import (
     FakeRefactoringPolicy,
     FakeRfaPolicy,
@@ -14,7 +12,7 @@ from groupy_next_tests.fake_policies import (
     get_fake_rfr_policy,
     reset_fake_policies,
 )
-from sessions_tests.groupy_test_env import Context as GroupyContext
+from sessions_tests.groupy_test_env import Context
 from sessions_tests.groupy_test_env import TestEnv as GroupyTestEnv
 
 from groupy.call_graph.models.call_graph_view import FunctionView
@@ -47,14 +45,6 @@ FAKE_REFACTORING_POLICY = "groupy_next_tests.fake_policies:get_fake_refactoring_
 FAKE_STAGE = Stages.IDENTIFY_HELPER_FUNCTIONS
 
 
-@dataclass
-class Context(GroupyContext):
-    """The pytest fixtures that the tests need. capsys captures what Groupy
-    prints (it is only needed by tests that look at the output)."""
-
-    capsys: pytest.CaptureFixture = None
-
-
 def run_fake_stage() -> None:
     """Makes an RFA per chunk, like most stages do."""
     config = load_config(Path(".groupy") / "config.yaml")
@@ -84,8 +74,6 @@ class TestEnv(GroupyTestEnv):
         self.source_root = context.repo_dir / "src"
         self.module_node: ModuleNode = None
         self.output_lines: T.List[str] = []
-        self.output: str = ""
-        self.exit_code: int = None
         super().__init__(context)
 
     # Actions
@@ -107,7 +95,7 @@ class TestEnv(GroupyTestEnv):
         ] + [f"{field}: {value}" for field, value in config_fields.items()]
         self.write_file(".groupy/config.yaml", "\n".join(config_lines) + "\n")
         self.commit_all("add groupy config")
-        self.run_groupy("init", "--target-dir=src")
+        self.run_groupy("init", "--accept-risks", "--target-dir=src")
 
     def run_groupy_next(self) -> None:
         """Runs groupy next and stores the lines that it prints in
@@ -115,18 +103,6 @@ class TestEnv(GroupyTestEnv):
         self.context.capsys.readouterr()
         self.run_groupy("next")
         self.output_lines = self.context.capsys.readouterr().out.splitlines()
-
-    def run_groupy_cli(self, *args: str) -> None:
-        """Runs groupy like the console script does, which prints errors
-        instead of raising them. Stores the exit code in env.exit_code, and what
-        groupy printed (to stdout and stderr) in env.output."""
-        # Imported here, so that the tests that don't need it run without it
-        from groupy.runtime.entrypoints.groupy import run as groupy_run
-
-        self.context.capsys.readouterr()
-        self.exit_code = groupy_run(list(args))
-        captured = self.context.capsys.readouterr()
-        self.output = captured.out + captured.err
 
     def install_fake_stage(self) -> None:
         self.context.monkeypatch.setitem(STAGE_ACTIONS, FAKE_STAGE, run_fake_stage)
@@ -282,13 +258,6 @@ class TestEnv(GroupyTestEnv):
 
     def tagged_commit(self, tag: str) -> str:
         return self._git("rev-parse", f"{tag}^{{commit}}")
-
-    def output_contains(self, *fragments: str) -> bool:
-        """Returns whether every fragment occurs in env.output. A failing
-        assert prints the output, to show what is missing."""
-        missing = [fragment for fragment in fragments if fragment not in self.output]
-        assert not missing, f"Missing {missing} in the output:\n{self.output}"
-        return True
 
     def commit_messages_since_remembered_head(self) -> T.List[str]:
         log = self._git(

@@ -17,7 +17,7 @@ def test_groupy_init_creates_the_group_file(context: Context):
     # We have a git repo without a config file, and we run groupy init.
     if env.step(
         env.create_repo_with_target_code(),
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
     ):
         assert ".groupy/groups.txt" in env.files_in_head_commit()
 
@@ -44,7 +44,7 @@ def test_groupy_init_creates_the_group_file_from_the_config(context: Context):
         env.create_repo_with_target_code(),
         env.write_file(".groupy/config.yaml", CONFIG_YAML),
         env.commit_all("add groupy config"),
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
     ):
         pass
 

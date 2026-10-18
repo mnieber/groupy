@@ -38,10 +38,13 @@ def create_chapter(book, title):
 @dataclass
 class Context:
     """The pytest fixtures that groupy tests need. repo_dir is the (not yet
-    existing) directory of the git repo that holds the target code."""
+    existing) directory of the git repo that holds the target code. capsys
+    captures what Groupy prints (it is only needed by tests that look at the
+    output)."""
 
     repo_dir: Path
     monkeypatch: pytest.MonkeyPatch
+    capsys: pytest.CaptureFixture = None
 
 
 class TestEnv:
@@ -56,6 +59,9 @@ class TestEnv:
         self.groups: T.List[Group] = []
         self.remembered_git_head: str = None
         self.error: Exception = None
+        self.output: str = ""
+        self.exit_code: int = None
+        self.prompts: T.List[str] = []
         # The session is a singleton, so a session of an earlier test must not
         # leak into this one.
         reset_session()
@@ -98,6 +104,30 @@ class TestEnv:
             self.run_groupy(*args)
         except Exception as error:
             self.error = error
+
+    def run_groupy_cli(self, *args: str) -> None:
+        """Runs groupy like the console script does, which prints errors
+        instead of raising them. Stores the exit code in env.exit_code, and what
+        groupy printed (to stdout and stderr) in env.output."""
+        # Imported here, so that the tests that don't need it run without it
+        from groupy.runtime.entrypoints.groupy import run as groupy_run
+
+        self.context.capsys.readouterr()
+        self.exit_code = groupy_run(list(args))
+        captured = self.context.capsys.readouterr()
+        self.output = captured.out + captured.err
+
+    def answer_prompts(self, answer: T.Optional[str]) -> None:
+        """Lets the developer give the answer when groupy asks a question, and
+        stores the questions in env.prompts. Without an answer, a question
+        fails the test."""
+
+        def _input(prompt: str = "") -> str:
+            self.prompts.append(prompt)
+            assert answer is not None, f"Groupy asked: {prompt}"
+            return answer
+
+        self.context.monkeypatch.setattr("builtins.input", _input)
 
     def load_session(self) -> None:
         """Loads the session from the session file (not from the cached
@@ -146,6 +176,13 @@ class TestEnv:
 
     def module_names_per_group(self) -> T.List[T.List[str]]:
         return [group.module_names for group in self.groups]
+
+    def output_contains(self, *fragments: str) -> bool:
+        """Returns whether every fragment occurs in env.output. A failing
+        assert prints the output, to show what is missing."""
+        missing = [fragment for fragment in fragments if fragment not in self.output]
+        assert not missing, f"Missing {missing} in the output:\n{self.output}"
+        return True
 
     def git_head(self) -> str:
         return self._git("rev-parse", "HEAD")

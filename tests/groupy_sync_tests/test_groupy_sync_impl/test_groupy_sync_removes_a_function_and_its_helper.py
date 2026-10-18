@@ -40,7 +40,7 @@ def test_groupy_sync_removes_a_function_and_its_helper(context: Context):
         env.create_repo_with_target_code(),
         env.write_file("src/myapp/books.py", BOOKS_PY),
         env.commit_all("add books"),
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
         env.move_function_to_parent("myapp/books.py", "_strip", "_normalize_title"),
         env.move_function_to_parent(
             "myapp/books.py", "_normalize_title", "create_book"

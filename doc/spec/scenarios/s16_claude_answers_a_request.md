@@ -24,8 +24,10 @@ session, so that a request only depends on its prompt and its context.</br>
 - The model is the `claude_model` of the config file, unless `claude_model_by_stage` gives the current stage a model
   of its own (`get_claude_model`). An empty model is the default model of Claude Code.
 - In an RFA, Claude may only read files and run callbacks. In an RFR, it may also edit files directly (see s04).
-- The output of the session is kept in `.groupy/logs/<request-id>.jsonl`, for debugging. Neither the request dir nor
-  the logs are committed.
+- The output of the session is added to `.groupy/logs/<request-id>.jsonl`, for debugging. A request that runs again
+  (e.g. when a stage resumes) adds a session to its log, so that the logs also tell what Claude cost: each session
+  that finished ends with a result that has its cost (`total_cost_usd`). Neither the request dir nor the logs are
+  committed, so a reset keeps them.
 
 #### Claude runs callbacks
 

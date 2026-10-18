@@ -12,7 +12,7 @@ def test_groupy_init_writes_a_default_config(context: Context):
     # We have a git repo without a config file, and we run groupy init.
     if env.step(
         env.create_repo_with_target_code(),
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
     ):
         assert ".groupy/config.yaml" in env.files_in_head_commit()
 

@@ -19,7 +19,7 @@ def test_groupy_init_uses_the_default_branch_name(context: Context):
     #
     # The branch name should default to "groupy".
     if env.step(
-        env.run_groupy("init", "--target-dir=src"),
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
     ):
         assert env.git_branch() == "groupy"
 
