@@ -1,7 +1,7 @@
 """The fake claude executable. Instead of asking Claude, it runs the scripted
 steps of the request (shell commands, e.g. groupy callback, and file writes),
 and records its arguments, the GROUPY_* env vars and the output of each
-command. The scripts and the records are in the dir FAKE_CLAUDE_DIR."""
+command. Its own output (the session log) is scripted too. The scripts and the records are in the dir FAKE_CLAUDE_DIR."""
 
 import json
 import os
@@ -45,6 +45,7 @@ def main():
     }
     (fake_dir / "records").mkdir(exist_ok=True)
     (fake_dir / "records" / file_name).write_text(json.dumps(record))
+    sys.stdout.write(script["stdout"])
     sys.stderr.write(script["stderr"])
     return script["exit_code"]
 

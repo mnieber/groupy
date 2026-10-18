@@ -11,6 +11,7 @@ from groupy.claude_requests.actions.run_requested_callback import (
     run_requested_callback,
 )
 from groupy.claude_requests.models.callback import Callback
+from groupy.claude_requests.rules.get_claude_costs import get_claude_costs
 from groupy.claude_requests.rules.get_current_request_dir import (
     get_current_request_dir,
 )
@@ -184,6 +185,12 @@ def _status():
         print(f"Remaining chunks: {', '.join(remaining) or 'none'}")
     else:
         _print_next_stage(stage, "start")
+
+    # The costs of Claude, which are a lower bound when the cost of a session is
+    # unknown
+    costs = get_claude_costs()
+    prefix = "" if costs.is_complete else "at least "
+    print(f"Claude costs so far: {prefix}{costs.total_usd:.2f} USD")
 
     # The working tree
     if run_git("status", "--porcelain"):

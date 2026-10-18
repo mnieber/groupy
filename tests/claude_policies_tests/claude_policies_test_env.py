@@ -64,13 +64,20 @@ class TestEnv(GroupyNextTestEnv):
         request_id: str,
         *steps: T.Dict[str, str],
         exit_code: int = 0,
+        stdout: str = "",
         stderr: str = "",
     ) -> None:
         """Scripts what the fake claude does for the request: the steps (see
-        run_callback and write_file) and its exit code and stderr."""
+        run_callback and write_file), its exit code, and what it writes to
+        stdout (the session log) and stderr."""
         scripts_dir = self.fake_dir / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
-        script = {"steps": list(steps), "exit_code": exit_code, "stderr": stderr}
+        script = {
+            "steps": list(steps),
+            "exit_code": exit_code,
+            "stdout": stdout,
+            "stderr": stderr,
+        }
         (scripts_dir / _file_name(request_id)).write_text(json.dumps(script))
 
     def run_rfa(self, rfa_id: str, context: T.Dict[str, T.Any] = None) -> None:

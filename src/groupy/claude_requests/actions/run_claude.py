@@ -68,11 +68,12 @@ def run_claude(
         "GROUPY_IN_RFR": "1" if in_rfr else "",
     }
 
-    # The log of the session is kept for debugging
+    # The log of the session is kept for debugging, and for the costs. A request
+    # that runs again adds a session to its log.
     log_path = get_groupy_path("logs") / f"{request_id}.jsonl"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path = request_dir / "stderr.txt"
-    with log_path.open("w") as log_file, stderr_path.open("w") as stderr_file:
+    with log_path.open("a") as log_file, stderr_path.open("w") as stderr_file:
         process = subprocess.Popen(
             command,
             stdin=subprocess.DEVNULL,
