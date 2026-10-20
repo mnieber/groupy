@@ -43,6 +43,15 @@ class TestEnv(GroupyNextTestEnv):
             ),
         )
 
+    def run_groupy_command(self, *args: str, answer: str = None) -> None:
+        """Runs groupy like the console script does (see run_groupy_cli).
+        When groupy asks for confirmation, it gets the answer, and the prompt
+        is stored in env.prompts (which only holds the prompts of this
+        command)."""
+        self.prompts = []
+        self.answer_prompts(answer)
+        self.run_groupy_cli(*args)
+
     # Queries (for use in asserts)
 
     def branch_tags(self, branch_name: str) -> T.Set[str]:

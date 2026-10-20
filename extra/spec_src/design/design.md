@@ -99,12 +99,17 @@ Afterwards, it prints the previous head, so that the developer can undo the rese
 # groupy switch
 
 `groupy switch <branch_name>` checks out another groupy branch. Uncommitted changes on the current branch are lost
-(see Losing work).
+(see Losing work). Afterwards, it prints e.g. `Switched to groupy-2 (next stage: analyze-terminology).`
+
+- When the branch doesn't exist or has no session file (e.g. the base branch, which `groupy leave` returns to), it
+  raises a `NoGroupyBranchError`.
+- When the branch is the current branch, it prints `Already on groupy-2.` and changes nothing.
 
 # groupy leave and groupy abort
 
-`groupy leave` checks out the base branch, and keeps the groupy branch. Uncommitted changes are lost (see Losing
-work).
+`groupy leave` checks out the base branch (the `base_branch` of the session), and keeps the groupy branch.
+Uncommitted changes are lost (see Losing work). Afterwards, it prints e.g. `Left groupy-2; it is kept. Back on main.`
+On a branch without a session (e.g. the base branch), it raises a `NoSessionError`.
 
 `groupy abort` checks out the base branch, and deletes the current groupy branch and its tags. All commits of the
 branch and the uncommitted changes are lost (see Losing work).
