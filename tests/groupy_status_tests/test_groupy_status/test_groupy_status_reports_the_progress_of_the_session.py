@@ -39,12 +39,13 @@ def test_groupy_status_reports_the_progress_of_the_session(context: Context):
 
     # We run groupy status.
     #
-    # It should print the target dir, and that groupy next will start the
-    # first stage. Nothing should have changed.
+    # It should print the branch, the target dir, and that groupy next will
+    # start the first stage. Nothing should have changed.
     if env.step(
         env.run_groupy_cli("status"),
     ):
         assert env.exit_code == 0
+        assert env.output_contains("Branch: groupy-1")
         assert env.output_contains("src", "identify-helper-functions", "will start")
         assert "will resume" not in env.output
         assert env.git_head() == env.remembered_git_head

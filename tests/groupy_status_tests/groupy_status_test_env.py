@@ -19,11 +19,16 @@ class TestEnv(GroupyNextTestEnv):
         )
 
     def write_claude_log(
-        self, request_id: str, *costs: float, is_aborted: bool = False
+        self,
+        request_id: str,
+        *costs: float,
+        is_aborted: bool = False,
+        branch_name: str = None,
     ) -> None:
         """Adds Claude sessions to the log of the request, as Claude Code
         writes them: one session per cost, and an aborted session (without a
-        result) if is_aborted."""
+        result) if is_aborted. The log is in the per-branch dir of the branch
+        (by default the current branch)."""
         messages = []
         for cost in costs:
             messages.append({"type": "system", "subtype": "init"})
@@ -32,8 +37,17 @@ class TestEnv(GroupyNextTestEnv):
             )
         if is_aborted:
             messages.append({"type": "system", "subtype": "init"})
-        path = self.repo_dir / self.groupy_branch_path(f"logs/{request_id}.jsonl")
+        branch_name = branch_name or self.git_branch()
+        path = self.repo_dir / ".groupy" / branch_name / "logs" / f"{request_id}.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a") as log_file:
             for message in messages:
                 log_file.write(json.dumps(message) + "\n")
+
+    # Queries (for use in asserts)
+
+    def output_line(self, fragment: str) -> str:
+        """Returns the line of env.output that contains the fragment."""
+        lines = [line for line in self.output.splitlines() if fragment in line]
+        assert len(lines) == 1, f"Expected one line with {fragment!r}:\n{self.output}"
+        return lines[0]

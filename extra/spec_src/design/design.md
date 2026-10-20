@@ -55,11 +55,24 @@ excluded from git (with a single `/.groupy/*/` line in `info/exclude`), since th
 
 # groupy status
 
-`groupy status` reports the state of the session of the current branch, starting with the branch name. The costs are
-those of the current branch only.
-`groupy status --all` prints a line per groupy branch, with its name, its next stage, the result of its last run and
-its costs. It also lists the aborted branches (that have a per-branch dir but no branch anymore), with their costs.
-It ends with the total costs of all branches.
+`groupy status` reports the state of the session of the current branch, starting with `Branch: <branch_name>`. The
+costs are those of the current branch only (the logs in `.groupy/<branch_name>/logs`). On a branch without a
+session, it raises a `NoSessionError`.
+
+`groupy status --all` also works without a session (e.g. on the base branch). It prints a line per groupy branch
+(the current one marked with `*`), e.g.
+
+```
+* groupy-1: next stage analyze-terminology, last run finished, costs 0.25 USD
+  groupy-2: next stage group-modules, no run yet, costs at least 0.05 USD
+  groupy-3 (aborted): costs 0.20 USD
+Total costs: at least 0.50 USD
+```
+
+- The next stage is read from the session file of the branch (with `git show`, without a checkout).
+- The last run is `finished`, `interrupted` or `aborted` (see `groupy status`), or `no run yet`.
+- An aborted branch has a per-branch dir but no branch anymore. It is listed with its costs.
+- The total is a lower bound (`at least`) when the costs of a branch are.
 
 # Losing work: confirmation and --force
 

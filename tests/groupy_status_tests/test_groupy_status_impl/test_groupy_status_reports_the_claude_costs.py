@@ -50,6 +50,19 @@ def test_groupy_status_reports_the_claude_costs(context: Context):
     ):
         assert env.output_contains("at least 0.25 USD")
 
+    # We start a second session (on groupy-2) and add a log to it, then switch
+    # back to groupy-1 and run groupy status.
+    #
+    # The costs of groupy-2 should not count for groupy-1.
+    if env.step(
+        env.run_groupy("init", "--accept-risks", "--target-dir=src"),
+        env.write_claude_log("group-modules", 1.00),
+        env.run_groupy_cli("switch", "groupy-1"),
+        env.run_groupy_cli("status"),
+    ):
+        assert env.output_contains("at least 0.25 USD")
+        assert "1.25" not in env.output
+
 
 class Env(TestEnv):
     pass
