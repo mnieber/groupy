@@ -11,6 +11,7 @@ from groupy.sessions.utils.exceptions import NoSessionError
 class Session:
     next_stage: str
     target_dir: str
+    base_branch: str
     finished_chunks: T.List[str] = []
 
 

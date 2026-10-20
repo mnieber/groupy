@@ -8,6 +8,7 @@ from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
+from groupy.utils.print_progress import print_progress
 
 PROMPT = """\
 Propose the feature packages of the application, using the module summaries and the
@@ -27,6 +28,7 @@ def propose_module_layout() -> None:
     source_root = get_source_root()
 
     def _propose(rfa_id: str) -> None:
+        print_progress(Stages.PROPOSE_MODULE_LAYOUT.value)
         rfa_policy.run(
             Rfa(
                 id=rfa_id,

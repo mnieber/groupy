@@ -24,6 +24,7 @@ from groupy.sessions.models.session import get_session
 from groupy.sessions.rules.check_working_tree_is_clean import (
     check_working_tree_is_clean,
 )
+from groupy.sessions.rules.get_current_branch import get_current_branch
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_start_tag import get_start_tag
 from groupy.sessions.utils.exceptions import NoGroupFileError
@@ -47,7 +48,9 @@ STAGE_ACTIONS: T.Dict[Stages, T.Callable[[], None]] = {
 
 
 def run_next_stage() -> T.Optional[Stages]:
-    # Returns the stage that finished (none when the refactoring is done)
+    # Returns the stage that finished (none when the refactoring is done). The
+    # per-branch files need the current branch.
+    get_current_branch()
     session = get_session()
     stage = Stages(session.next_stage)
     if stage == Stages.DONE:

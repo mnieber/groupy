@@ -9,7 +9,7 @@ from groupy.claude_requests.rules.get_request_dir import get_request_dir
 from groupy.claude_requests.rules.load_callback_error import load_callback_error
 from groupy.claude_requests.utils.to_plain_data import to_plain_data
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
-from groupy.sessions.rules.get_groupy_path import get_groupy_path
+from groupy.sessions.rules.get_branch_dir import get_branch_dir
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.utils.dump_yaml import dump_yaml
 
@@ -70,7 +70,7 @@ def run_claude(
 
     # The log of the session is kept for debugging, and for the costs. A request
     # that runs again adds a session to its log.
-    log_path = get_groupy_path("logs") / f"{request_id}.jsonl"
+    log_path = get_branch_dir() / "logs" / f"{request_id}.jsonl"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path = request_dir / "stderr.txt"
     with log_path.open("a") as log_file, stderr_path.open("w") as stderr_file:

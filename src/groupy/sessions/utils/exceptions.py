@@ -8,3 +8,15 @@ class NoGroupFileError(Exception):
 
 class DirtyWorkingTreeError(Exception):
     pass
+
+
+class NoGroupyBranchError(Exception):
+    pass
+
+
+class StageNotStartedError(Exception):
+    pass
+
+
+class DetachedHeadError(Exception):
+    pass

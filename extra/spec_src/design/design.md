@@ -42,8 +42,8 @@ Both checks come before any change to the repo.
 ## Tags
 
 The tags include the branch name: `groupy/<branch_name>/init` and `groupy/<branch_name>/<stage_id>/start`.
-Since a branch name may contain a `/`, an argument `<branch_name>/<stage_name>` is split at the last `/` (stage names
-never contain one).
+A groupy branch name never contains a `/`: `groupy init --branch-name` with a `/` is a usage error. This keeps an
+argument `<branch_name>/<stage_name>` unambiguous, and the per-branch dirs flat.
 Sessions that were started with the old tags (`groupy/init`, `groupy/<stage_id>/start`) are not supported.
 
 ## Per-branch files

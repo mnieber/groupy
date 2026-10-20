@@ -47,6 +47,7 @@ from groupy.renamings.actions.remove_renaming import remove_renaming
 from groupy.renamings.actions.set_renaming import set_renaming
 from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
+from groupy.sessions.rules.get_branch_dir import get_branch_dir
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -105,7 +106,7 @@ def run_callback(callback: Callback, in_rfr: bool = False) -> T.Any:
 
     # Queries of the call graph and the source
     if name in ("get_callers", "get_callees"):
-        call_graph = load_call_graph(get_groupy_path("call-graph.yaml"))
+        call_graph = load_call_graph(get_branch_dir() / "call-graph.yaml")
         query = get_callers if name == "get_callers" else get_callees
         return query(call_graph, **args)
     if name == "get_source":

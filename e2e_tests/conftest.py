@@ -33,5 +33,6 @@ def pytest_runtest_makereport(item, call):
     report = outcome.get_result()
     context = item.funcargs.get("context") if hasattr(item, "funcargs") else None
     if report.failed and context is not None:
-        logs_dir = context.repo_dir / ".groupy" / "logs"
-        report.sections.append(("Claude logs", str(logs_dir)))
+        # The logs are in the per-branch dir of each groupy branch
+        for logs_dir in sorted((context.repo_dir / ".groupy").glob("*/logs")):
+            report.sections.append(("Claude logs", str(logs_dir)))

@@ -12,6 +12,7 @@ from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
 from groupy.sessions.enums import Stages
+from groupy.sessions.rules.get_branch_dir import get_branch_dir
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -31,7 +32,7 @@ def identify_helper_functions() -> None:
     config = load_config(get_groupy_path("config.yaml"))
     rfa_policy = create_rfa_policy(config)
     source_root = get_source_root()
-    call_graph_path = get_groupy_path("call-graph.yaml")
+    call_graph_path = get_branch_dir() / "call-graph.yaml"
 
     def _run_chunk(chunk: Chunk, rfa_id: str) -> None:
         # Mark the helper candidates
