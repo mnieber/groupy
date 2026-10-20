@@ -12,7 +12,10 @@ chooses another one), and is recorded in the `base_branch` field of the session 
 Without `--branch-name`, the branch is named `groupy-<N>`, where N is the highest number of the `groupy-<N>` dirs in
 `.groupy` plus one (see Per-branch files). Since these dirs outlive a deleted branch (see `groupy abort`), Groupy
 never reuses a branch name. The first branch is `groupy-1`.
-With `--branch-name`, `groupy init` raises an error when the branch or its per-branch dir already exists.
+With `--branch-name`, `groupy init` raises a `BranchExistsError` when the branch or its per-branch dir already exists.
+When the base branch doesn't exist, it raises a `NoBaseBranchError` (with a hint to use `--base`).
+Both checks come before any change to the repo. Since `groupy init` may run on a groupy branch, it no longer raises a
+`SessionExistsError`.
 
 `groupy init` may run on a groupy branch: the new branch starts from the base branch (or from a stage tag, see below),
 not from the current branch. It requires a clean working tree (`DirtyWorkingTreeError`, with a hint to commit or

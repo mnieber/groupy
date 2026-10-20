@@ -36,7 +36,7 @@ def test_claude_policies_keep_the_log_of_each_run(context: Context):
         env.run_rfa(RFA_ID),
         env.run_rfa(RFA_ID),
     ):
-        assert env.read_file(f".groupy/logs/{RFA_ID}.jsonl") == SESSION_LOG * 2
+        assert env.read_file(f".groupy/groupy-1/logs/{RFA_ID}.jsonl") == SESSION_LOG * 2
 
     # We run groupy status.
     #

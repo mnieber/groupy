@@ -31,9 +31,9 @@ def test_groupy_reset_of_a_stage_that_has_not_started(context: Context):
         assert env.output_contains("nothing to reset")
         assert env.git_head() == env.remembered_git_head
         assert env.git_tags() == {
-            "groupy/init",
-            "groupy/group-modules/start",
-            "groupy/identify-helper-functions/start",
+            "groupy/groupy-1/init",
+            "groupy/groupy-1/group-modules/start",
+            "groupy/groupy-1/identify-helper-functions/start",
         }
         assert env.session.next_stage == "analyze-terminology"
 

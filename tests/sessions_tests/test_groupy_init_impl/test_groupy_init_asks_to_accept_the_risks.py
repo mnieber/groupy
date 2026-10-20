@@ -50,7 +50,7 @@ def test_groupy_init_asks_to_accept_the_risks(context: Context):
     ):
         assert env.exit_code == 0
         assert env.file_exists(".groupy/session.yaml")
-        assert env.git_branch() == "groupy"
+        assert env.git_branch() == "groupy-1"
 
 
 class Env(TestEnv):

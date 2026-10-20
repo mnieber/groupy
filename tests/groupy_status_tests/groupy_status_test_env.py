@@ -14,7 +14,9 @@ class TestEnv(GroupyNextTestEnv):
         """Writes the last-run file (which is excluded from git), as groupy
         next would leave it behind."""
         lines = [f"{field}: {value}" for field, value in fields.items()]
-        self.write_file(".groupy/last-run.yaml", "\n".join(lines) + "\n")
+        self.write_file(
+            self.groupy_branch_path("last-run.yaml"), "\n".join(lines) + "\n"
+        )
 
     def write_claude_log(
         self, request_id: str, *costs: float, is_aborted: bool = False
@@ -30,7 +32,7 @@ class TestEnv(GroupyNextTestEnv):
             )
         if is_aborted:
             messages.append({"type": "system", "subtype": "init"})
-        path = self.repo_dir / ".groupy" / "logs" / f"{request_id}.jsonl"
+        path = self.repo_dir / self.groupy_branch_path(f"logs/{request_id}.jsonl")
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a") as log_file:
             for message in messages:

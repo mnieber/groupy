@@ -17,7 +17,7 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
     # strategy (two chunks). The first stage is replaced by a fake stage that
     # makes an RFA per chunk. Only the RFA of the first chunk has a script.
     #
-    # groupy init should have tagged its commit as groupy/init, and the first
+    # groupy init should have tagged its commit as groupy/groupy-1/init, and the first
     # stage (group-modules, which the env ran) should have tagged its start,
     # which is the same commit.
     if env.step(
@@ -35,11 +35,14 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
             ),
         ),
     ):
-        assert env.git_tags() == {"groupy/init", "groupy/group-modules/start"}
-        assert env.commit_message("groupy/init") == "groupy init"
-        assert env.tagged_commit("groupy/group-modules/start") == env.tagged_commit(
-            "groupy/init"
-        )
+        assert env.git_tags() == {
+            "groupy/groupy-1/init",
+            "groupy/groupy-1/group-modules/start",
+        }
+        assert env.commit_message("groupy/groupy-1/init") == "groupy init"
+        assert env.tagged_commit(
+            "groupy/groupy-1/group-modules/start"
+        ) == env.tagged_commit("groupy/groupy-1/init")
 
     # We commit a review edit of the developer, and run groupy next.
     #
@@ -53,12 +56,12 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
     ):
         assert env.error is not None
         assert env.git_tags() == {
-            "groupy/init",
-            "groupy/group-modules/start",
-            "groupy/identify-helper-functions/start",
+            "groupy/groupy-1/init",
+            "groupy/groupy-1/group-modules/start",
+            "groupy/groupy-1/identify-helper-functions/start",
         }
         assert (
-            env.tagged_commit("groupy/identify-helper-functions/start")
+            env.tagged_commit("groupy/groupy-1/identify-helper-functions/start")
             == env.remembered_git_head
         )
 
@@ -79,12 +82,12 @@ def test_groupy_next_tags_the_start_of_a_stage(context: Context):
         env.run_groupy("next"),
     ):
         assert env.git_tags() == {
-            "groupy/init",
-            "groupy/group-modules/start",
-            "groupy/identify-helper-functions/start",
+            "groupy/groupy-1/init",
+            "groupy/groupy-1/group-modules/start",
+            "groupy/groupy-1/identify-helper-functions/start",
         }
         assert (
-            env.tagged_commit("groupy/identify-helper-functions/start")
+            env.tagged_commit("groupy/groupy-1/identify-helper-functions/start")
             == env.remembered_git_head
         )
 

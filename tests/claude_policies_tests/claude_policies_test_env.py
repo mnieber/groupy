@@ -127,10 +127,14 @@ class TestEnv(GroupyNextTestEnv):
         return yaml.safe_load(self.request_file(request_id, "context.yaml"))
 
     def request_file(self, request_id: str, file_name: str) -> str:
-        return self.read_file(f".groupy/requests/{request_id}/{file_name}")
+        return self.read_file(
+            self.groupy_branch_path(f"requests/{request_id}/{file_name}")
+        )
 
     def request_file_exists(self, request_id: str, file_name: str) -> bool:
-        return self.file_exists(f".groupy/requests/{request_id}/{file_name}")
+        return self.file_exists(
+            self.groupy_branch_path(f"requests/{request_id}/{file_name}")
+        )
 
 
 def run_callback(name: str, /, **args: T.Any) -> T.Dict[str, str]:

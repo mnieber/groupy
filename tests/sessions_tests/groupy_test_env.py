@@ -200,6 +200,25 @@ class TestEnv:
     def git_branches(self) -> T.Set[str]:
         return set(self._git("branch", "--format=%(refname:short)").splitlines())
 
+    def git_tags(self) -> T.Set[str]:
+        return set(self._git("tag", "--list").splitlines())
+
+    def tagged_commit(self, tag: str) -> str:
+        return self.commit_of(tag)
+
+    def commit_of(self, revision: str) -> str:
+        return self._git("rev-parse", f"{revision}^{{commit}}")
+
+    def git_excludes(self) -> T.List[str]:
+        """Returns the lines of the local exclude file of the repo."""
+        path = self.repo_dir / self._git("rev-parse", "--git-path", "info/exclude")
+        return path.read_text().splitlines() if path.exists() else []
+
+    def groupy_branch_path(self, file_name: str) -> str:
+        """Returns the path of a file in the per-branch dir of the current
+        branch (e.g. .groupy/groupy-1/last-run.yaml)."""
+        return f".groupy/{self.git_branch()}/{file_name}"
+
     def files_in_head_commit(self) -> T.Set[str]:
         return set(self._git("show", "--name-only", "--format=", "HEAD").splitlines())
 

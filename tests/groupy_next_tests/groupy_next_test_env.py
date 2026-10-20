@@ -256,12 +256,6 @@ class TestEnv(GroupyTestEnv):
     def variable_node(self, name: str):
         return _find_by_name(self.module_node.variable_nodes, name)
 
-    def git_tags(self) -> T.Set[str]:
-        return set(self._git("tag", "--list").splitlines())
-
-    def tagged_commit(self, tag: str) -> str:
-        return self._git("rev-parse", f"{tag}^{{commit}}")
-
     def commit_messages_since_remembered_head(self) -> T.List[str]:
         log = self._git(
             "log", "--reverse", "--format=%s", f"{self.remembered_git_head}..HEAD"

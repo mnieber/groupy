@@ -34,9 +34,9 @@ def test_groupy_reset_resets_the_current_stage(context: Context):
         env.commit_all("repair books.py"),
     ):
         assert env.git_tags() == {
-            "groupy/init",
-            "groupy/group-modules/start",
-            "groupy/identify-helper-functions/start",
+            "groupy/groupy-1/init",
+            "groupy/groupy-1/group-modules/start",
+            "groupy/groupy-1/identify-helper-functions/start",
         }
 
     # We run groupy reset --yes.
@@ -56,7 +56,10 @@ def test_groupy_reset_resets_the_current_stage(context: Context):
         assert env.git_head() == env.remembered_git_head
         assert env.git_status() == ""
         assert "Reviewed the node files." in env.read_file("README.md")
-        assert env.git_tags() == {"groupy/init", "groupy/group-modules/start"}
+        assert env.git_tags() == {
+            "groupy/groupy-1/init",
+            "groupy/groupy-1/group-modules/start",
+        }
         assert env.session.next_stage == "identify-helper-functions"
         assert env.session.finished_chunks == []
 

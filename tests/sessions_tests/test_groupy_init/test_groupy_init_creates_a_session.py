@@ -34,8 +34,8 @@ def test_groupy_init_creates_a_session(context: Context):
     # We run groupy init with the src dir as the target dir and a branch name.
     #
     # Groupy should have created the branch and committed the session file,
-    # the config file and the node files on it. The group file is created by
-    # the first stage.
+    # the config file and the node files on it, and tagged the commit. The
+    # group file is created by the first stage.
     if env.step(
         env.run_groupy(
             "init", "--accept-risks", "--target-dir=src", "--branch-name=refactor-myapp"
@@ -49,16 +49,27 @@ def test_groupy_init_creates_a_session(context: Context):
             ".groupy/config.yaml",
             *NODE_FILES,
         }
+        assert env.git_tags() == {"groupy/refactor-myapp/init"}
 
     # We look at the session.
     #
-    # The next stage should be group-modules, and the target code
-    # should be in the src dir.
+    # The next stage should be group-modules, the target code should be in
+    # the src dir, and the base branch should be main.
     if env.step(
         env.load_session(),
     ):
         assert env.session.next_stage == "group-modules"
         assert env.session.target_dir == "src"
+        assert env.session.base_branch == "main"
+
+    # We look at the per-branch dir.
+    #
+    # Groupy should have created .groupy/refactor-myapp, for the files that it
+    # doesn't commit (e.g. the logs of Claude). All dirs in .groupy should be
+    # excluded from git.
+    if env.step():
+        assert env.file_exists(".groupy/refactor-myapp")
+        assert "/.groupy/*/" in env.git_excludes()
 
     # We look at the node files.
     #

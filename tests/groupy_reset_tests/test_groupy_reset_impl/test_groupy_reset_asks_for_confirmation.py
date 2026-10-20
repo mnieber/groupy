@@ -39,7 +39,7 @@ def test_groupy_reset_asks_for_confirmation(context: Context):
         assert "finish group-1/chunk-1" not in env.output
         assert env.git_head() == env.head_before_reset
         assert "Work in progress." in env.read_file("README.md")
-        assert "groupy/identify-helper-functions/start" in env.git_tags()
+        assert "groupy/groupy-1/identify-helper-functions/start" in env.git_tags()
 
     # We run groupy reset again, and answer yes.
     #

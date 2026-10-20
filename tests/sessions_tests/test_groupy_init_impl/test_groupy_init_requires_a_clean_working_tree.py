@@ -51,6 +51,19 @@ def test_groupy_init_requires_a_clean_working_tree(context: Context):
         assert env.git_branches() == {"main"}
         assert not env.file_exists(".groupy/session.yaml")
 
+    # We run groupy init again, as the developer does.
+    #
+    # Groupy should print the error, with a hint to commit or stash the
+    # changes. There is no session to reset, so the hint should not mention
+    # groupy reset.
+    if env.step(
+        env.run_groupy_cli("init", "--accept-risks", "--target-dir=src"),
+    ):
+        assert env.exit_code == 1
+        assert env.output_contains("DirtyWorkingTreeError", "commit", "stash")
+        assert "groupy reset" not in env.output
+        assert "Traceback" not in env.output
+
 
 class Env(TestEnv):
     pass

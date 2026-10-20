@@ -16,7 +16,7 @@ def test_groupy_reset_resets_to_the_initial_stage(context: Context):
         env.script_first_chunk(),
         env.script_second_chunk(),
         env.run_groupy("next"),
-        env.tag_head("groupy/analyze-terminology/start"),
+        env.tag_head("groupy/groupy-1/analyze-terminology/start"),
     ):
         pass
 
@@ -24,16 +24,16 @@ def test_groupy_reset_resets_to_the_initial_stage(context: Context):
     #
     # The repo should be back at the commit of groupy init, before the modules
     # were grouped, so that group-modules is the next stage again, and only the
-    # groupy/init tag should be left.
+    # groupy/groupy-1/init tag should be left.
     if env.step(
         env.run_groupy_reset("--init", "--yes"),
         env.load_session(),
     ):
         assert env.exit_code == 0
-        assert env.git_head() == env.tagged_commit("groupy/init")
+        assert env.git_head() == env.tagged_commit("groupy/groupy-1/init")
         assert not env.file_exists(".groupy/groups.txt")
         assert env.git_status() == ""
-        assert env.git_tags() == {"groupy/init"}
+        assert env.git_tags() == {"groupy/groupy-1/init"}
         assert env.session.next_stage == "group-modules"
         assert env.session.finished_chunks == []
         assert env.responsibilities("myapp/books.py", "create_book") == []

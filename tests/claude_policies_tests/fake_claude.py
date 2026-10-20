@@ -12,7 +12,9 @@ from pathlib import Path
 
 def main():
     fake_dir = Path(os.environ["FAKE_CLAUDE_DIR"])
-    request_id = os.environ["GROUPY_REQUEST_DIR"].split("/.groupy/requests/", 1)[1]
+    # The request dir is .groupy/<branch_name>/requests/<request_id>
+    request_dir = os.environ["GROUPY_REQUEST_DIR"].split("/.groupy/", 1)[1]
+    request_id = request_dir.split("/requests/", 1)[1]
     file_name = request_id.replace("/", "__") + ".json"
     script_path = fake_dir / "scripts" / file_name
     if not script_path.exists():

@@ -16,7 +16,7 @@ def test_groupy_status_reports_an_aborted_stage(context: Context):
         env.create_session(
             grouping_strategy="simple", max_group_lines=10000, max_chunk_lines=10000
         ),
-        env.tag_head("groupy/identify-helper-functions/start"),
+        env.tag_head("groupy/groupy-1/identify-helper-functions/start"),
         env.write_last_run(
             stage="identify-helper-functions",
             result="running",

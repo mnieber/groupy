@@ -80,7 +80,7 @@ def test_claude_rfa_policy_runs_claude_with_the_request(context: Context):
         assert env.claude_option(RFA_ID, "--permission-mode") == ["dontAsk"]
         prompt = env.claude_prompt(RFA_ID)
         assert prompt.startswith("Analyze the code")
-        assert f".groupy/requests/{RFA_ID}/context.yaml" in prompt
+        assert f".groupy/groupy-1/requests/{RFA_ID}/context.yaml" in prompt
         assert "groupy callback <name> --args" in prompt
         assert "add_responsibility(module_name: str" in prompt
         assert env.claude_record(RFA_ID)["env"]["GROUPY_IN_RFR"] == ""
@@ -117,7 +117,7 @@ def test_claude_rfa_policy_runs_claude_with_the_request(context: Context):
     # The output of claude should be kept in the log dir, which is not
     # committed.
     if env.step():
-        assert env.file_exists(f".groupy/logs/{RFA_ID}.jsonl")
+        assert env.file_exists(f".groupy/groupy-1/logs/{RFA_ID}.jsonl")
 
 
 class Env(TestEnv):
