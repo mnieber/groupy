@@ -39,19 +39,22 @@ def test_groupy_reset_resets_the_current_stage(context: Context):
             "groupy/groupy-1/identify-helper-functions/start",
         }
 
-    # We run groupy reset --yes.
+    # We run groupy reset --force.
     #
-    # Groupy should list the commit of the developer that will be lost, and
-    # print the previous head, so that the reset can be undone. It should not
-    # ask for confirmation. The repo should be back at the start of the stage,
+    # Groupy should say what will be lost: the two commits of groupy and the
+    # repair. It should not ask for confirmation, and print the previous head,
+    # so that the reset can be undone. The repo should be back at the start of the stage,
     # which keeps the review edit, and the tag of the stage should be gone.
     if env.step(
         env.remember_head_before_reset(),
-        env.run_groupy_reset("--yes"),
+        env.run_groupy_reset("--force"),
         env.load_session(),
     ):
         assert env.exit_code == 0
-        assert env.output_contains("repair books.py", env.head_before_reset[:7])
+        assert env.output_contains(
+            "all 3 commits since the start of identify-helper-functions",
+            env.head_before_reset[:7],
+        )
         assert env.prompts == []
         assert env.git_head() == env.remembered_git_head
         assert env.git_status() == ""

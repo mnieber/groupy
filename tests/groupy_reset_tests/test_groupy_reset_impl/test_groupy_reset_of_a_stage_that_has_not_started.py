@@ -20,15 +20,17 @@ def test_groupy_reset_of_a_stage_that_has_not_started(context: Context):
     ):
         pass
 
-    # We run groupy reset --yes.
+    # We run groupy reset --force.
     #
     # Groupy should say that there is nothing to reset, and change nothing.
     if env.step(
-        env.run_groupy_reset("--yes"),
+        env.run_groupy_reset("--force"),
         env.load_session(),
     ):
         assert env.exit_code == 0
-        assert env.output_contains("nothing to reset")
+        assert env.output_contains(
+            "There is nothing to reset: analyze-terminology has not started."
+        )
         assert env.git_head() == env.remembered_git_head
         assert env.git_tags() == {
             "groupy/groupy-1/init",
@@ -36,6 +38,28 @@ def test_groupy_reset_of_a_stage_that_has_not_started(context: Context):
             "groupy/groupy-1/identify-helper-functions/start",
         }
         assert env.session.next_stage == "analyze-terminology"
+
+    # We run groupy reset extract-methods --force, for a later stage.
+    #
+    # Groupy should say that there is nothing to reset, and change nothing.
+    if env.step(
+        env.run_groupy_reset("extract-methods", "--force"),
+    ):
+        assert env.exit_code == 0
+        assert env.output_contains(
+            "There is nothing to reset: extract-methods has not started."
+        )
+        assert env.git_head() == env.remembered_git_head
+
+    # We run groupy reset with a name that is not a stage.
+    #
+    # It should exit with a usage error, and change nothing.
+    if env.step(
+        env.run_groupy_and_catch_exit("reset", "extract-method", "--force"),
+    ):
+        assert env.system_exit.code == 2
+        assert env.output_contains("extract-method")
+        assert env.git_head() == env.remembered_git_head
 
 
 class Env(TestEnv):

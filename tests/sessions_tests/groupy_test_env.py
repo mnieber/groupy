@@ -61,6 +61,7 @@ class TestEnv:
         self.error: Exception = None
         self.output: str = ""
         self.exit_code: int = None
+        self.system_exit: SystemExit = None
         self.prompts: T.List[str] = []
         # The session is a singleton, so a session of an earlier test must not
         # leak into this one.
@@ -118,6 +119,22 @@ class TestEnv:
         reset_session()
         self.context.capsys.readouterr()
         self.exit_code = groupy_run(list(args))
+        captured = self.context.capsys.readouterr()
+        self.output = captured.out + captured.err
+
+    def run_groupy_and_catch_exit(self, *args: str) -> None:
+        """Runs groupy like the console script does, and stores the SystemExit
+        that it is expected to raise (e.g. for invalid arguments) in
+        env.system_exit, and what groupy printed in env.output."""
+        # Imported here, so that the tests that don't need it run without it
+        from groupy.runtime.entrypoints.groupy import run as groupy_run
+
+        reset_session()
+        self.context.capsys.readouterr()
+        try:
+            groupy_run(list(args))
+        except SystemExit as system_exit:
+            self.system_exit = system_exit
         captured = self.context.capsys.readouterr()
         self.output = captured.out + captured.err
 

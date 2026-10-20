@@ -20,13 +20,13 @@ def test_groupy_reset_resets_to_the_initial_stage(context: Context):
     ):
         pass
 
-    # We run groupy reset --init --yes.
+    # We run groupy reset init --force.
     #
     # The repo should be back at the commit of groupy init, before the modules
     # were grouped, so that group-modules is the next stage again, and only the
     # groupy/groupy-1/init tag should be left.
     if env.step(
-        env.run_groupy_reset("--init", "--yes"),
+        env.run_groupy_reset("init", "--force"),
         env.load_session(),
     ):
         assert env.exit_code == 0

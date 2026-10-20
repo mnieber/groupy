@@ -28,7 +28,16 @@ current branch. `groupy init --from-stage=<branch_name>/<stage_name>` takes the 
 The new branch gets copies of the init tag and of the start tags of the stages up to and including <stage_name>, so
 that `groupy reset` (including `groupy reset init`) works on it as usual. The session file and the config file are
 those of the tagged commit, so the new branch has the same base branch as the branch that it starts from.
-It is an error when the stage has not started (it has no start tag).
+<stage_name> may also be `init`, which starts the new branch at the init commit of the branch.
+The new branch is named like any new branch (see Branch names), and `groupy init --from-stage` asks to accept the
+risks like any `groupy init`. It makes no commit: the branch starts at the tagged commit.
+`--target-dir` is required without `--from-stage`, and not allowed with it (the target dir is in the session file).
+
+- When the stage has not started (it has no start tag on the branch), it raises a `StageNotStartedError`.
+- When the branch doesn't exist or has no session file (e.g. `--from-stage=<stage_name>` on the base branch), it
+  raises a `NoGroupyBranchError`.
+
+Both checks come before any change to the repo.
 
 ## Tags
 
@@ -66,8 +75,9 @@ The commands that can lose work (`reset`, `switch`, `leave` and `abort`) work al
 
 What will be lost is listed as
 `all <nr-commits> commits <where> as well as these uncommitted changes: <changes>`, where <where> is e.g.
-`since the start of extract-methods` or `on branch groupy-2`. The commits part is left out for `switch` and
-`leave`, and the uncommitted changes part is left out when the working tree is clean. The uncommitted changes
+`since the start of extract-methods` or `on branch groupy-2`. The commits part is left out when there are no commits
+to lose (always for `switch` and `leave`), and the uncommitted changes part is left out when the working tree is
+clean. The uncommitted changes
 include untracked files.
 
 Uncommitted changes are discarded with `git reset --hard` and `git clean -fd`.
@@ -77,7 +87,13 @@ Uncommitted changes are discarded with `git reset --hard` and `git clean -fd`.
 `groupy reset` resets the current branch to the start of the current stage.
 `groupy reset <stage_name>` resets the current branch to the start of <stage_name>.
 `groupy reset init` resets the current branch to the start of the session (this replaces `groupy reset --init`).
-It is an error when the stage has not started (it has no start tag), as it is today.
+When the stage has not started (it has no start tag), Groupy raises a `StageNotStartedError` (as `groupy init
+--from-stage` does), which the entrypoint of `groupy reset` turns into the message
+`There is nothing to reset: <stage> has not started.` (exit code 0).
+When nothing will be lost (HEAD is at the tag and the working tree is clean), it prints
+`The repo is already at the start of <stage>.`, without a confirmation or an undo hint.
+Otherwise, the confirmation only gives the number of commits (it no longer lists the commits of the developer), e.g.
+`all 3 commits since the start of identify-helper-functions as well as these uncommitted changes: <changes>`.
 Afterwards, it prints the previous head, so that the developer can undo the reset, as it does today.
 
 # groupy switch

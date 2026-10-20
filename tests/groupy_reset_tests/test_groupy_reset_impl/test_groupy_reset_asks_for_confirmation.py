@@ -23,9 +23,10 @@ def test_groupy_reset_asks_for_confirmation(context: Context):
     # The developer commits a repair, and changes the README without
     # committing it. Then we run groupy reset, and answer no.
     #
-    # Groupy should list what will be lost: the commit of the developer and
-    # the uncommitted change, but not the commits of Groupy. Then it should ask
-    # for confirmation, and change nothing.
+    # Groupy should say what will be lost: the number of commits since the
+    # start of the stage (the two commits of groupy and the repair), and the
+    # uncommitted change. Then it should ask for confirmation, and change
+    # nothing.
     if env.step(
         env.append_to_file("src/myapp/books.py", "\nDEFAULT_TITLE = 'Untitled'\n"),
         env.commit_all("repair books.py"),
@@ -34,9 +35,13 @@ def test_groupy_reset_asks_for_confirmation(context: Context):
         env.run_groupy_reset(answer="n"),
     ):
         assert len(env.prompts) == 1
-        assert env.output_contains("repair books.py", "README.md")
-        assert "add_responsibility" not in env.output
-        assert "finish group-1/chunk-1" not in env.output
+        assert env.output_contains(
+            "all 3 commits since the start of identify-helper-functions as well as "
+            "these uncommitted changes:",
+            "README.md",
+        )
+        # Only the number of commits is given, not the commits themselves
+        assert "repair books.py" not in env.output
         assert env.git_head() == env.head_before_reset
         assert "Work in progress." in env.read_file("README.md")
         assert "groupy/groupy-1/identify-helper-functions/start" in env.git_tags()

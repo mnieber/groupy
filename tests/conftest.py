@@ -15,6 +15,7 @@ ENABLED_TEST_PACKAGES = [
     "groupy_sync_tests",
     "groupy_status_tests",
     "groupy_reset_tests",
+    "groupy_branches_tests",
     "claude_policies_tests",
     "identify_helper_functions_tests",
     "analyze_terminology_tests",
