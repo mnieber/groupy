@@ -9,7 +9,7 @@ dependencies = ["dataclassy", "pyyaml", "rope"]
 dev = ["pytest"]
 
 [project.scripts]
-groupy = "groupy.runtime.entrypoints.groupy:run"
+groupy = "groupy.runtime.entrypoints.groupy:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

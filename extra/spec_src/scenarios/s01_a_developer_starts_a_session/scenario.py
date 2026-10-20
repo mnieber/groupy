@@ -91,7 +91,7 @@ Groupy first explains the risks, and asks the developer to accept them:</br>
 - Groupy radically refactors the code with rope and Claude, which may introduce errors. The developer remains fully
   responsible for the correctness of the code, and reviews all changes (which Groupy commits on the branch).
 - Groupy runs Claude Code, which incurs costs, for which the developer is responsible. `groupy status` shows an
-  estimate (see s03), which comes without any guarantee: the developer checks the actual usage and costs with
+  estimate, which comes without any guarantee: the developer checks the actual usage and costs with
   Anthropic.
 - Groupy is provided as is, without warranty of any kind.
 
@@ -103,12 +103,12 @@ before any change to the repo.</br>
 
 #### It creates the branch, the session file and the config file
 
-A repository can have several sessions, each on a branch of its own (a *groupy branch*, see s18). `init_session`
+A repository can have several sessions, each on a branch of its own (a *groupy branch*). `init_session`
 creates the new branch from the *base branch*, which defaults to `main` (`--base=<branch>` chooses another one).
 The new branch always starts from the base branch, also when `groupy init` runs on a groupy branch.</br>
 
 - Without `--branch-name`, the branch is named `groupy-<N>` (the first one is `groupy-1`). Groupy never reuses a
-  branch name, also not the name of a branch that was aborted (see s18).
+  branch name, also not the name of a branch that was aborted.
 - A branch name may not contain a `/`.
 
 The files that Groupy doesn't commit (e.g. the logs of Claude and the last run) live in the *per-branch dir*
@@ -118,7 +118,7 @@ Then Groupy writes the session file (`.groupy/session.yaml`). The session file c
 
 - `target_dir`: the dir that contains the target code.
 - `base_branch`: the branch that the session started from.
-- `next_stage`: the stage that the next `groupy next` runs (initially `group-modules`, see s17).
+- `next_stage`: the stage that the next `groupy next` runs (initially `group-modules`).
 
 The config file (`.groupy/config.yaml`) holds the choices that the developer makes for the session, such as the
 grouping strategy and the maximum sizes of groups and chunks, the policies that Groupy uses to talk to Claude
@@ -126,7 +126,7 @@ and to refactor the code, and the Claude model (`claude_model`). A stage may get
 `claude_model_by_stage` (e.g. a stronger model for a stage that needs more judgement). When the repository has no config file, Groupy writes one that lists every field with its
 default value, so that the developer can see what can be configured. An existing config file is kept, so the
 developer can prepare it before running `groupy init`. The developer can also change it (and commit the change)
-after `groupy init`, e.g. to choose another grouping strategy before the first stage groups the modules (see s17).
+after `groupy init`, e.g. to choose another grouping strategy before the first stage groups the modules.
 </br>
 
 #### It creates the node files
@@ -167,7 +167,7 @@ field as its default value.</br>
 #### It commits
 
 Groupy commits the session file, the config file and the node files on the new branch, and tags the commit as
-`groupy/<branch-name>/init` (so that `groupy reset init` can return to it, see s03). Before running the first stage, the developer can
+`groupy/<branch-name>/init` (so that `groupy reset init` can return to it). Before running the first stage, the developer can
 inspect (and edit) the node files and the config file.</br>
 
 ### Diagram

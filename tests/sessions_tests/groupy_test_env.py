@@ -7,7 +7,7 @@ import pytest
 
 from groupy.groups.models.group import Group
 from groupy.groups.rules.load_group_file import load_group_file
-from groupy.runtime.entrypoints.groupy import main as groupy_main
+from groupy.runtime.entrypoints.groupy import run as groupy_run
 from groupy.sessions.models.config import Config
 from groupy.sessions.models.session import Session, get_session, reset_session
 from groupy.sessions.rules.load_config import load_config
@@ -99,7 +99,7 @@ class TestEnv:
         # Each groupy command runs in a new process, which loads the session
         # file anew
         reset_session()
-        groupy_main(list(args))
+        groupy_run(list(args))
 
     def run_groupy_and_catch_error(self, *args: str) -> None:
         """Runs groupy and stores the exception it is expected to raise in
@@ -114,11 +114,11 @@ class TestEnv:
         instead of raising them. Stores the exit code in env.exit_code, and what
         groupy printed (to stdout and stderr) in env.output."""
         # Imported here, so that the tests that don't need it run without it
-        from groupy.runtime.entrypoints.groupy import run as groupy_run
+        from groupy.runtime.entrypoints.groupy import main as groupy_main
 
         reset_session()
         self.context.capsys.readouterr()
-        self.exit_code = groupy_run(list(args))
+        self.exit_code = groupy_main(list(args))
         captured = self.context.capsys.readouterr()
         self.output = captured.out + captured.err
 
@@ -127,12 +127,12 @@ class TestEnv:
         that it is expected to raise (e.g. for invalid arguments) in
         env.system_exit, and what groupy printed in env.output."""
         # Imported here, so that the tests that don't need it run without it
-        from groupy.runtime.entrypoints.groupy import run as groupy_run
+        from groupy.runtime.entrypoints.groupy import main as groupy_main
 
         reset_session()
         self.context.capsys.readouterr()
         try:
-            groupy_run(list(args))
+            groupy_main(list(args))
         except SystemExit as system_exit:
             self.system_exit = system_exit
         captured = self.context.capsys.readouterr()

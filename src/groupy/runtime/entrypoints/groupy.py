@@ -588,13 +588,14 @@ def _run_command(args):
     return 0
 
 
-def main(argv=None):
+def run(argv=None):
+    # Runs groupy without catching its errors (e.g. for the tests)
     args = _parse_args(argv)
     _setup_logging(args.verbose)
     return _run_command(args)
 
 
-def run(argv=None):
+def main(argv=None):
     # Runs groupy for the developer: errors are printed instead of raised, and
     # groupy next reports what to review
     args = _parse_args(argv)
@@ -615,4 +616,4 @@ def run(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(run())
+    sys.exit(main())
