@@ -26,18 +26,23 @@ def run_scenario():
                 it().cancels_the(r.init_command).if_the(r.developer).declines()
             it().calls(r.init_session_action).with_the(r.target_dir).and_the(
                 r.branch_name
-            )
+            ).and_the(r.base_branch)
 
         with the(r.init_session_action).checks_the(r.preconditions):
-            it().raises(r.session_exists_error).if_the_repo_already_has_a(
-                r.session_file
-            )
             it().raises(r.dirty_working_tree_error).if_the(
                 r.working_tree
             ).is_not_clean()
+            it().raises(r.no_base_branch_error).if_the(r.base_branch).does_not_exist()
+            it().raises(r.branch_exists_error).if_the(r.branch).or_its(
+                r.per_branch_dir
+            ).already_exists()
 
-        with the(r.init_session_action).creates_the(r.branch):
-            it().creates(r.session).with_the(r.target_dir).and_the(r.next_stage)
+        with the(r.init_session_action).creates_the(r.branch).from_the(r.base_branch):
+            it().chooses_the(r.branch_name).unless_it_is_given()
+            it().creates_the(r.per_branch_dir).and_excludes_it_from_git()
+            it().creates(r.session).with_the(r.target_dir).and_the(
+                r.base_branch
+            ).and_the(r.next_stage)
             it().writes(r.session).to_the(r.session_file)
             it().writes_the_default(r.config).to_the(
                 r.config_file
@@ -80,8 +85,7 @@ code. For Groupy, the node files are the record of what was analyzed, proposed a
 
 #### It checks the preconditions
 
-The developer runs `groupy init --target-dir=<target-dir> --branch-name=<branch-name>` from the repository root.
-The branch name defaults to `groupy`.</br>
+The developer runs `groupy init --target-dir=<target-dir>` from the repository root.</br>
 Groupy first explains the risks, and asks the developer to accept them:</br>
 
 - Groupy radically refactors the code with rope and Claude, which may introduce errors. The developer remains fully
@@ -93,14 +97,27 @@ Groupy first explains the risks, and asks the developer to accept them:</br>
 
 When the developer declines, `groupy init` changes nothing. The option `--accept-risks` accepts the risks without
 being asked (e.g. in a script).</br>
-`init_session` refuses to start when the repository already has a session (`SessionExistsError`), or when the
-working tree is not clean (`DirtyWorkingTreeError`).</br>
+`init_session` refuses to start when the working tree is not clean (`DirtyWorkingTreeError`), when the base branch
+doesn't exist (`NoBaseBranchError`), or when the branch already exists (`BranchExistsError`). These checks come
+before any change to the repo.</br>
 
 #### It creates the branch, the session file and the config file
 
-`init_session` creates the branch and writes the session file (`.groupy/session.yaml`). The session file contains:</br>
+A repository can have several sessions, each on a branch of its own (a *groupy branch*, see s18). `init_session`
+creates the new branch from the *base branch*, which defaults to `main` (`--base=<branch>` chooses another one).
+The new branch always starts from the base branch, also when `groupy init` runs on a groupy branch.</br>
+
+- Without `--branch-name`, the branch is named `groupy-<N>` (the first one is `groupy-1`). Groupy never reuses a
+  branch name, also not the name of a branch that was aborted (see s18).
+- A branch name may not contain a `/`.
+
+The files that Groupy doesn't commit (e.g. the logs of Claude and the last run) live in the *per-branch dir*
+`.groupy/<branch-name>/`, so that the sessions don't share them. Groupy excludes the per-branch dirs from git
+locally (in `.git/info/exclude`), so that no `.gitignore` is needed.</br>
+Then Groupy writes the session file (`.groupy/session.yaml`). The session file contains:</br>
 
 - `target_dir`: the dir that contains the target code.
+- `base_branch`: the branch that the session started from.
 - `next_stage`: the stage that the next `groupy next` runs (initially `group-modules`, see s17).
 
 The config file (`.groupy/config.yaml`) holds the choices that the developer makes for the session, such as the
@@ -150,7 +167,7 @@ field as its default value.</br>
 #### It commits
 
 Groupy commits the session file, the config file and the node files on the new branch, and tags the commit as
-`groupy/init` (so that `groupy reset --init` can return to it). Before running the first stage, the developer can
+`groupy/<branch-name>/init` (so that `groupy reset init` can return to it, see s03). Before running the first stage, the developer can
 inspect (and edit) the node files and the config file.</br>
 
 ### Diagram
@@ -164,11 +181,11 @@ sequenceDiagram
     participant CreateModuleNodeFile as CreateModuleNodeFile (action)
 
     Note over Developer,InitSession: Start the session
-    Developer->>Groupy: groupy init --target-dir --branch-name
-    Groupy->>InitSession: init_session(target_dir, branch_name)
-    InitSession->>InitSession: check: no session, clean working tree
-    InitSession->>InitSession: create branch
-    InitSession->>InitSession: write session file (next_stage = identify-helper-functions)
+    Developer->>Groupy: groupy init --target-dir [--branch-name] [--base]
+    Groupy->>InitSession: init_session(form)
+    InitSession->>InitSession: check: clean working tree, base branch, new branch name
+    InitSession->>InitSession: create branch from the base branch, and its per-branch dir
+    InitSession->>InitSession: write session file (next_stage = group-modules)
     InitSession->>InitSession: write default config file (if missing)
 
     Note over InitSession,CreateModuleNodeFile: Create the source map
@@ -180,7 +197,7 @@ sequenceDiagram
     end
 
     InitSession->>InitSession: commit session, config and node files
-    InitSession->>InitSession: tag the commit as groupy/init
+    InitSession->>InitSession: tag the commit as groupy/<branch-name>/init
     Developer->>Developer: review node files and config file
 ```
 """

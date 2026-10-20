@@ -5,22 +5,6 @@ that has a session file. Groupy works on the current branch, so the developer ma
 branches with `git checkout` (`groupy switch` adds a confirmation, see below). Groupy commands that need a session
 refuse to run on a detached HEAD, since it has no branch name.
 
-## Branch names
-
-`groupy init` creates a new branch from the base branch. The base branch defaults to `main` (`--base=<branch>`
-chooses another one), and is recorded in the `base_branch` field of the session file.
-Without `--branch-name`, the branch is named `groupy-<N>`, where N is the highest number of the `groupy-<N>` dirs in
-`.groupy` plus one (see Per-branch files). Since these dirs outlive a deleted branch (see `groupy abort`), Groupy
-never reuses a branch name. The first branch is `groupy-1`.
-With `--branch-name`, `groupy init` raises a `BranchExistsError` when the branch or its per-branch dir already exists.
-When the base branch doesn't exist, it raises a `NoBaseBranchError` (with a hint to use `--base`).
-Both checks come before any change to the repo. Since `groupy init` may run on a groupy branch, it no longer raises a
-`SessionExistsError`.
-
-`groupy init` may run on a groupy branch: the new branch starts from the base branch (or from a stage tag, see below),
-not from the current branch. It requires a clean working tree (`DirtyWorkingTreeError`, with a hint to commit or
-stash the changes). Unlike the commands that can lose work (see Losing work), it never offers to discard them.
-
 ## Starting from a stage
 
 `groupy init --from-stage=<stage_name>` creates a new branch that starts at the start tag of <stage_name> on the
@@ -45,13 +29,6 @@ The tags include the branch name: `groupy/<branch_name>/init` and `groupy/<branc
 A groupy branch name never contains a `/`: `groupy init --branch-name` with a `/` is a usage error. This keeps an
 argument `<branch_name>/<stage_name>` unambiguous, and the per-branch dirs flat.
 Sessions that were started with the old tags (`groupy/init`, `groupy/<stage_id>/start`) are not supported.
-
-## Per-branch files
-
-The files that groupy does not commit (`last-run.yaml`, `call-graph.yaml`, `logs/` and `requests/`) live in
-`.groupy/<branch_name>/`, so that branches don't share them. `groupy init` creates this dir. All dirs in `.groupy` are
-excluded from git (with a single `/.groupy/*/` line in `info/exclude`), since the committed groupy files
-(`session.yaml`, `config.yaml` and `groups.txt`) are not in a dir.
 
 # groupy status
 
