@@ -149,7 +149,14 @@ Since being on the base branch is normal now, the hint of `NoSessionError` menti
 
 # progress messages
 
-Groupy prints a progress message on stderr at the start of each chunk, with the request id and the position of the
-chunk among all chunks of the stage, e.g. `extract-methods/group-2/chunk-1 (3/12)`.
+`process_chunks` prints a progress message on stderr at the start of each chunk: the request id and the position of
+the chunk among all chunks of the stage, e.g. `extract-methods/group-2/chunk-1 (3/12)`.
 When a stage resumes, the finished chunks are skipped without a message, so the count starts later (e.g. at `(4/12)`).
-A stage without chunks prints a single message when it starts, e.g. `propose-module-layout`.
+A stage without chunks (`group-modules` and `propose-module-layout`) prints a single line with its stage id when it
+starts, e.g. `propose-module-layout`.
+The progress messages go to stderr, so that the report of `groupy next` (on stdout) stays apart.
+
+# Detached HEAD
+
+The groupy commands that need the name of the current branch (e.g. `groupy next` and `groupy status`) raise a
+`DetachedHeadError` on a detached HEAD, with a hint to check out a groupy branch (e.g. with `groupy switch`).

@@ -74,6 +74,7 @@ class TestEnv(GroupyTestEnv):
         self.source_root = context.repo_dir / "src"
         self.module_node: ModuleNode = None
         self.output_lines: T.List[str] = []
+        self.error_lines: T.List[str] = []
         super().__init__(context)
 
     # Actions
@@ -102,10 +103,23 @@ class TestEnv(GroupyTestEnv):
 
     def run_groupy_next(self) -> None:
         """Runs groupy next and stores the lines that it prints in
-        env.output_lines (this needs context.capsys)."""
+        env.output_lines, and the lines that it prints on stderr (e.g. the
+        progress messages) in env.error_lines (this needs context.capsys)."""
         self.context.capsys.readouterr()
-        self.run_groupy("next")
-        self.output_lines = self.context.capsys.readouterr().out.splitlines()
+        try:
+            self.run_groupy("next")
+        finally:
+            captured = self.context.capsys.readouterr()
+            self.output_lines = captured.out.splitlines()
+            self.error_lines = captured.err.splitlines()
+
+    def run_groupy_next_and_catch_error(self) -> None:
+        """Runs run_groupy_next, and stores the exception it is expected to
+        raise in env.error."""
+        try:
+            self.run_groupy_next()
+        except Exception as error:
+            self.error = error
 
     def install_fake_stage(self) -> None:
         self.context.monkeypatch.setitem(STAGE_ACTIONS, FAKE_STAGE, run_fake_stage)
