@@ -116,9 +116,17 @@ branch and the uncommitted changes are lost (see Losing work).
 `groupy abort <branch_name>` deletes another groupy branch and its tags, and stays on the current branch. Only the
 commits of that branch are lost. When <branch_name> is the current branch, it is the same as `groupy abort`.
 
+The confirmation counts the commits that are lost: those that are on no other branch (after `groupy init
+--from-stage`, a branch shares its first commits with the branch that it started from). Uncommitted changes are only
+lost when the aborted branch is the current branch.
+`groupy abort` without a branch name on a branch without a session (e.g. the base branch) raises a `NoSessionError`.
+`groupy abort <branch_name>` raises a `NoGroupyBranchError` when the branch doesn't exist or has no session file.
+
 `groupy abort` keeps `.groupy/<branch_name>/`, so that the logs (and the costs) of the session stay available and
-the branch name is not reused. It writes `.groupy/<branch_name>/undo-abort.sh`, a script that recreates the branch
-and its tags at the commits where they were, and prints how to run it (`sh .groupy/<branch_name>/undo-abort.sh`).
+the branch name is not reused. It writes `.groupy/<branch_name>/undo-abort.sh`, a script with a `git branch <name>
+<sha>` line for the branch and a `git tag <tag> <sha>` line per tag, that recreates the branch and its tags at the
+commits where they were. Afterwards, it prints e.g.
+`Aborted groupy-2. To undo, run: sh .groupy/groupy-2/undo-abort.sh`.
 The script cannot restore the uncommitted changes.
 
 # Error hints

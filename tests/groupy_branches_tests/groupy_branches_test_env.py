@@ -1,3 +1,4 @@
+import subprocess
 import typing as T
 
 from groupy_next_tests.groupy_next_test_env import Context
@@ -12,6 +13,10 @@ RFA_ID_2 = "identify-helper-functions/group-2/chunk-1"
 
 
 class TestEnv(GroupyNextTestEnv):
+    def __init__(self, context: Context):
+        self.remembered_branch: T.Dict[str, str] = {}
+        super().__init__(context)
+
     # Actions
 
     def create_session_with_two_chunks(self) -> None:
@@ -52,6 +57,15 @@ class TestEnv(GroupyNextTestEnv):
         self.answer_prompts(answer)
         self.run_groupy_cli(*args)
 
+    def run_shell(self, command: str) -> None:
+        """Runs a shell command in the repo dir, as the developer does."""
+        subprocess.run(command, shell=True, cwd=self.repo_dir, check=True)
+
+    def remember_branch(self, branch_name: str) -> None:
+        """Remembers the head and the groupy tags (with their commits) of the
+        branch, in env.remembered_branch."""
+        self.remembered_branch = self.branch_state(branch_name)
+
     # Queries (for use in asserts)
 
     def branch_tags(self, branch_name: str) -> T.Set[str]:
@@ -59,3 +73,11 @@ class TestEnv(GroupyNextTestEnv):
         groupy/<branch_name>/ (e.g. init, group-modules/start)."""
         prefix = f"groupy/{branch_name}/"
         return {tag[len(prefix) :] for tag in self.git_tags() if tag.startswith(prefix)}
+
+    def branch_state(self, branch_name: str) -> T.Dict[str, str]:
+        """Returns the commit of the branch (under the key "head") and of each
+        of its groupy tags."""
+        state = {"head": self.commit_of(branch_name)}
+        for tag in self.branch_tags(branch_name):
+            state[tag] = self.tagged_commit(f"groupy/{branch_name}/{tag}")
+        return state
