@@ -7,7 +7,7 @@ code as it is.
    1. Each entry is a glob pattern, relative to the target dir (e.g. `myapp/reports/**`). A `*` does not match a
       `/`, and a `**` matches any number of directories.
    2. `groupy init` takes an optional `--exclude` (that can be repeated), whose patterns it writes to the
-      session file that it creates.
+      session file that it creates. A pattern that matches no file is accepted (it excludes nothing).
    3. The config file (`.groupy/config.yaml`) may also contain an `exclude` field. The patterns that Groupy uses are
       the union of the patterns in the config file and the session file.
    4. The files that match one of the patterns are called "passive". The other files are called "active". When there
@@ -22,16 +22,24 @@ code as it is.
       files), and propose-module-layout only receives the summaries of the active modules (so that the passive modules
       keep their location).
    3. The call graph and the context of the Claude requests (e.g. `caller_sources`) cover all files.
+   4. The stages that work on chunks (and `groupy status`, which lists the remaining chunks) use a rule that filters
+      the chunks: it drops the chunks whose files are all passive, and removes the passive files from the other
+      chunks. The chunk ids stay the same. Since the RFA of a chunk is made from the files of the chunk, a chunk
+      whose files are all passive gets no RFA, and the RFA of a chunk with active and passive files only lists the
+      active files.
 3. The proposals and refactorings only start from the active files.
    1. identify-helper-functions only renames the helper functions in active files.
-   2. propose-renamings only makes an RFA for chunks with active files, and only for those active files.
+   2. propose-renamings only proposes renamings for the active files of the (filtered) chunk.
    3. extract-methods, propose-move-steps-to-caller and propose-code-restructure only take candidates from active
       files. As before, a chunk without candidates is finished without an RFA.
    4. The validation of the code restructure (in propose-code-restructure and apply-code-restructure) only checks the
       active nodes, so that a passive module does not need a `code_unit_type`.
-   5. Since proposals are only made for active files, the apply stages apply the proposals that exist. Groupy rejects
-      (as a conflict) a proposal for a passive file (e.g. one that Claude made by mistake, or that the developer added
-      during the review).
+   5. Groupy rejects a proposal for a passive file (e.g. one that Claude made by mistake, or that the developer
+      added during the review) with the existing validators, before anything changes:
+      1. validate-renamings reports it as a conflict (which propose-renamings retries, and apply-renamings raises).
+      2. validate-code-restructure reports it as a problem (in propose-code-restructure and
+         apply-code-restructure).
+      3. apply-move-steps-to-caller raises an error that lists the steps to move in passive files.
 4. The ripple effects of a refactoring are applied everywhere in the target dir.
    1. The refactoring policy updates the call sites and the imports in all files (e.g. when a function in an active
       file is renamed or moved).
