@@ -17,7 +17,9 @@ def run_scenario():
     with goal().propose_the(r.feature_packages).of_the(r.application):
 
         # Summarize the code-base
-        with the(r.stage_action).summarizes_each(r.module_node_file):
+        with the(r.stage_action).summarizes_the(r.module_node_file).of_each(
+            r.active_module
+        ):
             it().takes_the(r.module_concepts)
             it().takes_the(r.first_responsibility).of_each(r.top_level_node)
 
@@ -47,7 +49,8 @@ Groupy condenses the node files into summaries.
 #### It summarizes the code-base
 
 Per module node file, Groupy takes the module concepts and maps each top-level function and class onto its first
-responsibility (or `None`). Module-level variables and helper functions are left out.</br>
+responsibility (or `None`). Module-level variables and helper functions are left out. The passive modules are
+left out too, so that they keep their location.</br>
 
 #### Claude proposes the module layout
 

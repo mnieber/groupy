@@ -26,7 +26,7 @@ def run_scenario():
                 it().cancels_the(r.init_command).if_the(r.developer).declines()
             it().calls(r.init_session_action).with_the(r.target_dir).and_the(
                 r.branch_name
-            ).and_the(r.base_branch)
+            ).and_the(r.base_branch).and_the(r.exclude_patterns)
 
         with the(r.init_session_action).checks_the(r.preconditions):
             it().raises(r.dirty_working_tree_error).if_the(
@@ -42,7 +42,7 @@ def run_scenario():
             it().creates_the(r.per_branch_dir).and_excludes_it_from_git()
             it().creates(r.session).with_the(r.target_dir).and_the(
                 r.base_branch
-            ).and_the(r.next_stage)
+            ).and_the(r.next_stage).and_the(r.exclude_patterns)
             it().writes(r.session).to_the(r.session_file)
             it().writes_the_default(r.config).to_the(
                 r.config_file
@@ -119,11 +119,20 @@ Then Groupy writes the session file (`.groupy/session.yaml`). The session file c
 - `target_dir`: the dir that contains the target code.
 - `base_branch`: the branch that the session started from.
 - `next_stage`: the stage that the next `groupy next` runs (initially `group-modules`).
+- `exclude`: the glob patterns (relative to the target dir) of the files that the session does not refactor, given
+  with `--exclude` (which can be repeated, e.g. `--exclude=myapp/reports/**`). A `*` does not match a `/`, and a
+  `**` matches any number of dirs.
+
+The developer may want to refactor only a part of the code-base (e.g. one feature area). The files that match an
+`exclude` pattern are *passive*, and the other files are *active*. The stages only analyze and refactor the active
+files, but the passive files stay part of the session: they get node files, and the call graph and the context of
+the Claude requests cover them. Without patterns, every file is active.</br>
 
 The config file (`.groupy/config.yaml`) holds the choices that the developer makes for the session, such as the
 grouping strategy and the maximum sizes of groups and chunks, the policies that Groupy uses to talk to Claude
 and to refactor the code, and the Claude model (`claude_model`). A stage may get a model of its own in
-`claude_model_by_stage` (e.g. a stronger model for a stage that needs more judgement). When the repository has no config file, Groupy writes one that lists every field with its
+`claude_model_by_stage` (e.g. a stronger model for a stage that needs more judgement). The config file may also
+have `exclude` patterns, which are added to those of the session file. When the repository has no config file, Groupy writes one that lists every field with its
 default value, so that the developer can see what can be configured. An existing config file is kept, so the
 developer can prepare it before running `groupy init`. The developer can also change it (and commit the change)
 after `groupy init`, e.g. to choose another grouping strategy before the first stage groups the modules.
@@ -132,7 +141,7 @@ after `groupy init`, e.g. to choose another grouping strategy before the first s
 #### It creates the node files
 
 Groupy creates a *package node file* (`package-node.groupy.yaml`) in the dir of every package, and a *module node
-file* (e.g. `books.py.groupy.yaml`) next to every module.</br>
+file* (e.g. `books.py.groupy.yaml`) next to every module (also the passive ones).</br>
 
 - A package is the target dir itself (the root package, with the name `.`), or a dir below it that contains Python
   modules, directly or in a sub-dir. It does not need an `__init__.py` (namespace packages are packages too). Its
@@ -181,7 +190,7 @@ sequenceDiagram
     participant CreateModuleNodeFile as CreateModuleNodeFile (action)
 
     Note over Developer,InitSession: Start the session
-    Developer->>Groupy: groupy init --target-dir [--branch-name] [--base]
+    Developer->>Groupy: groupy init --target-dir [--branch-name] [--base] [--exclude]
     Groupy->>InitSession: init_session(form)
     InitSession->>InitSession: check: clean working tree, base branch, new branch name
     InitSession->>InitSession: create branch from the base branch, and its per-branch dir

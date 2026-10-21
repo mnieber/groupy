@@ -14,6 +14,8 @@ def run_scenario():
     r.session = c.Sessions.Models.Session
     r.config = c.Sessions.Models.Config
     r.get_chunks_rule = c.Groups.Rules.GetChunks
+    r.get_active_chunks_rule = c.Groups.Rules.GetActiveChunks
+    r.get_exclude_patterns_rule = c.Sessions.Rules.GetExcludePatterns
     r.process_chunks_action = c.Sessions.Actions.ProcessChunks
     r.create_rfa_policy_rule = c.ClaudeRequests.Rules.CreateRfaPolicy
     r.rfa_policy = c.ClaudeRequests.Policies.RfaPolicy
@@ -49,8 +51,21 @@ def run_scenario():
             it().splits_each(r.group).into(r.chunks)
             it().returns(r.chunks)
 
+        # Leave out the passive files
+        the(r.stage_action).calls(r.get_exclude_patterns_rule).with_the(
+            r.session
+        ).and_the(r.config)
+        with the(r.stage_action).calls(r.get_active_chunks_rule).with_the(
+            r.chunks
+        ).and_the(r.exclude_patterns):
+            it().removes_the(r.passive_files).from_each(r.chunk)
+            it().drops_each(r.chunk).whose_files_are_all_passive()
+            it().returns_the(r.active_chunks)
+
         # Process each chunk
-        with the(r.stage_action).calls(r.process_chunks_action).with_the(r.chunks):
+        with the(r.stage_action).calls(r.process_chunks_action).with_the(
+            r.active_chunks
+        ):
             with it().calls_the(r.stage_action).for_each(
                 r.chunk
             ).that_is_not_finished():
@@ -132,6 +147,11 @@ with `get_chunks`.</br>
   as `group-2/chunk-1`: the same group file always gives the same chunks.
 - The developer may edit the group file (e.g. to move a module to another group) before running a stage.
 
+Then `get_active_chunks` removes the passive files (that match the `exclude` patterns of the session file and the
+config file) from the chunks, and drops the chunks whose files are all passive. Since the group file covers all
+files, the chunk ids do not depend on the patterns. Groupy reads the patterns at the start of each stage, so that a
+change to them takes effect at the next stage.</br>
+
 #### It processes each chunk
 
 `process_chunks` calls the stage for each chunk that is not finished yet. At the start of each chunk, it prints a
@@ -148,7 +168,8 @@ the config file names.</br>
   callbacks.
 - Groupy pre-computes everything that can be computed deterministically (e.g. the sources of the modules, the
   call graph and the glossary) and passes it in the context of the RFA. Claude spends its effort on judgement,
-  not on facts that Groupy can compute.
+  not on facts that Groupy can compute. The call graph and the context also cover the passive files (e.g. a
+  caller in a passive file).
 
 Claude answers with callbacks, which `run_callback` dispatches to Groupy's actions.</br>
 
@@ -161,6 +182,9 @@ Claude answers with callbacks, which `run_callback` dispatches to Groupy's actio
 - After each action, Groupy commits with the message `<stage-id>: <callback name>`.
 - When an action changes the code of a function, Claude updates the analysis of that function (e.g. its
   responsibilities and steps) in the same request, so that later stages don't work with stale data.
+- The changes only start from the active files, but they are applied everywhere: e.g. when a function in an
+  active file is renamed, its call sites in passive files are updated too. A proposal for a passive file (e.g. one
+  that the developer adds during the review) is rejected by the validation of the stage.
 
 After the chunk, `process_chunks` records its RFA id in the `finished_chunks` field of the session file, and
 commits with the message `<stage-id>: finish <chunk-id>`.</br>
@@ -198,6 +222,7 @@ sequenceDiagram
 
     Note over Stage,ProcessChunks: Divide the work into chunks
     Stage->>Stage: get_chunks(group file, config)
+    Stage->>Stage: get_active_chunks(chunks, exclude patterns)
 
     Stage->>ProcessChunks: process_chunks(chunks)
     loop for each chunk that is not finished

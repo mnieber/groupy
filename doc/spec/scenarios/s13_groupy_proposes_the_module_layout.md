@@ -14,7 +14,8 @@ Groupy condenses the node files into summaries.
 #### It summarizes the code-base
 
 Per module node file, Groupy takes the module concepts and maps each top-level function and class onto its first
-responsibility (or `None`). Module-level variables and helper functions are left out.</br>
+responsibility (or `None`). Module-level variables and helper functions are left out. The passive modules are
+left out too, so that they keep their location.</br>
 
 #### Claude proposes the module layout
 
