@@ -623,10 +623,10 @@ def main(argv=None):
             return 0
         return _run_command(args)
     except KeyboardInterrupt as error:
-        _print_error(error, args.command, args.verbose, print_stack_trace=True)
+        _print_error(error, args.command, args.verbose, print_stack_trace=False)
         return 130
     except Exception as error:
-        _print_error(error, args.command, args.verbose, print_stack_trace=True)
+        _print_error(error, args.command, args.verbose, print_stack_trace=False)
         return 1
 
 
