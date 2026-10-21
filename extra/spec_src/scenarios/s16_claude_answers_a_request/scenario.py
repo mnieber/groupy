@@ -63,7 +63,7 @@ markdown_node.markdown = """
 The stages send their requests (RFAs and RFRs) to the policies that the config file names. The default policies,
 `ClaudeRfaPolicy` and `ClaudeRfrPolicy`, let Claude Code answer each request in a session of its own, in which
 Claude runs Groupy's callbacks with a command. This scenario describes how a request is answered; the scenarios of
-the stages describe what Claude does in it. The tests use fake policies instead (see s02).
+the stages describe what Claude does in it. The tests use fake policies instead.
 
 ### Steps
 
@@ -72,17 +72,17 @@ the stages describe what Claude does in it. The tests use fake policies instead 
 The policy calls `run_claude` with the request, which runs `claude -p` in the repo dir. Every request gets a fresh
 session, so that a request only depends on its prompt and its context.</br>
 
-- The context of the request is written to `.groupy/requests/<request-id>/context.yaml`, instead of being inlined in
-  the prompt.
+- The context of the request is written to `.groupy/<branch-name>/requests/<request-id>/context.yaml`, instead of
+  being inlined in the prompt.
 - The prompt is the prompt of the request, followed by a *preamble* (`get_preamble`) that explains where the target
   code and the context are, how to run a callback, how to name a node (its location), and which callbacks exist,
   with their arguments.
 - The model is the `claude_model` of the config file, unless `claude_model_by_stage` gives the current stage a model
   of its own (`get_claude_model`). An empty model is the default model of Claude Code.
-- In an RFA, Claude may only read files and run callbacks. In an RFR, it may also edit files directly (see s04).
-- The output of the session is added to `.groupy/logs/<request-id>.jsonl`, for debugging. A request that runs again
-  (e.g. when a stage resumes) adds a session to its log, so that the logs also tell what Claude cost: each session
-  that finished ends with a result that has its cost (`total_cost_usd`). Neither the request dir nor the logs are
+- In an RFA, Claude may only read files and run callbacks. In an RFR, it may also edit files directly.
+- The output of the session is added to `.groupy/<branch-name>/logs/<request-id>.jsonl`, for debugging. A request
+  that runs again (e.g. when a stage resumes) adds a session to its log, so that the logs also tell what Claude cost:
+  each session that finished ends with a result that has its cost (`total_cost_usd`). Neither the request dir nor the logs are
   committed, so a reset keeps them.
 
 #### Claude runs callbacks
@@ -106,10 +106,10 @@ and refuses every later callback of the request. Claude stops by ending its answ
 
 When `claude` exits, `run_claude` checks the request dir. After a failed retry, it restores the working tree (which
 also undoes the files that Claude edited after the failure in an RFR) and raises the error of the retry, which
-interrupts the stage (see s03). When `claude` itself fails (e.g. it cannot reach Claude), it raises
+interrupts the stage. When `claude` itself fails (e.g. it cannot reach Claude), it raises
 `ClaudeRequestError` with the end of the error output. On Ctrl+C, Groupy stops `claude` and restores the working
 tree.</br>
-Afterwards, the stage checks the result as usual, e.g. with a follow-up request (see s07).</br>
+Afterwards, the stage checks the result as usual, e.g. with a follow-up request.</br>
 
 ### Diagram
 

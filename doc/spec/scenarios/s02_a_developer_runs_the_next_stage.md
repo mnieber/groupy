@@ -10,7 +10,7 @@ chunks and sends a *request for actions* (RFA) per chunk to Claude. Claude answe
 Groupy to run one of its *actions*, which change the node files and/or the target code. Every change is
 committed, so the developer can follow (and undo) what happened in the git history.
 
-The stages are, in order: `group-modules` (see s17), `identify-helper-functions`, `analyze-terminology`,
+The stages are, in order: `group-modules`, `identify-helper-functions`, `analyze-terminology`,
 `propose-renamings`,
 `apply-renamings`, `extract-methods`, `propose-move-steps-to-caller`, `apply-move-steps-to-caller`,
 `propose-module-layout`, `propose-code-restructure` and `apply-code-restructure`. Then `next_stage` is `done`, and
@@ -21,10 +21,14 @@ all, and some make a single request for the whole code-base.
 
 #### It checks the preconditions
 
-`run_next_stage` refuses to run when there is no session (`NoSessionError`), when there is no group file
-(`NoGroupFileError`, except for the stage group-modules, which creates it), or when the working tree is not clean (`DirtyWorkingTreeError`). A clean working tree ensures
-that every change in the stage ends up in a commit of the stage, and that Groupy can undo a failed action by
-restoring the last commit.</br>
+`run_next_stage` refuses to run:</br>
+
+- on a detached HEAD (`DetachedHeadError`), since the session belongs to the current branch;
+- when there is no session (`NoSessionError`);
+- when there is no group file (`NoGroupFileError`), except for the stage group-modules, which creates it;
+- when the working tree is not clean (`DirtyWorkingTreeError`). A clean working tree ensures that every change in
+  the stage ends up in a commit of the stage, and that Groupy can undo a failed action by restoring the last commit.
+
 The config file is part of the session: a change to it must be committed before `groupy next` runs.</br>
 
 #### It divides the work into chunks
@@ -34,7 +38,7 @@ with `get_chunks`.</br>
 
 - A *group* is a set of modules that belong together. The group file (`.groupy/groups.txt`) assigns each module (by
   its path, e.g. `myapp/books.py`) to a group. The first stage, group-modules, creates it with the grouping strategy
-  of the config file (see s17).
+  of the config file.
 - A *chunk* is the part of a group that is processed in one Claude request, with at most `max_chunk_lines` lines.
   Groupy keeps the modules of a package together in a chunk where possible. A chunk has a deterministic id, such
   as `group-2/chunk-1`: the same group file always gives the same chunks.
@@ -42,7 +46,11 @@ with `get_chunks`.</br>
 
 #### It processes each chunk
 
-`process_chunks` calls the stage for each chunk that is not finished yet. Most stages make an RFA for the chunk,
+`process_chunks` calls the stage for each chunk that is not finished yet. At the start of each chunk, it prints a
+progress message with the request id of the chunk and its position among the chunks of the stage (e.g.
+`extract-methods/group-2/chunk-1 (3/12)`). A stage without chunks prints its stage id when it starts. The progress
+messages go to stderr, so that the report of `groupy next` (on stdout) stays apart.</br>
+Most stages make an RFA for the chunk,
 with the id `<stage-id>/<chunk-id>` (e.g. `identify-helper-functions/group-1/chunk-1`), through the RFA policy that
 the config file names.</br>
 
@@ -74,7 +82,7 @@ commits with the message `<stage-id>: finish <chunk-id>`.</br>
 Groupy sets `next_stage` to the stage that follows, clears `finished_chunks`, and commits with the message
 `<stage-id>: finish the stage`.</br>
 Then `groupy next` prints a report: the stage that finished and the number of commits it made (since the tag that
-marks the start of the stage, see s03), what to review, and what the next `groupy next` will do. The stage guide
+marks the start of the stage), what to review, and what the next `groupy next` will do. The stage guide
 (`get_stage_guide`) gives the description of each stage and what to review (e.g. the glossary after
 analyze-terminology). Messages that the stage printed itself (e.g. the dependency violations of
 propose-code-restructure) come before the report.</br>
@@ -97,7 +105,7 @@ sequenceDiagram
     Note over Developer,RunNextStage: Start the stage
     Developer->>Groupy: groupy next
     Groupy->>RunNextStage: run_next_stage()
-    RunNextStage->>RunNextStage: check: session, group file, clean working tree
+    RunNextStage->>RunNextStage: check: branch, session, group file, clean working tree
     RunNextStage->>Stage: run the stage in next_stage
 
     Note over Stage,ProcessChunks: Divide the work into chunks
@@ -105,6 +113,7 @@ sequenceDiagram
 
     Stage->>ProcessChunks: process_chunks(chunks)
     loop for each chunk that is not finished
+        ProcessChunks-->>Developer: progress message (stderr)
         ProcessChunks->>Stage: run chunk
         Stage->>RfaPolicy: run(rfa with pre-computed context)
         RfaPolicy->>Claude: RFA

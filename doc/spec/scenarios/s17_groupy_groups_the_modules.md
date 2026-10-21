@@ -5,7 +5,7 @@
 ## Groupy groups the modules
 
 To keep the workload per Claude request reasonable, the stages process the modules in *groups*, and the groups in
-chunks (see s02). The first stage, group-modules, assigns each module to a group. Since it is a stage of its own
+chunks. The first stage, group-modules, assigns each module to a group. Since it is a stage of its own
 (and not part of `groupy init`), the developer can choose how the modules are grouped in the config file that
 `groupy init` wrote, before the grouping happens.
 

@@ -86,7 +86,8 @@ changes made by the previous chunks (parsing takes seconds, which is small compa
   which function is called: e.g. for `obj.save()`, where the type of `obj` is unknown, there is an uncertain edge to
   every `save` method in the target code. A call of a method of `self` is certain, unless a subclass overrides the
   method.
-- The call graph is stored in `.groupy/call-graph.yaml`. It is derived from the code, so it is not committed.
+- The call graph is stored in the per-branch dir (`.groupy/<branch-name>/call-graph.yaml`). It is derived from the
+  code, so it is not committed.
 
 `mark_helper_candidates` sets `is_helper_candidate` on the function nodes of the chunk that have exactly one caller,
 where this caller is a function or method in the same module that calls it through a certain edge. Dunder methods
