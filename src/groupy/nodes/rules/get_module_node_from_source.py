@@ -6,12 +6,13 @@ from groupy.nodes.models.class_node import ClassNode
 from groupy.nodes.models.function_node import FunctionNode
 from groupy.nodes.models.module_node import ModuleNode
 from groupy.nodes.models.variable_node import VariableNode
+from groupy.utils.read_source import read_source
 
 _FUNCTION_DEFS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
 def get_module_node_from_source(source_root: Path, module_name: str) -> ModuleNode:
-    text = (source_root / module_name).read_text()
+    text = read_source(source_root / module_name)
     tree = ast.parse(text)
 
     # Functions that are nested in the code have no node of their own

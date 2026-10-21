@@ -20,6 +20,7 @@ from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
 from groupy.restructure.actions.localize_import import localize_import
 from groupy.restructure.actions.record_delegation import record_delegation
 from groupy.restructure.rules.has_code import has_code
+from groupy.utils.read_source import read_source
 
 
 def restructure_module(
@@ -138,7 +139,7 @@ def _move_nodes(
         *module_node.variable_nodes,
     ]
     source_names = list(
-        get_scope_symbols(ast.parse((source_root / module_name).read_text()))
+        get_scope_symbols(ast.parse(read_source(source_root / module_name)))
     )
     nodes_to_move = sorted(
         (node for node in nodes if node.move_to_file),
@@ -184,7 +185,7 @@ def _refresh_line_counts(source_root: Path) -> None:
     for module_name in get_module_names(source_root):
         node_file_path = get_module_node_file_path(source_root, module_name)
         module_node = load_module_node(node_file_path)
-        line_count = len((source_root / module_name).read_text().splitlines())
+        line_count = len(read_source(source_root / module_name).splitlines())
         if module_node.line_count != line_count:
             module_node.line_count = line_count
             save_module_node(module_node, node_file_path)

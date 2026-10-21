@@ -3,6 +3,7 @@ import typing as T
 from pathlib import Path
 
 from groupy.nodes.rules.get_target_module_names import get_target_module_names
+from groupy.utils.read_source import read_source
 
 
 def find_class_def(
@@ -11,7 +12,7 @@ def find_class_def(
     # Finds the class that the name refers to in the module (defined in the module,
     # or imported from another module of the target code). Returns the module of
     # the class and its definition.
-    tree = ast.parse((source_root / module_name).read_text())
+    tree = ast.parse(read_source(source_root / module_name))
     for statement in tree.body:
         if isinstance(statement, ast.ClassDef) and statement.name == class_name:
             return module_name, statement

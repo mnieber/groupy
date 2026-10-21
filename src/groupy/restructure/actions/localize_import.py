@@ -2,6 +2,7 @@ import ast
 from pathlib import Path
 
 from groupy.utils.get_dotted_name import get_dotted_name
+from groupy.utils.read_source import read_source
 
 
 def localize_import(
@@ -17,7 +18,7 @@ def localize_import(
     # imports the class (which would be a circular import)
     path = source_root / module_name
     dotted_name = get_dotted_name(target_module_name)
-    lines = path.read_text().splitlines(keepends=True)
+    lines = read_source(path).splitlines(keepends=True)
 
     # Remove the module-level import
     for statement in ast.parse("".join(lines)).body:

@@ -15,6 +15,7 @@ from groupy.renamings.rules.create_delegation import create_delegation
 from groupy.renamings.rules.find_scope_def import find_scope_def
 from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
 from groupy.renamings.utils.get_symbol_offset import get_symbol_offset
+from groupy.utils.read_source import read_source
 
 
 class RopeRefactoringPolicy(RefactoringPolicy):
@@ -26,7 +27,7 @@ class RopeRefactoringPolicy(RefactoringPolicy):
         name: str,
         new_name: str,
     ) -> None:
-        text = (source_root / module_name).read_text()
+        text = read_source(source_root / module_name)
         scope_def = find_scope_def(ast.parse(text), scope_location)
         symbols = get_scope_symbols(scope_def) if scope_def else {}
         if name not in symbols:
@@ -85,7 +86,7 @@ class RopeRefactoringPolicy(RefactoringPolicy):
     def move_symbol(
         self, source_root: Path, module_name: str, name: str, target_module_name: str
     ) -> None:
-        text = (source_root / module_name).read_text()
+        text = read_source(source_root / module_name)
         symbols = get_scope_symbols(ast.parse(text))
         if name not in symbols:
             raise SymbolNotFoundError(f"{module_name} has no symbol {name}")
@@ -115,7 +116,7 @@ class RopeRefactoringPolicy(RefactoringPolicy):
     ) -> None:
         path = source_root / module_name
         path.write_text(
-            create_delegation(path.read_text(), class_name, method_name, function_name)
+            create_delegation(read_source(path), class_name, method_name, function_name)
         )
 
 

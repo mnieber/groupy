@@ -6,6 +6,7 @@ from groupy.nodes.models.class_node import ClassNode
 from groupy.nodes.models.function_node import FunctionNode
 from groupy.nodes.models.module_node import ModuleNode
 from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
+from groupy.utils.read_source import read_source
 
 
 def insert_node_in_source_order(
@@ -19,7 +20,7 @@ def insert_node_in_source_order(
         nodes = module_node.class_nodes
     else:
         nodes = module_node.variable_nodes
-    text = (source_root / module_node.name).read_text()
+    text = read_source(source_root / module_node.name)
     source_names = list(get_scope_symbols(ast.parse(text)))
     following_names = (
         source_names[source_names.index(node.name) + 1 :]

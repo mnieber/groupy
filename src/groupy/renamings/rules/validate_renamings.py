@@ -9,6 +9,7 @@ from groupy.renamings.rules.find_scope_conflicts import find_scope_conflicts
 from groupy.renamings.rules.find_scope_def import find_scope_def
 from groupy.renamings.rules.get_scope_renamings import get_scope_renamings
 from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
+from groupy.utils.read_source import read_source
 
 
 def validate_renamings(
@@ -21,7 +22,7 @@ def validate_renamings(
         module_node = load_module_node(
             get_module_node_file_path(source_root, module_name)
         )
-        tree = ast.parse((source_root / module_name).read_text())
+        tree = ast.parse(read_source(source_root / module_name))
         for scope in get_scope_renamings(module_node):
             scope_def = find_scope_def(tree, scope.scope_location)
             existing_names = set(get_scope_symbols(scope_def)) if scope_def else set()

@@ -13,6 +13,7 @@ from groupy.renamings.rules.get_scope_renamings import get_scope_renamings
 from groupy.renamings.rules.get_scope_symbols import get_scope_symbols
 from groupy.renamings.rules.order_renamings import order_renamings
 from groupy.renamings.utils.rename_keys import rename_keys
+from groupy.utils.read_source import read_source
 
 
 def apply_module_renamings(
@@ -33,7 +34,7 @@ def apply_module_renamings(
         for name, new_name in order_renamings(scope.renamings):
             # A renaming of something that is not a symbol in the source (e.g. a
             # concept) only renames the keys in the node file
-            tree = ast.parse((source_root / module_name).read_text())
+            tree = ast.parse(read_source(source_root / module_name))
             scope_def = find_scope_def(tree, scope.scope_location)
             if scope_def and name in get_scope_symbols(scope_def):
                 refactoring_policy.rename_symbol(

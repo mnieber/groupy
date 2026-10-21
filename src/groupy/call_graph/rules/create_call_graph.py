@@ -7,6 +7,7 @@ from dataclassy import dataclass
 from groupy.call_graph.models.call_edge import CallEdge
 from groupy.call_graph.models.call_graph import CallGraph
 from groupy.nodes.rules.get_target_module_names import get_target_module_names
+from groupy.utils.read_source import read_source
 
 _FUNCTION_DEFS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -63,7 +64,7 @@ def _get_dotted_name(module_name: str) -> str:
 
 
 def _create_module_info(source_root: Path, module_name: str) -> _ModuleInfo:
-    tree = ast.parse((source_root / module_name).read_text())
+    tree = ast.parse(read_source(source_root / module_name))
     module_info = _ModuleInfo(module_name=module_name, tree=tree)
     package = _get_dotted_name(module_name)
     if not module_name.endswith("__init__.py"):

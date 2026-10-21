@@ -4,6 +4,7 @@ from pathlib import Path
 from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
 from groupy.utils.get_changed_files import get_changed_files
+from groupy.utils.read_source import read_source
 
 
 def commit_refactoring(description: str) -> None:
@@ -14,7 +15,7 @@ def commit_refactoring(description: str) -> None:
         if path.suffix != ".py" or not path.exists():
             continue
         try:
-            ast.parse(path.read_text())
+            ast.parse(read_source(path))
         except SyntaxError as error:
             restore_working_tree()
             raise RefactoringDoesNotParseError(

@@ -9,6 +9,7 @@ from groupy.nodes.rules.get_module_node_file_path import get_module_node_file_pa
 from groupy.nodes.rules.get_top_level_function_names import get_top_level_function_names
 from groupy.nodes.rules.load_module_node import load_module_node
 from groupy.renamings.rules.find_scope_def import find_scope_def
+from groupy.utils.read_source import read_source
 
 PROMPT = """\
 Extract a part of the function at the location in the module into the new top-level
@@ -46,7 +47,7 @@ def extract_method(
         raise ExtractMethodFailedError(
             f"The extraction did not add the function {new_name} to {module_name}"
         )
-    tree = ast.parse((source_root / module_name).read_text())
+    tree = ast.parse(read_source(source_root / module_name))
     if find_scope_def(tree, location) is None:
         raise ExtractMethodFailedError(
             f"The extraction of {new_name} removed {location} from {module_name}"
