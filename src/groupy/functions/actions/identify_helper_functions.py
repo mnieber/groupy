@@ -6,6 +6,7 @@ from groupy.claude_requests.rules.create_rfa_policy import create_rfa_policy
 from groupy.functions.actions.mark_helper_candidates import mark_helper_candidates
 from groupy.functions.actions.rename_helper_functions import rename_helper_functions
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.renamings.rules.create_refactoring_policy import create_refactoring_policy
 from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
@@ -13,6 +14,7 @@ from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
 from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_branch_dir import get_branch_dir
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -57,7 +59,8 @@ def identify_helper_functions() -> None:
             raise
         commit_stage_changes("rename_helper_functions")
 
-    chunks = get_chunks(
-        source_root, get_groupy_path("groups.txt"), config.max_chunk_lines
+    chunks = get_active_chunks(
+        get_chunks(source_root, get_groupy_path("groups.txt"), config.max_chunk_lines),
+        get_exclude_patterns(),
     )
     process_chunks(Stages.IDENTIFY_HELPER_FUNCTIONS, chunks, _run_chunk)

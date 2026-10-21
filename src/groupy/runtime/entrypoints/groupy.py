@@ -157,6 +157,13 @@ def _parse_args(argv):
         help="Start at the start of a stage ([<branch_name>/]<stage_name>)",
     )
     init_parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="A glob pattern (relative to the target dir) of files that are not "
+        "refactored (can be repeated)",
+    )
+    init_parser.add_argument(
         "--accept-risks",
         action="store_true",
         help="Accept the risks of using groupy without being asked",
@@ -229,6 +236,9 @@ def _parse_args(argv):
     if args.command == "init":
         if args.from_stage and args.target_dir:
             parser.error("argument --target-dir: not allowed with --from-stage")
+        # The new branch keeps the exclude patterns of the session it starts from
+        if args.from_stage and args.exclude:
+            parser.error("argument --exclude: not allowed with --from-stage")
         if not args.from_stage and not args.target_dir:
             parser.error("the following arguments are required: --target-dir")
     return args
@@ -278,6 +288,7 @@ def _init(args):
             base_branch=args.base,
             from_stage=from_stage,
             from_branch=from_branch,
+            exclude=args.exclude,
         )
     )
     return 0

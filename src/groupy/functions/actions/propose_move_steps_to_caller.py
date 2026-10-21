@@ -6,11 +6,13 @@ from groupy.functions.rules.get_caller_sources import get_caller_sources
 from groupy.functions.rules.get_function_locations import get_function_locations
 from groupy.functions.rules.is_move_step_candidate import is_move_step_candidate
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.nodes.rules.get_module_sources import get_module_sources
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_branch_dir import get_branch_dir
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -70,7 +72,8 @@ def propose_move_steps_to_caller() -> None:
             )
         )
 
-    chunks = get_chunks(
-        source_root, get_groupy_path("groups.txt"), config.max_chunk_lines
+    chunks = get_active_chunks(
+        get_chunks(source_root, get_groupy_path("groups.txt"), config.max_chunk_lines),
+        get_exclude_patterns(),
     )
     process_chunks(Stages.PROPOSE_MOVE_STEPS_TO_CALLER, chunks, _run_chunk)

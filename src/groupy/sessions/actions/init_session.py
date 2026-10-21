@@ -39,6 +39,7 @@ class InitSessionForm:
     # default the current branch)
     from_stage: str = ""
     from_branch: str = ""
+    exclude: T.List[str] = []
 
 
 def init_session(form: InitSessionForm) -> str:
@@ -84,6 +85,7 @@ def _create_session(form: InitSessionForm, branch_name: str) -> None:
             next_stage=Stages.GROUP_MODULES.value,
             target_dir=form.target_dir,
             base_branch=form.base_branch,
+            exclude=form.exclude,
         )
     )
 

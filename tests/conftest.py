@@ -27,6 +27,7 @@ ENABLED_TEST_PACKAGES = [
     "propose_module_layout_tests",
     "propose_code_restructure_tests",
     "apply_code_restructure_tests",
+    "exclude_tests",
 ]
 
 collect_ignore = [

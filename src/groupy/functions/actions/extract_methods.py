@@ -6,6 +6,7 @@ from groupy.functions.rules.find_extract_method_candidates import (
     find_extract_method_candidates,
 )
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.nodes.rules.get_module_sources import get_module_sources
 from groupy.renamings.rules.create_refactoring_policy import create_refactoring_policy
@@ -13,6 +14,7 @@ from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
 from groupy.sessions.enums import Stages
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -78,8 +80,9 @@ def extract_methods() -> None:
         if renamed:
             commit_stage_changes("rename_helper_functions")
 
-    chunks = get_chunks(
-        source_root, get_groupy_path("groups.txt"), config.max_chunk_lines
+    chunks = get_active_chunks(
+        get_chunks(source_root, get_groupy_path("groups.txt"), config.max_chunk_lines),
+        get_exclude_patterns(),
     )
     process_chunks(Stages.EXTRACT_METHODS, chunks, _run_chunk)
 

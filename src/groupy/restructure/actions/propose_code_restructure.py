@@ -7,8 +7,11 @@ from groupy.claude_requests.rules.create_rfa_policy import create_rfa_policy
 from groupy.concepts.rules.get_glossary_path import get_glossary_path
 from groupy.concepts.rules.get_glossary_text import get_glossary_text
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
+from groupy.nodes.rules.get_module_names import get_module_names
 from groupy.nodes.rules.get_module_sources import get_module_sources
+from groupy.nodes.rules.get_passive_module_names import get_passive_module_names
 from groupy.package_nodes.rules.get_package_node_file_path import (
     get_package_node_file_path,
 )
@@ -20,6 +23,7 @@ from groupy.restructure.rules.validate_code_restructure import validate_code_res
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_branch_dir import get_branch_dir
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -55,6 +59,12 @@ def propose_code_restructure() -> None:
     config = load_config(get_groupy_path("config.yaml"))
     rfa_policy = create_rfa_policy(config)
     source_root = get_source_root()
+    exclude_patterns = get_exclude_patterns()
+
+    # A proposal in a passive file is a problem, also outside the chunk
+    passive_module_names = get_passive_module_names(
+        get_module_names(source_root), exclude_patterns
+    )
     call_graph_path = get_branch_dir() / "call-graph.yaml"
 
     def _run_chunk(chunk: Chunk, rfa_id: str) -> None:
@@ -78,7 +88,9 @@ def propose_code_restructure() -> None:
         problems = run_rfa_with_follow_up(
             rfa_policy,
             rfa,
-            lambda: validate_code_restructure(source_root, chunk.module_names),
+            lambda: validate_code_restructure(
+                source_root, chunk.module_names, passive_module_names
+            ),
             "restructure_problems",
             FOLLOW_UP_PROMPT,
         )
@@ -87,8 +99,9 @@ def propose_code_restructure() -> None:
                 "The proposed code restructure has problems:\n" + "\n".join(problems)
             )
 
-    chunks = get_chunks(
-        source_root, get_groupy_path("groups.txt"), config.max_chunk_lines
+    chunks = get_active_chunks(
+        get_chunks(source_root, get_groupy_path("groups.txt"), config.max_chunk_lines),
+        exclude_patterns,
     )
     process_chunks(Stages.PROPOSE_CODE_RESTRUCTURE, chunks, _run_chunk)
     report_dependency_violations(source_root, call_graph_path)

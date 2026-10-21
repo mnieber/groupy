@@ -22,3 +22,5 @@ class Config:
     max_chunk_lines: int = 500
     claude_model: str = ""
     claude_model_by_stage: T.Dict[str, str] = {}
+    # Glob patterns of passive files, on top of the exclude field of the session
+    exclude: T.List[str] = []

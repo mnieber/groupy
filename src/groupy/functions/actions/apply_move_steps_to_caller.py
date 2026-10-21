@@ -7,12 +7,16 @@ from groupy.claude_requests.rules.create_rfr_policy import create_rfr_policy
 from groupy.functions.rules.find_steps_to_move import find_steps_to_move
 from groupy.functions.rules.get_caller_sources import get_caller_sources
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
+from groupy.nodes.rules.get_module_names import get_module_names
 from groupy.nodes.rules.get_module_sources import get_module_sources
+from groupy.nodes.rules.get_passive_module_names import get_passive_module_names
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
 from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_branch_dir import get_branch_dir
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -38,6 +42,7 @@ def apply_move_steps_to_caller() -> None:
     config = load_config(get_groupy_path("config.yaml"))
     rfr_policy = create_rfr_policy(config)
     source_root = get_source_root()
+    exclude_patterns = get_exclude_patterns()
     call_graph_path = get_branch_dir() / "call-graph.yaml"
 
     def _find_lines(chunk: Chunk) -> T.List[str]:
@@ -96,8 +101,23 @@ def apply_move_steps_to_caller() -> None:
                 "These steps are not moved: " + ", ".join(unapplied_moves)
             )
 
-    chunks = get_chunks(
-        source_root, get_groupy_path("groups.txt"), config.max_chunk_lines
+    # The steps of passive files are not moved
+    passive_steps_to_move = find_steps_to_move(
+        source_root,
+        get_passive_module_names(get_module_names(source_root), exclude_patterns),
+    )
+    if passive_steps_to_move:
+        raise PassiveStepMovesError(
+            "These steps to move are in a passive file: "
+            + ", ".join(
+                f"{node_location}: {step}"
+                for node_location, _, step in passive_steps_to_move
+            )
+        )
+
+    chunks = get_active_chunks(
+        get_chunks(source_root, get_groupy_path("groups.txt"), config.max_chunk_lines),
+        exclude_patterns,
     )
     process_chunks(Stages.APPLY_MOVE_STEPS_TO_CALLER, chunks, _run_chunk)
 
@@ -107,4 +127,8 @@ class UncommittedRefactoringError(Exception):
 
 
 class UnappliedStepMovesError(Exception):
+    pass
+
+
+class PassiveStepMovesError(Exception):
     pass

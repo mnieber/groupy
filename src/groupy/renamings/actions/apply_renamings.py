@@ -1,6 +1,9 @@
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
+from groupy.nodes.rules.get_active_module_names import get_active_module_names
 from groupy.nodes.rules.get_module_names import get_module_names
+from groupy.nodes.rules.get_passive_module_names import get_passive_module_names
 from groupy.renamings.actions.apply_module_renamings import apply_module_renamings
 from groupy.renamings.actions.propose_renamings import ProposedRenamingHasConflictError
 from groupy.renamings.rules.create_refactoring_policy import create_refactoring_policy
@@ -9,6 +12,7 @@ from groupy.sessions.actions.commit_stage_changes import commit_stage_changes
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
 from groupy.sessions.enums import Stages
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -21,7 +25,13 @@ def apply_renamings() -> None:
 
     # The developer may have edited the renamings, so they are checked again
     # before anything changes
-    conflicts = validate_renamings(source_root, get_module_names(source_root))
+    exclude_patterns = get_exclude_patterns()
+    module_names = get_module_names(source_root)
+    conflicts = validate_renamings(
+        source_root,
+        get_active_module_names(module_names, exclude_patterns),
+        get_passive_module_names(module_names, exclude_patterns),
+    )
     if conflicts:
         raise ProposedRenamingHasConflictError(
             "The proposed renamings have conflicts:\n" + "\n".join(conflicts)
@@ -40,7 +50,8 @@ def apply_renamings() -> None:
             if has_renamings:
                 commit_stage_changes(f"apply the renamings of {module_name}")
 
-    chunks = get_chunks(
-        source_root, get_groupy_path("groups.txt"), config.max_chunk_lines
+    chunks = get_active_chunks(
+        get_chunks(source_root, get_groupy_path("groups.txt"), config.max_chunk_lines),
+        exclude_patterns,
     )
     process_chunks(Stages.APPLY_RENAMINGS, chunks, _run_chunk)

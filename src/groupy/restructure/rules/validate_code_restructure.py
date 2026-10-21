@@ -6,6 +6,7 @@ from groupy.nodes.rules.get_module_node_file_path import get_module_node_file_pa
 from groupy.nodes.rules.load_module_node import load_module_node
 from groupy.restructure.models.proposed_code_unit import ProposedCodeUnit
 from groupy.restructure.rules.find_delegation_problem import find_delegation_problem
+from groupy.restructure.rules.find_passive_proposals import find_passive_proposals
 from groupy.restructure.rules.get_location_rule import get_location_rule
 from groupy.restructure.rules.get_proposed_code_units import get_proposed_code_units
 
@@ -14,10 +15,11 @@ PUBLIC_CODE_UNIT_TYPES = ("action", "rule", "model", "entrypoint", "policy")
 
 
 def validate_code_restructure(
-    source_root: Path, module_names: T.List[str]
+    source_root: Path, module_names: T.List[str], passive_module_names: T.List[str]
 ) -> T.List[str]:
     # Validates the proposal of all node files, and returns the problems of the
-    # nodes in the modules, as sorted lines <module>:<location>: <description>
+    # nodes in the modules, as sorted lines <module>:<location>: <description>. A
+    # proposal in a passive file is also a problem.
     all_module_names = get_module_names(source_root)
     code_units = get_proposed_code_units(source_root, all_module_names)
     problems = []
@@ -29,6 +31,7 @@ def validate_code_restructure(
                 problems.append(
                     f"{code_unit.module_name}:{code_unit.location}: {description}"
                 )
+    problems.extend(find_passive_proposals(source_root, passive_module_names))
     return sorted(problems)
 
 

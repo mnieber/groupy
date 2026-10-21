@@ -1,6 +1,9 @@
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
+from groupy.nodes.rules.get_active_module_names import get_active_module_names
 from groupy.nodes.rules.get_module_names import get_module_names
+from groupy.nodes.rules.get_passive_module_names import get_passive_module_names
 from groupy.renamings.rules.create_refactoring_policy import create_refactoring_policy
 from groupy.restructure.actions.propose_code_restructure import (
     CodeRestructureHasProblemsError,
@@ -15,6 +18,7 @@ from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.restore_working_tree import restore_working_tree
 from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_branch_dir import get_branch_dir
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -28,7 +32,13 @@ def apply_code_restructure() -> None:
 
     # The developer may have edited the proposal, so it is validated again before
     # anything changes. The restructured modules have no proposal left.
-    problems = validate_code_restructure(source_root, get_module_names(source_root))
+    exclude_patterns = get_exclude_patterns()
+    module_names = get_module_names(source_root)
+    problems = validate_code_restructure(
+        source_root,
+        get_active_module_names(module_names, exclude_patterns),
+        get_passive_module_names(module_names, exclude_patterns),
+    )
     if problems:
         raise CodeRestructureHasProblemsError(
             "The proposed code restructure has problems:\n" + "\n".join(problems)
@@ -49,5 +59,8 @@ def apply_code_restructure() -> None:
             if changed:
                 commit_stage_changes(f"restructure {module_name}")
 
-    chunks = get_chunks(source_root, group_file_path, config.max_chunk_lines)
+    chunks = get_active_chunks(
+        get_chunks(source_root, group_file_path, config.max_chunk_lines),
+        exclude_patterns,
+    )
     process_chunks(Stages.APPLY_CODE_RESTRUCTURE, chunks, _run_chunk)

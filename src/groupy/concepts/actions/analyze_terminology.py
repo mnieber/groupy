@@ -8,12 +8,14 @@ from groupy.concepts.rules.find_unanalyzed_nodes import find_unanalyzed_nodes
 from groupy.concepts.rules.get_glossary_path import get_glossary_path
 from groupy.concepts.rules.get_glossary_text import get_glossary_text
 from groupy.groups.models.chunk import Chunk
+from groupy.groups.rules.get_active_chunks import get_active_chunks
 from groupy.groups.rules.get_chunks import get_chunks
 from groupy.nodes.rules.get_module_sources import get_module_sources
 from groupy.sessions.actions.process_chunks import process_chunks
 from groupy.sessions.actions.run_unfinished_step import run_unfinished_step
 from groupy.sessions.enums import Stages
 from groupy.sessions.rules.get_branch_dir import get_branch_dir
+from groupy.sessions.rules.get_exclude_patterns import get_exclude_patterns
 from groupy.sessions.rules.get_groupy_path import get_groupy_path
 from groupy.sessions.rules.get_source_root import get_source_root
 from groupy.sessions.rules.load_config import load_config
@@ -86,8 +88,9 @@ def analyze_terminology() -> None:
             )
         )
 
-    chunks = get_chunks(
-        source_root, get_groupy_path("groups.txt"), config.max_chunk_lines
+    chunks = get_active_chunks(
+        get_chunks(source_root, get_groupy_path("groups.txt"), config.max_chunk_lines),
+        get_exclude_patterns(),
     )
     process_chunks(Stages.ANALYZE_TERMINOLOGY, chunks, _run_chunk)
 

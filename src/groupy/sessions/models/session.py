@@ -13,6 +13,8 @@ class Session:
     target_dir: str
     base_branch: str
     finished_chunks: T.List[str] = []
+    # Glob patterns (relative to the target dir) of the passive files
+    exclude: T.List[str] = []
 
 
 _session: T.Optional[Session] = None
