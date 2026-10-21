@@ -46,9 +46,7 @@ def run_claude(
         "-p",
         prompt
         + "\n"
-        + get_preamble(
-            request_id, context_path.resolve(), get_source_root(), in_rfr
-        ),
+        + get_preamble(request_id, context_path.resolve(), get_source_root(), in_rfr),
         "--output-format",
         "stream-json",
         "--verbose",

@@ -1,3 +1,4 @@
+import os
 import subprocess
 import typing as T
 from dataclasses import dataclass
@@ -82,6 +83,10 @@ class TestEnv:
         per-branch dirs of Groupy, and the `myapp` package in target_dir. The
         cwd becomes the repo dir, which is where the developer runs groupy."""
         self.repo_dir.mkdir(parents=True)
+        # The global git config of the developer must not influence the tests
+        # (e.g. a global ignore file that ignores the per-branch dirs)
+        self.context.monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+        self.context.monkeypatch.setenv("GIT_CONFIG_SYSTEM", os.devnull)
         self.write_file("README.md", "# My app\n")
         self.write_file(".gitignore", "/.groupy/*/\n")
         self.write_file(f"{target_dir}/myapp/__init__.py", "")

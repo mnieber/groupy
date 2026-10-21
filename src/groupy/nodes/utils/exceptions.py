@@ -2,6 +2,10 @@ class NodeNotFoundError(Exception):
     pass
 
 
+class EmbeddedFunctionNodeNotFoundError(NodeNotFoundError):
+    pass
+
+
 class AmbiguousLocationError(Exception):
     pass
 

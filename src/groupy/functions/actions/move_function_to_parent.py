@@ -2,7 +2,9 @@ from pathlib import Path
 
 from groupy.nodes.actions.save_module_node import save_module_node
 from groupy.nodes.models.function_node import FunctionNode
-from groupy.nodes.rules.find_located_node import find_located_node
+from groupy.nodes.rules.find_located_node_in_source import (
+    find_located_node_in_source,
+)
 from groupy.nodes.rules.get_module_node_file_path import get_module_node_file_path
 from groupy.nodes.rules.load_module_node import load_module_node
 
@@ -12,8 +14,12 @@ def move_function_to_parent(
 ) -> None:
     node_file_path = get_module_node_file_path(source_root, module_name)
     module_node = load_module_node(node_file_path)
-    located_function = find_located_node(module_node, function_location)
-    parent = find_located_node(module_node, parent_location).node
+    located_function = find_located_node_in_source(
+        source_root, module_name, module_node, function_location
+    )
+    parent = find_located_node_in_source(
+        source_root, module_name, module_node, parent_location
+    ).node
 
     function_node = located_function.node
     if not isinstance(function_node, FunctionNode) or not isinstance(

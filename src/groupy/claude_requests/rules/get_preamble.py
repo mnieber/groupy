@@ -34,7 +34,8 @@ For example:
 - location identifies a node in the node file of the module: @module for the module
   itself, create_book for a function, Book for a class, Book.save for a method,
   MAX_CHAPTERS for a module-level variable, and create_report._format_lines for a
-  helper function of create_report. A location in
+  helper function of create_report. A function that is nested in another function
+  (an embedded function) has no node: don't make callbacks for it. A location in
   the context of the form <module_name>:<location> (e.g. myapp/books.py:create_book)
   has these two parts; the queries get_callers, get_callees and get_source take
   such a full location.
