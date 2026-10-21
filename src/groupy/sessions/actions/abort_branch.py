@@ -4,6 +4,7 @@ from pathlib import Path
 from groupy.sessions.actions.discard_and_checkout import discard_and_checkout
 from groupy.sessions.rules.get_branch_dir import get_branch_dir
 from groupy.sessions.rules.get_branch_tags import get_branch_tags
+from groupy.sessions.models.session import get_session
 from groupy.sessions.rules.get_groupy_branch_session import (
     get_groupy_branch_session,
 )
@@ -13,7 +14,8 @@ from groupy.utils.run_git import run_git
 def abort_branch(branch_name: str, is_current: bool) -> Path:
     # Deletes the branch and its tags, and returns the path of the script that
     # undoes this. The per-branch dir is kept.
-    session = get_groupy_branch_session(branch_name)
+    # The session file of the current branch may not be committed yet
+    session = get_session() if is_current else get_groupy_branch_session(branch_name)
     tags = get_branch_tags(branch_name)
 
     # Write the undo script
