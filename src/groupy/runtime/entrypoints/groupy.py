@@ -542,7 +542,11 @@ def _callback(args):
     return 0
 
 
-def _print_error(error, command, verbose):
+def _print_error(error, verbose, print_stack_trace):
+    if print_stack_trace:
+        traceback.print_exception(type(error), error, error.__traceback__)
+        print()
+
     stage_id = getattr(error, "groupy_stage_id", None)
     if stage_id:
         request_id = getattr(error, "groupy_request_id", "") or stage_id
@@ -619,10 +623,10 @@ def main(argv=None):
             return 0
         return _run_command(args)
     except KeyboardInterrupt as error:
-        _print_error(error, args.command, args.verbose)
+        _print_error(error, args.command, args.verbose, print_stack_trace=True)
         return 130
     except Exception as error:
-        _print_error(error, args.command, args.verbose)
+        _print_error(error, args.command, args.verbose, print_stack_trace=True)
         return 1
 
 
