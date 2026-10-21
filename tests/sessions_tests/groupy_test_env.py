@@ -78,10 +78,12 @@ class TestEnv:
 
     def create_repo_with_target_code(self, target_dir: str = "src") -> None:
         """Creates a git repo (on branch `main`, with a clean working tree)
-        with a README and the `myapp` package in target_dir. The cwd becomes
-        the repo dir, which is where the developer runs groupy."""
+        with a README, a .gitignore for the
+        per-branch dirs of Groupy, and the `myapp` package in target_dir. The
+        cwd becomes the repo dir, which is where the developer runs groupy."""
         self.repo_dir.mkdir(parents=True)
         self.write_file("README.md", "# My app\n")
+        self.write_file(".gitignore", "/.groupy/*/\n")
         self.write_file(f"{target_dir}/myapp/__init__.py", "")
         self.write_file(f"{target_dir}/myapp/books.py", BOOKS_PY)
         self.write_file(f"{target_dir}/myapp/chapters/__init__.py", "")
@@ -226,9 +228,9 @@ class TestEnv:
     def commit_of(self, revision: str) -> str:
         return self._git("rev-parse", f"{revision}^{{commit}}")
 
-    def git_excludes(self) -> T.List[str]:
-        """Returns the lines of the local exclude file of the repo."""
-        path = self.repo_dir / self._git("rev-parse", "--git-path", "info/exclude")
+    def git_ignores(self) -> T.List[str]:
+        """Returns the lines of the .gitignore file of the repo."""
+        path = self.repo_dir / ".gitignore"
         return path.read_text().splitlines() if path.exists() else []
 
     def groupy_branch_path(self, file_name: str) -> str:

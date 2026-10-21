@@ -20,3 +20,7 @@ class StageNotStartedError(Exception):
 
 class DetachedHeadError(Exception):
     pass
+
+
+class BranchDirsNotIgnoredError(Exception):
+    pass

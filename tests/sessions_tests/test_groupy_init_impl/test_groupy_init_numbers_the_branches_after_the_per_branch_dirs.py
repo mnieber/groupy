@@ -16,7 +16,6 @@ def test_groupy_init_numbers_the_branches_after_the_per_branch_dirs(context: Con
         env.create_repo_with_target_code(),
         env.make_per_branch_dir("groupy-7"),
         env.make_per_branch_dir("refactor-myapp"),
-        env.exclude_per_branch_dirs(),
     ):
         assert env.git_status() == ""
 
@@ -36,7 +35,3 @@ class Env(TestEnv):
         """Makes the per-branch dir of a branch, with a log in it."""
         self.write_file(f".groupy/{branch_name}/logs/request.jsonl", "")
 
-    def exclude_per_branch_dirs(self) -> None:
-        """Excludes the per-branch dirs from git, as an earlier groupy init
-        did."""
-        self.write_file(".git/info/exclude", "/.groupy/*/\n")

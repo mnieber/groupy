@@ -5,14 +5,14 @@ from dataclassy import dataclass
 
 from groupy.nodes.actions.create_node_files import create_node_files
 from groupy.sessions.actions.commit_changes import commit_changes
-from groupy.sessions.actions.exclude_branch_dirs_from_git import (
-    exclude_branch_dirs_from_git,
-)
 from groupy.sessions.actions.save_config import save_config
 from groupy.sessions.actions.save_session import save_session
 from groupy.sessions.enums import Stages
 from groupy.sessions.models.config import Config
 from groupy.sessions.models.session import Session, reset_session
+from groupy.sessions.rules.check_branch_dirs_are_ignored import (
+    check_branch_dirs_are_ignored,
+)
 from groupy.sessions.rules.check_working_tree_is_clean import (
     check_working_tree_is_clean,
 )
@@ -58,11 +58,11 @@ def init_session(form: InitSessionForm) -> str:
     branch_name = form.branch_name or get_new_branch_name()
     if form.branch_name:
         _check_branch_name_is_new(branch_name)
+    check_branch_dirs_are_ignored(branch_name)
 
     # The new branch never starts from the current branch, unless it starts
     # from a stage of the current branch
     run_git("checkout", "-b", branch_name, start_point)
-    exclude_branch_dirs_from_git()
     get_branch_dir(branch_name).mkdir(parents=True, exist_ok=True)
     reset_session()
     if form.from_stage:

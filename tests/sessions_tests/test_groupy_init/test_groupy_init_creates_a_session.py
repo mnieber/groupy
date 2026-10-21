@@ -69,7 +69,7 @@ def test_groupy_init_creates_a_session(context: Context):
     # excluded from git.
     if env.step():
         assert env.file_exists(".groupy/refactor-myapp")
-        assert "/.groupy/*/" in env.git_excludes()
+        assert "/.groupy/*/" in env.git_ignores()
 
     # We look at the node files.
     #

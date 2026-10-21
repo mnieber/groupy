@@ -112,8 +112,9 @@ The new branch always starts from the base branch, also when `groupy init` runs 
 - A branch name may not contain a `/`.
 
 The files that Groupy doesn't commit (e.g. the logs of Claude and the last run) live in the *per-branch dir*
-`.groupy/<branch-name>/`, so that the sessions don't share them. Groupy excludes the per-branch dirs from git
-locally (in `.git/info/exclude`), so that no `.gitignore` is needed.</br>
+`.groupy/<branch-name>/`, so that the sessions don't share them. The `.gitignore` in the dir from which
+Groupy runs must ignore the per-branch dirs (`/.groupy/*/`) and be committed on the base branch, otherwise
+`groupy init` refuses to start.</br>
 Then Groupy writes the session file (`.groupy/session.yaml`). The session file contains:</br>
 
 - `target_dir`: the dir that contains the target code.

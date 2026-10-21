@@ -39,7 +39,7 @@ def test_groupy_init_keeps_the_per_branch_files_out_of_git(context: Context):
         assert env.git_branch() == "groupy-2"
         assert env.file_exists(".groupy/groupy-1/last-run.yaml")
         assert env.git_status() == ""
-        assert env.git_excludes().count("/.groupy/*/") == 1
+        assert env.git_ignores().count("/.groupy/*/") == 1
 
     # We look at the committed groupy files.
     #
