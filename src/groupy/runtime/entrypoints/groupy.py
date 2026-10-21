@@ -542,7 +542,7 @@ def _callback(args):
     return 0
 
 
-def _print_error(error, verbose, print_stack_trace):
+def _print_error(error, command, verbose, print_stack_trace):
     if print_stack_trace:
         traceback.print_exception(type(error), error, error.__traceback__)
         print()
