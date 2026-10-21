@@ -2,6 +2,7 @@ import re
 import typing as T
 from pathlib import Path
 
+import yaml
 from groupy_next_tests.fake_policies import (
     FakeRefactoringPolicy,
     FakeRfaPolicy,
@@ -183,6 +184,15 @@ class TestEnv(GroupyTestEnv):
             re.sub(r"^next_stage: .*$", f"next_stage: {stage_id}", text, flags=re.M),
         )
         self.commit_all(f"start at {stage_id}")
+
+    def set_session_exclude(self, *patterns: str) -> None:
+        """Lets the developer replace the exclude patterns in the session file,
+        and commits it."""
+        session_path = ".groupy/session.yaml"
+        data = yaml.safe_load(self.read_file(session_path))
+        data["exclude"] = list(patterns)
+        self.write_file(session_path, yaml.safe_dump(data))
+        self.commit_all("set the exclude patterns")
 
     def catch_error(self, env_action: T.Callable, *args, **kwargs) -> None:
         """Runs the env action and stores the exception it is expected to
